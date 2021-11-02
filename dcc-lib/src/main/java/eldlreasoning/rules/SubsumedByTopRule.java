@@ -1,25 +1,23 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expression.Expression;
-import eldlreasoning.expression.InitExpression;
-import eldlreasoning.expression.SubsumptionExpression;
+import eldlreasoning.expressions.Expression;
+import eldlreasoning.expressions.InitExpression;
+import eldlreasoning.expressions.SubsumptionExpression;
 import eldlreasoning.models.IdxConcept;
-import eldlreasoning.premise.ELPremiseContext;
+import eldlreasoning.premises.ELPremiseContext;
 
 import java.util.Queue;
 
 /**
  * C ⊑ ⊤ ⇐ init(C) : ⊤ occurs negatively in ontology O.
  */
-public class SubsumedByTopRule implements Rule {
+public class SubsumedByTopRule extends OWLELRule {
 
     private final IdxConcept top;
 
-    private final Queue<Expression> toDo;
-
     public SubsumedByTopRule(ELPremiseContext premiseContext, Queue<Expression> toDo) {
-        this.top = premiseContext.getTop();
-        this.toDo = toDo;
+        super(premiseContext, toDo);
+        this.top = this.premiseContext.getTop();
     }
 
     @Override

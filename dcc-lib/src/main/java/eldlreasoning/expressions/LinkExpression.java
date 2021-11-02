@@ -1,4 +1,4 @@
-package eldlreasoning.expression;
+package eldlreasoning.expressions;
 
 import eldlreasoning.models.IdxConcept;
 import eldlreasoning.models.IdxRole;
@@ -45,5 +45,10 @@ public class LinkExpression implements Expression {
     @Override
     public Stream<IdxConcept> streamOfConcepts() {
         return Stream.concat(firstConcept.streamOfConcepts(), secondConcept.streamOfConcepts());
+    }
+
+    @Override
+    public String toString() {
+        return this.firstConcept + " -" + this.role + "-> " + this.secondConcept;
     }
 }

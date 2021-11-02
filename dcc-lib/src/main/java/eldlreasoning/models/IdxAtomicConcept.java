@@ -27,4 +27,9 @@ public class IdxAtomicConcept extends IdxConcept {
     public Stream<IdxConcept> streamOfConcepts() {
         return Stream.of(this);
     }
+
+    @Override
+    public String toString() {
+        return this.id;
+    }
 }

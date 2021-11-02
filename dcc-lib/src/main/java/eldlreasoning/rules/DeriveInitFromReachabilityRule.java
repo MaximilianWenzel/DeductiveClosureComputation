@@ -1,26 +1,21 @@
 package eldlreasoning.rules;
 
 
-import eldlreasoning.expression.Expression;
-import eldlreasoning.expression.InitExpression;
-import eldlreasoning.expression.LinkExpression;
-import eldlreasoning.expression.SubsumptionExpression;
-import eldlreasoning.models.IdxConjunction;
-import eldlreasoning.premise.ELPremiseContext;
+import eldlreasoning.expressions.Expression;
+import eldlreasoning.expressions.InitExpression;
+import eldlreasoning.expressions.LinkExpression;
+import eldlreasoning.premises.ELPremiseContext;
 
 import java.util.Queue;
 
 /**
  * init(C) ⇐ E ⊑ ∃R.C
  */
-public class DeriveInitFromReachabilityRule implements Rule {
+public class DeriveInitFromReachabilityRule extends OWLELRule {
 
-    private final Queue<Expression> toDo;
-    private final ELPremiseContext premiseContext;
 
     public DeriveInitFromReachabilityRule(ELPremiseContext premiseContext, Queue<Expression> toDo) {
-        this.premiseContext = premiseContext;
-        this.toDo = toDo;
+        super(premiseContext, toDo);
     }
 
     @Override

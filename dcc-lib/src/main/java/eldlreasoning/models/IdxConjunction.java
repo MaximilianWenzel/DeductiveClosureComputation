@@ -4,12 +4,12 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 public class IdxConjunction extends IdxConcept {
-    protected IdxConcept firstConcept;
-    protected IdxConcept secondConcept;
+    protected IdxConcept firstConjunct;
+    protected IdxConcept secondConjunct;
 
-    public IdxConjunction(IdxConcept firstConcept, IdxConcept secondConcept) {
-        this.firstConcept = firstConcept;
-        this.secondConcept = secondConcept;
+    public IdxConjunction(IdxConcept firstConjunct, IdxConcept secondConjunct) {
+        this.firstConjunct = firstConjunct;
+        this.secondConjunct = secondConjunct;
     }
 
     @Override
@@ -17,26 +17,31 @@ public class IdxConjunction extends IdxConcept {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         IdxConjunction that = (IdxConjunction) o;
-        return firstConcept.equals(that.firstConcept) && secondConcept.equals(that.secondConcept);
+        return firstConjunct.equals(that.firstConjunct) && secondConjunct.equals(that.secondConjunct);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(firstConcept, secondConcept);
+        return Objects.hash(firstConjunct, secondConjunct);
     }
 
-    public IdxConcept getFirstConcept() {
-        return firstConcept;
+    public IdxConcept getFirstConjunct() {
+        return firstConjunct;
     }
 
-    public IdxConcept getSecondConcept() {
-        return secondConcept;
+    public IdxConcept getSecondConjunct() {
+        return secondConjunct;
     }
 
 
     @Override
     public Stream<IdxConcept> streamOfConcepts() {
-        Stream<IdxConcept> stream = Stream.concat(this.firstConcept.streamOfConcepts(), this.secondConcept.streamOfConcepts());
+        Stream<IdxConcept> stream = Stream.concat(this.firstConjunct.streamOfConcepts(), this.secondConjunct.streamOfConcepts());
         return Stream.concat(Stream.of(this), stream);
+    }
+
+    @Override
+    public String toString() {
+        return this.firstConjunct + " ⊓ " + this.secondConjunct;
     }
 }

@@ -7,10 +7,10 @@ public class ModifiableIdxConjunction extends IdxConjunction {
     }
 
     public void setFirstConcept(IdxConcept firstConcept) {
-        this.firstConcept = firstConcept;
+        this.firstConjunct = firstConcept;
     }
 
     public void setSecondConcept(IdxConcept secondConcept) {
-        this.secondConcept = secondConcept;
+        this.secondConjunct = secondConcept;
     }
 }

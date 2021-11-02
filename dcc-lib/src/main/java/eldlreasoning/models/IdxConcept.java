@@ -1,6 +1,6 @@
 package eldlreasoning.models;
 
-import eldlreasoning.expression.ConceptStreamBuilder;
+import eldlreasoning.expressions.ConceptStreamBuilder;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

@@ -1,4 +1,4 @@
-package eldlreasoning.expression;
+package eldlreasoning.expressions;
 
 public interface Expression extends ConceptStreamBuilder {
 

@@ -1,4 +1,4 @@
-package eldlreasoning.expression;
+package eldlreasoning.expressions;
 
 import eldlreasoning.models.IdxConcept;
 
@@ -33,5 +33,10 @@ public class InitExpression implements Expression {
     @Override
     public Stream<IdxConcept> streamOfConcepts() {
         return Stream.of(concept);
+    }
+
+    @Override
+    public String toString() {
+        return  "Init(" + this.concept + ")";
     }
 }

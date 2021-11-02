@@ -1,21 +1,20 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expression.Expression;
-import eldlreasoning.expression.InitExpression;
-import eldlreasoning.expression.SubsumptionExpression;
-import eldlreasoning.premise.ELPremiseContext;
+import eldlreasoning.expressions.Expression;
+import eldlreasoning.expressions.InitExpression;
+import eldlreasoning.expressions.SubsumptionExpression;
+import eldlreasoning.premises.ELPremiseContext;
 
 import java.util.Queue;
 
 /**
  * C ⊑ C ⇐ init(C)
  */
-public class ReflexiveSubsumptionRule implements Rule {
+public class ReflexiveSubsumptionRule extends OWLELRule {
 
-    private Queue<Expression> toDo;
 
     public ReflexiveSubsumptionRule(ELPremiseContext premiseContext, Queue<Expression> toDo) {
-        this.toDo = toDo;
+        super(premiseContext, toDo);
     }
 
     public void evaluate(Expression expression) {

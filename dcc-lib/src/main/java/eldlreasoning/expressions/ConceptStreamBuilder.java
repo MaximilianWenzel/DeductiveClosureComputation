@@ -1,4 +1,4 @@
-package eldlreasoning.expression;
+package eldlreasoning.expressions;
 
 import eldlreasoning.models.IdxConcept;
 

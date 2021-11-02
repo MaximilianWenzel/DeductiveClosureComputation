@@ -1,10 +1,10 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expression.Expression;
-import eldlreasoning.expression.LinkExpression;
-import eldlreasoning.expression.SubsumptionExpression;
+import eldlreasoning.expressions.Expression;
+import eldlreasoning.expressions.LinkExpression;
+import eldlreasoning.expressions.SubsumptionExpression;
 import eldlreasoning.models.IdxConcept;
-import eldlreasoning.premise.ELPremiseContext;
+import eldlreasoning.premises.ELPremiseContext;
 
 import java.util.Queue;
 import java.util.Set;
@@ -12,15 +12,12 @@ import java.util.Set;
 /**
  * E ⊑ ⊥ ⇐ E ⊑ ∃R.C ∧ C ⊑ ⊥
  */
-public class SubsumedByBottomRule implements Rule {
+public class SubsumedByBottomRule extends OWLELRule {
     private final IdxConcept bottom;
-    private final Queue<Expression> toDo;
-    private final ELPremiseContext premiseContext;
 
     public SubsumedByBottomRule(ELPremiseContext premiseContext, Queue<Expression> toDo) {
-        this.premiseContext = premiseContext;
-        this.bottom = premiseContext.getTop();
-        this.toDo = toDo;
+        super(premiseContext, toDo);
+        this.bottom = premiseContext.getBottom();
     }
 
     @Override

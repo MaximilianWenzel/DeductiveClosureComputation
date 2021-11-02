@@ -1,9 +1,9 @@
-package eldlreasoning.premise;
+package eldlreasoning.premises;
 
-import eldlreasoning.expression.Expression;
-import eldlreasoning.expression.InitExpression;
-import eldlreasoning.expression.LinkExpression;
-import eldlreasoning.expression.SubsumptionExpression;
+import eldlreasoning.expressions.Expression;
+import eldlreasoning.expressions.InitExpression;
+import eldlreasoning.expressions.LinkExpression;
+import eldlreasoning.expressions.SubsumptionExpression;
 import eldlreasoning.models.*;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class ELPremiseContext {
+public class ELPremiseContext extends PremiseContext {
     private final IdxConcept top = new IdxAtomicConcept("⊤");
     private final IdxConcept bottom = new IdxAtomicConcept("⊥");
 
@@ -42,16 +42,16 @@ public class ELPremiseContext {
 
     private void initLookupMaps() {
         subs.forEach(sub -> {
-            if (sub.getFirstConcept() instanceof IdxExistential) {
-                negativeExists.add((IdxExistential) sub.getFirstConcept());
-            } else if (sub.getFirstConcept() instanceof IdxConjunction) {
-                negativeConjunctions.add((IdxConjunction) sub.getFirstConcept());
+            if (sub.getSubConcept() instanceof IdxExistential) {
+                negativeExists.add((IdxExistential) sub.getSubConcept());
+            } else if (sub.getSubConcept() instanceof IdxConjunction) {
+                negativeConjunctions.add((IdxConjunction) sub.getSubConcept());
             }
-            Set<IdxConcept> supertypeConcepts = conceptInclusions.getOrDefault(sub.getFirstConcept(), new UnifiedSet<>());
+            Set<IdxConcept> supertypeConcepts = conceptInclusions.getOrDefault(sub.getSubConcept(), new UnifiedSet<>());
             if (supertypeConcepts.isEmpty()) {
-                conceptInclusions.put(sub.getFirstConcept(), supertypeConcepts);
+                conceptInclusions.put(sub.getSubConcept(), supertypeConcepts);
             }
-            supertypeConcepts.add(sub.getSecondConcept());
+            supertypeConcepts.add(sub.getSuperConcept());
         });
     }
 
@@ -61,6 +61,18 @@ public class ELPremiseContext {
 
     public IdxConcept getBottom() {
         return bottom;
+    }
+
+    public boolean add (Expression e) {
+        if (e instanceof SubsumptionExpression) {
+            return add((SubsumptionExpression) e);
+        } else if (e instanceof InitExpression) {
+            return add((InitExpression) e);
+        } else if (e instanceof LinkExpression) {
+            return add((LinkExpression) e);
+        } else {
+            throw new IllegalArgumentException("Expression type not supported: " + e.getClass());
+        }
     }
 
     /**
@@ -73,25 +85,25 @@ public class ELPremiseContext {
             // process expression for indices and lookup tables
 
             // concept inclusions
-            Set<IdxConcept> supertypeConcepts = this.conceptInclusions.getOrDefault(subExpr.getFirstConcept(), new UnifiedSet<>());
+            Set<IdxConcept> supertypeConcepts = this.conceptInclusions.getOrDefault(subExpr.getSubConcept(), new UnifiedSet<>());
             if (supertypeConcepts.isEmpty()) {
-                this.conceptInclusions.put(subExpr.getFirstConcept(), supertypeConcepts);
+                this.conceptInclusions.put(subExpr.getSubConcept(), supertypeConcepts);
             }
-            supertypeConcepts.add(subExpr.getSecondConcept());
+            supertypeConcepts.add(subExpr.getSuperConcept());
 
             // negative existential
-            if (subExpr.getFirstConcept() instanceof IdxExistential) {
-                this.negativeExists.add((IdxExistential) subExpr.getFirstConcept());
+            if (subExpr.getSubConcept() instanceof IdxExistential) {
+                this.negativeExists.add((IdxExistential) subExpr.getSubConcept());
             }
 
             // negative conjunctions
-            if (subExpr.getFirstConcept() instanceof IdxConjunction) {
-                this.negativeConjunctions.add((IdxConjunction) subExpr.getFirstConcept());
+            if (subExpr.getSubConcept() instanceof IdxConjunction) {
+                this.negativeConjunctions.add((IdxConjunction) subExpr.getSubConcept());
             }
 
             // increment positive and negative occurrence counter
-            subExpr.getFirstConcept().getNegOccurs().incrementAndGet();
-            subExpr.getSecondConcept().getPosOccurs().incrementAndGet();
+            subExpr.getSubConcept().getNegOccurs().incrementAndGet();
+            subExpr.getSuperConcept().getPosOccurs().incrementAndGet();
         }
         return isNewExpr;
     }

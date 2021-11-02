@@ -1,8 +1,9 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expression.Expression;
+import eldlreasoning.expressions.Expression;
 
 public interface Rule {
 
     void evaluate(Expression expression);
+
 }
