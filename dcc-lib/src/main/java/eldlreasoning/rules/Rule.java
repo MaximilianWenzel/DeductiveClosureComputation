@@ -1,9 +1,9 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expressions.Expression;
+import eldlsyntax.ELConceptInclusion;
 
 public interface Rule {
 
-    void evaluate(Expression expression);
+    void apply(ELConceptInclusion axiom);
 
 }

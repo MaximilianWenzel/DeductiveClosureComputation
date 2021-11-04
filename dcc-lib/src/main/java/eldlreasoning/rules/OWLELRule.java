@@ -1,16 +1,13 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expressions.Expression;
-import eldlreasoning.premises.ELPremiseContext;
+import eldlsyntax.ELConceptInclusion;
 
 import java.util.Queue;
 
 public abstract class OWLELRule implements Rule {
-    protected Queue<Expression> toDo;
-    protected ELPremiseContext premiseContext;
+    protected Queue<ELConceptInclusion> toDo;
 
-    public OWLELRule(ELPremiseContext premiseContext, Queue<Expression> toDo) {
-        this.premiseContext = premiseContext;
+    public OWLELRule(Queue<ELConceptInclusion> toDo) {
         this.toDo = toDo;
     }
 }

@@ -1,55 +1,58 @@
 package eldlreasoning.saturator;
 
-import eldlreasoning.expressions.Expression;
-import eldlreasoning.premises.ELPremiseContext;
 import eldlreasoning.rules.*;
+import eldlsyntax.ELConceptInclusion;
+import eldlsyntax.ELTBoxAxiom;
+import eldlsyntax.IndexedELOntology;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Queue;
 import java.util.Set;
 
 public class SingleThreadedELSaturator {
 
-    private Set<Expression> closure = new UnifiedSet<>();
-    private Queue<Expression> toDo;
-    private ELPremiseContext premiseContext;
+    private Set<ELTBoxAxiom> axioms = new UnifiedSet<>();
+    private Set<ELConceptInclusion> closure = new UnifiedSet<>();
+    private Queue<ELConceptInclusion> toDo;
+    private IndexedELOntology elOntology;
     private Collection<Rule> rules;
 
-    public SingleThreadedELSaturator(Iterable<Expression> inputExpressions) {
-        this.premiseContext = new ELPremiseContext(inputExpressions);
-        this.toDo = new OWLELTodoQueue(premiseContext);
-        inputExpressions.forEach(toDo::add);
+    public SingleThreadedELSaturator(IndexedELOntology elOntology) {
+        this.elOntology = elOntology;
+        this.toDo = new ArrayDeque<>();
+        this.elOntology.tBox().forEach(elAxiom -> {
+            if (elAxiom instanceof ELConceptInclusion) {
+                toDo.add((ELConceptInclusion) elAxiom);
+            }
+        });
         init();
     }
 
     private void init() {
         // initialize all required rules
         rules = new UnifiedSet<>();
-        rules.add(new ComposeConjunctionRule(premiseContext, toDo));
-        rules.add(new DecomposeConjunctionRule(premiseContext, toDo));
-        rules.add(new DeriveInitFromReachabilityRule(premiseContext, toDo));
-        rules.add(new DeriveLinkFromSubsumesExistentialRule(premiseContext, toDo));
-        rules.add(new ReflexiveSubsumptionRule(premiseContext, toDo));
-        rules.add(new SubsumedByBottomRule(premiseContext, toDo));
-        rules.add(new SubsumedByTopRule(premiseContext, toDo));
-        //rules.add(new TransitiveReachabilityClosureRule(premiseContext, toDo));
-        rules.add(new UnfoldReachabilityRule(premiseContext, toDo));
-        rules.add(new UnfoldSubsumptionRule(premiseContext, toDo));
+        rules.add(new ComposeConjunctionRule(toDo, elOntology.getNegativeConcepts(), closure));
+        rules.add(new DecomposeConjunctionRule(toDo));
+        rules.add(new ReflexiveSubsumptionRule(toDo));
+        rules.add(new SubsumedByTopRule(toDo, elOntology.getTop()));
+        rules.add(new UnfoldExistentialRule(toDo, closure));
+        rules.add(new UnfoldSubsumptionRule(toDo, elOntology.getOntologyAxioms()));
     }
 
-    public Set<Expression> saturate() {
+    public Set<ELConceptInclusion> saturate() {
         while (!toDo.isEmpty()) {
             process(toDo.remove());
         }
         return closure;
     }
 
-    private void process(Expression expression) {
-        if (closure.add(expression)) {
+    private void process(ELConceptInclusion axiom) {
+        if (closure.add(axiom)) {
             for (Rule rule : rules) {
                 // TODO implement more efficient rule application which considers expression type
-                rule.evaluate(expression);
+                rule.apply(axiom);
             }
         }
     }

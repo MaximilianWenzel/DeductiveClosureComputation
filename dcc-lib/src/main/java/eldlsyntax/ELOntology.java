@@ -16,12 +16,12 @@ public class ELOntology {
 	/**
 	 * The {@link ELTBoxAxiom}s of this ontology
 	 */
-	private final Set<ELTBoxAxiom> tBox_ = new HashSet<>();
+	protected final Set<ELConceptInclusion> tBox_ = new HashSet<>();
 
 	/**
 	 * The {@link ELABoxAxiom}s of this ontology
 	 */
-	private final Set<ELABoxAxiom> aBox_ = new HashSet<>();
+	protected final Set<ELABoxAxiom> aBox_ = new HashSet<>();
 
 	/**
 	 * @return all {@link ELTBoxAxiom}s of this ontology
@@ -49,16 +49,16 @@ public class ELOntology {
 
 	/**
 	 * Adds the given {@link ELTBoxAxiom} to this ontology
-	 * 
+	 *
 	 * @param axiom
 	 */
 	public void add(ELTBoxAxiom axiom) {
-		tBox_.add(axiom);
+		tBox_.add((ELConceptInclusion) axiom);
 	}
 
 	/**
 	 * Adds the given {@link ELABoxAxiom} to this ontology
-	 * 
+	 *
 	 * @param axiom
 	 */
 	public void add(ELABoxAxiom axiom) {
@@ -67,7 +67,7 @@ public class ELOntology {
 
 	/**
 	 * Removes the given {@link ELTBoxAxiom} from this ontology
-	 * 
+	 *
 	 * @param axiom
 	 */
 	public void remove(ELTBoxAxiom axiom) {
@@ -76,7 +76,7 @@ public class ELOntology {
 
 	/**
 	 * Removes the given {@link ELABoxAxiom} from this ontology
-	 * 
+	 *
 	 * @param axiom
 	 */
 	public void remove(ELABoxAxiom axiom) {
@@ -85,7 +85,7 @@ public class ELOntology {
 
 	/**
 	 * Adds the given {@link ELAxiom} to this ontology
-	 * 
+	 *
 	 * @param axiom
 	 * @return the resulting ontology with the added axiom
 	 */
@@ -113,7 +113,7 @@ public class ELOntology {
 
 	/**
 	 * Removes the given {@link ELAxiom} from this ontology
-	 * 
+	 *
 	 * @param axiom
 	 * @return the resulting ontology after removal of the axiom
 	 */
@@ -137,6 +137,10 @@ public class ELOntology {
 			}
 		});
 		return this;
+	}
+
+	public Set<ELConceptInclusion> getOntologyAxioms() {
+		return tBox_;
 	}
 
 }

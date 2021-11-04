@@ -1,10 +1,8 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expressions.Expression;
-import eldlreasoning.expressions.SubsumptionExpression;
-import eldlreasoning.models.IdxConcept;
-import eldlreasoning.models.IdxConjunction;
-import eldlreasoning.premises.ELPremiseContext;
+import eldlsyntax.ELConcept;
+import eldlsyntax.ELConceptConjunction;
+import eldlsyntax.ELConceptInclusion;
 
 import java.util.Queue;
 import java.util.Set;
@@ -14,27 +12,33 @@ import java.util.Set;
  */
 public class ComposeConjunctionRule extends OWLELRule {
 
-    public ComposeConjunctionRule(ELPremiseContext premiseContext, Queue<Expression> toDo) {
-        super(premiseContext, toDo);
+    private final Set<ELConcept> negativeConceptsFromOntology;
+    private final Set<ELConceptInclusion> closure;
+
+    public ComposeConjunctionRule(Queue<ELConceptInclusion> toDo,
+                                  Set<ELConcept> negativeConceptsFromOntology,
+                                  Set<ELConceptInclusion> closure) {
+        super(toDo);
+        this.negativeConceptsFromOntology = negativeConceptsFromOntology;
+        this.closure = closure;
     }
 
     @Override
-    public void evaluate(Expression expression) {
-        if (expression instanceof SubsumptionExpression) {
-            evaluate((SubsumptionExpression) expression);
-        }
-    }
+    public void apply(ELConceptInclusion axiom) {
 
+        ELConcept c = axiom.getSubConcept();
+        ELConcept d1 = axiom.getSuperConcept();
 
-    public void evaluate(SubsumptionExpression subExpr) {
-        Set<IdxConcept> supertypes = premiseContext.getSupertypeConcepts(subExpr.getSubConcept());
-        for (IdxConcept supertype : supertypes) {
-            if (premiseContext.isNegativeConjunction(subExpr.getSuperConcept(), supertype)) {
-                IdxConjunction composedConj = new IdxConjunction(subExpr.getSuperConcept(), supertype);
-
-                // add only if composed conjunction is used in ontology
-                if (premiseContext.checkIfConceptIsUsedInOntology(composedConj)) {
-                    this.toDo.add(new SubsumptionExpression(subExpr.getSubConcept(), composedConj));
+        for (ELConceptInclusion conceptInclusion : closure) {
+            if (c.equals(conceptInclusion.getSubConcept())) {
+                ELConcept d2 = conceptInclusion.getSuperConcept();
+                ELConceptConjunction conjunction = new ELConceptConjunction(d1, d2);
+                if (this.negativeConceptsFromOntology.contains(conjunction)) {
+                    this.toDo.add(new ELConceptInclusion(c, conjunction));
+                }
+                ELConceptConjunction conjunction2 = new ELConceptConjunction(d2, d1);
+                if (this.negativeConceptsFromOntology.contains(conjunction2)) {
+                    this.toDo.add(new ELConceptInclusion(c, conjunction2));
                 }
             }
         }

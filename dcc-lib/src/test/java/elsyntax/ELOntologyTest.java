@@ -1,10 +1,9 @@
 package elsyntax;
 
-import eldlreasoning.expressions.Expression;
 import eldlreasoning.saturator.SingleThreadedELSaturator;
 import eldlsyntax.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import util.OWL2ELToExpressionConverter;
 
 import java.util.Set;
 
@@ -12,10 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ELOntologyTest {
 
-    public static final ELOntology elOntology;
+    public IndexedELOntology elOntology;
 
-    static {
-        elOntology = new ELOntology();
+    @BeforeEach
+    public void init() {
+        elOntology = new IndexedELOntology();
 
         ELConcept conceptA = new ELConceptName("A");
         ELConcept conceptB = new ELConceptName("B");
@@ -32,9 +32,9 @@ public class ELOntologyTest {
         elOntology.add(conceptIncl_existsR_C_sub_C);
     }
 
+
     @Test
     public void testELOntology() {
-        ELOntology elOntology = ELOntologyTest.elOntology;
 
         ELSignature s = elOntology.getSignature();
 
@@ -51,10 +51,8 @@ public class ELOntologyTest {
 
     @Test
     public void testSingleThreadedSaturation() {
-        OWL2ELToExpressionConverter converter = new OWL2ELToExpressionConverter();
-        Set<Expression> expressions = converter.convert(ELOntologyTest.elOntology.tBox());
-        SingleThreadedELSaturator saturator = new SingleThreadedELSaturator(expressions);
-        Set<Expression> closure = saturator.saturate();
+        SingleThreadedELSaturator saturator = new SingleThreadedELSaturator(elOntology);
+        Set<ELConceptInclusion> closure = saturator.saturate();
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override

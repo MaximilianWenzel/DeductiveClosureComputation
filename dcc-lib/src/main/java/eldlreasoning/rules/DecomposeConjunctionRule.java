@@ -1,9 +1,8 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expressions.Expression;
-import eldlreasoning.expressions.SubsumptionExpression;
-import eldlreasoning.models.IdxConjunction;
-import eldlreasoning.premises.ELPremiseContext;
+import eldlsyntax.ELConcept;
+import eldlsyntax.ELConceptConjunction;
+import eldlsyntax.ELConceptInclusion;
 
 import java.util.Queue;
 
@@ -13,22 +12,19 @@ import java.util.Queue;
 public class DecomposeConjunctionRule extends OWLELRule {
 
 
-    public DecomposeConjunctionRule(ELPremiseContext premiseContext, Queue<Expression> toDo) {
-        super(premiseContext, toDo);
+    public DecomposeConjunctionRule(Queue<ELConceptInclusion> toDo) {
+        super(toDo);
     }
 
     @Override
-    public void evaluate(Expression expression) {
-        if (expression instanceof SubsumptionExpression) {
-            evaluate((SubsumptionExpression) expression);
-        }
-    }
-
-    public void evaluate(SubsumptionExpression subExpr) {
-        if (subExpr.getSuperConcept() instanceof IdxConjunction) {
-            IdxConjunction conj = (IdxConjunction) subExpr.getSuperConcept();
-            toDo.add(new SubsumptionExpression(subExpr.getSubConcept(), conj.getFirstConjunct()));
-            toDo.add(new SubsumptionExpression(subExpr.getSubConcept(), conj.getSecondConjunct()));
+    public void apply(ELConceptInclusion axiom) {
+        if (axiom.getSuperConcept() instanceof ELConceptConjunction) {
+            ELConcept c = axiom.getSubConcept();
+            ELConceptConjunction conjunction = (ELConceptConjunction) axiom.getSuperConcept();
+            ELConcept d1 = conjunction.getFirstConjunct();
+            ELConcept d2 = conjunction.getSecondConjunct();
+            toDo.add(new ELConceptInclusion(c, d1));
+            toDo.add(new ELConceptInclusion(c, d2));
         }
     }
 }

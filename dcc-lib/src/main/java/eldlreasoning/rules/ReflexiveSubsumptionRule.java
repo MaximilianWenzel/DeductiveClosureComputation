@@ -1,29 +1,55 @@
 package eldlreasoning.rules;
 
-import eldlreasoning.expressions.Expression;
-import eldlreasoning.expressions.InitExpression;
-import eldlreasoning.expressions.SubsumptionExpression;
-import eldlreasoning.premises.ELPremiseContext;
+import eldlsyntax.*;
 
 import java.util.Queue;
 
 /**
- * C ⊑ C ⇐ init(C)
+ * C ⊑ C ⇐ no premises
  */
 public class ReflexiveSubsumptionRule extends OWLELRule {
 
 
-    public ReflexiveSubsumptionRule(ELPremiseContext premiseContext, Queue<Expression> toDo) {
-        super(premiseContext, toDo);
+    private final ConceptVisitor visitor = new ConceptVisitor();
+
+    public ReflexiveSubsumptionRule(Queue<ELConceptInclusion> toDo) {
+        super(toDo);
     }
 
-    public void evaluate(Expression expression) {
-        if (expression instanceof InitExpression) {
-            evaluate((InitExpression) expression);
+    @Override
+    public void apply(ELConceptInclusion axiom) {
+        axiom.getSubConcept().accept(visitor);
+        axiom.getSuperConcept().accept(visitor);
+    }
+
+    private class ConceptVisitor implements ELConcept.Visitor {
+
+        @Override
+        public void visit(ELConceptBottom concept) {
+            toDo.add(new ELConceptInclusion(concept, concept));
         }
-    }
 
-    public void evaluate(InitExpression initExpression) {
-        toDo.add(new SubsumptionExpression(initExpression.getConcept(), initExpression.getConcept()));
+        @Override
+        public void visit(ELConceptConjunction concept) {
+            toDo.add(new ELConceptInclusion(concept, concept));
+            concept.getFirstConjunct().accept(this);
+            concept.getSecondConjunct().accept(this);
+        }
+
+        @Override
+        public void visit(ELConceptExistentialRestriction concept) {
+            toDo.add(new ELConceptInclusion(concept, concept));
+            concept.getFiller().accept(this);
+        }
+
+        @Override
+        public void visit(ELConceptName concept) {
+            toDo.add(new ELConceptInclusion(concept, concept));
+        }
+
+        @Override
+        public void visit(ELConceptTop concept) {
+            toDo.add(new ELConceptInclusion(concept, concept));
+        }
     }
 }
