@@ -2,7 +2,6 @@ package eldlreasoning.saturator;
 
 import eldlreasoning.rules.*;
 import eldlsyntax.ELConceptInclusion;
-import eldlsyntax.ELTBoxAxiom;
 import eldlsyntax.IndexedELOntology;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
@@ -13,7 +12,6 @@ import java.util.Set;
 
 public class SingleThreadedELSaturator {
 
-    private Set<ELTBoxAxiom> axioms = new UnifiedSet<>();
     private Set<ELConceptInclusion> closure = new UnifiedSet<>();
     private Queue<ELConceptInclusion> toDo;
     private IndexedELOntology elOntology;
@@ -51,7 +49,6 @@ public class SingleThreadedELSaturator {
     private void process(ELConceptInclusion axiom) {
         if (closure.add(axiom)) {
             for (Rule rule : rules) {
-                // TODO implement more efficient rule application which considers expression type
                 rule.apply(axiom);
             }
         }

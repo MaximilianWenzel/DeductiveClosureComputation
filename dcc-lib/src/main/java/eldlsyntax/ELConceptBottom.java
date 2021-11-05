@@ -1,6 +1,7 @@
 package eldlsyntax;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * The concept ⊥ representing the empty set set of objects
@@ -35,6 +36,11 @@ public class ELConceptBottom extends ELConcept {
     @Override
     public void accept(Visitor visitor) {
         visitor.visit(this);
+    }
+
+    @Override
+    public Stream<ELConcept> streamOfThisConceptAndAllContainedConcepts() {
+        return Stream.of(this);
     }
 
 }

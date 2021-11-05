@@ -1,6 +1,7 @@
 package eldlsyntax;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * The concept ∃ R.C representing objects that are connected by R represented by
@@ -79,6 +80,11 @@ public class ELConceptExistentialRestriction extends ELConcept {
     @Override
     public void accept(Visitor visitor) {
         visitor.visit(this);
+    }
+
+    @Override
+    public Stream<ELConcept> streamOfThisConceptAndAllContainedConcepts() {
+        return Stream.concat(Stream.of(this), this.filler_.streamOfThisConceptAndAllContainedConcepts());
     }
 
 }

@@ -1,6 +1,7 @@
 package eldlsyntax;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * The concept ⊤ representing the all objects of the modeled domain
@@ -37,4 +38,8 @@ public class ELConceptTop extends ELConcept {
         visitor.visit(this);
     }
 
+    @Override
+    public Stream<ELConcept> streamOfThisConceptAndAllContainedConcepts() {
+        return Stream.of(this);
+    }
 }

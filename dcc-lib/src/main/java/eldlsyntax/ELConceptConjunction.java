@@ -1,6 +1,7 @@
 package eldlsyntax;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * The concept conjunction C ⊓ D representing the common objects represented by
@@ -73,4 +74,11 @@ public class ELConceptConjunction extends ELConcept {
         visitor.visit(this);
     }
 
+    @Override
+    public Stream<ELConcept> streamOfThisConceptAndAllContainedConcepts() {
+        Stream<ELConcept> conjunctionConceptStream = Stream.of(this);
+        Stream<ELConcept> conjuncts = Stream.concat(this.firstConjunct_.streamOfThisConceptAndAllContainedConcepts(),
+                this.secondConjunct_.streamOfThisConceptAndAllContainedConcepts());
+        return Stream.concat(conjunctionConceptStream, conjuncts);
+    }
 }

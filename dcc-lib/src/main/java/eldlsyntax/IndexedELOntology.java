@@ -13,7 +13,6 @@ public class IndexedELOntology extends ELOntology {
     private final Map<ELConcept, AtomicInteger> conceptNegativeOccurrences = new HashMap<>();
     private final Map<ELConcept, AtomicInteger> conceptPositiveOccurrences = new HashMap<>();
     private final Set<ELConcept> negativeConcepts = new UnifiedSet<>();
-    private final Set<ELConcept> conceptsUsedInOntology = new UnifiedSet<>();
     private final ELConcept top = new ELConceptTop();
     private final ELConcept bottom = new ELConceptBottom();
 
@@ -38,13 +37,11 @@ public class IndexedELOntology extends ELOntology {
                 ELConcept c = axiom.getSubConcept();
                 ELConcept d = axiom.getSuperConcept();
 
-                conceptsUsedInOntology.add(c);
                 AtomicInteger negativeCounter = conceptNegativeOccurrences.computeIfAbsent(c, e -> new AtomicInteger(0));
                 if (negativeCounter.incrementAndGet() > 0) {
                     negativeConcepts.add(c);
                 }
 
-                conceptsUsedInOntology.add(d);
                 AtomicInteger positiveCounter = conceptPositiveOccurrences.computeIfAbsent(c, e -> new AtomicInteger(0));
                 positiveCounter.incrementAndGet();
             }
@@ -88,12 +85,8 @@ public class IndexedELOntology extends ELOntology {
 
     public void updateLookupStructures(ELConcept concept) {
         int negativeOccurrences = conceptNegativeOccurrences.getOrDefault(concept, zero).get();
-        int positiveOccurrences = conceptPositiveOccurrences.getOrDefault(concept, zero).get();
         if (negativeOccurrences == 0) {
             negativeConcepts.remove(concept);
-            if (positiveOccurrences == 0) {
-                conceptsUsedInOntology.remove(concept);
-            }
         }
     }
 
@@ -162,6 +155,22 @@ public class IndexedELOntology extends ELOntology {
         return this;
     }
 
+    public Set<ELConcept> getAllUsedConceptsInOntology() {
+        // TODO inefficient implementation, however lookup structures are otherwise not correct after removal operation
+        Set<ELConcept> concepts = new UnifiedSet<>();
+
+        this.tBox_.forEach(conceptIncl -> {
+            conceptIncl.getSubConcept().streamOfThisConceptAndAllContainedConcepts()
+                    .forEach(concepts::add);
+            conceptIncl.getSuperConcept().streamOfThisConceptAndAllContainedConcepts()
+                    .forEach(concepts::add);
+        });
+        concepts.add(top);
+        concepts.add(bottom);
+        return concepts;
+    }
+
+
     public Map<ELConcept, AtomicInteger> getConceptNegativeOccurrences() {
         return conceptNegativeOccurrences;
     }
@@ -172,10 +181,6 @@ public class IndexedELOntology extends ELOntology {
 
     public Set<ELConcept> getNegativeConcepts() {
         return negativeConcepts;
-    }
-
-    public Set<ELConcept> getConceptsUsedInOntology() {
-        return conceptsUsedInOntology;
     }
 
     public ELConcept getTop() {

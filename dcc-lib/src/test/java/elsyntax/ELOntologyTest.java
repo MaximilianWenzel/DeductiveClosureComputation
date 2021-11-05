@@ -1,6 +1,7 @@
 package elsyntax;
 
 import eldlreasoning.saturator.SingleThreadedELSaturator;
+import eldlreasoning.saturator.parallel.ParallelELSaturator;
 import eldlsyntax.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,25 @@ public class ELOntologyTest {
     @Test
     public void testSingleThreadedSaturation() {
         SingleThreadedELSaturator saturator = new SingleThreadedELSaturator(elOntology);
+        Set<ELConceptInclusion> closure = saturator.saturate();
+
+        ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
+            @Override
+            public void visit(ELConceptInclusion axiom) {
+                System.out.println(axiom.toString());
+            }
+        };
+        System.out.println("TBox axioms:");
+        elOntology.tBox().forEach(eltBoxAxiom -> eltBoxAxiom.accept(tBoxVisitor));
+
+        System.out.println();
+        System.out.println("Closure: ");
+        closure.forEach(System.out::println);
+    }
+
+    @Test
+    public void testParallelSaturation() {
+        ParallelELSaturator saturator = new ParallelELSaturator(elOntology, 2);
         Set<ELConceptInclusion> closure = saturator.saturate();
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {

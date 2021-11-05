@@ -1,6 +1,7 @@
 package eldlsyntax;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * An elementary set of objects of the modeled domain uniquely associated with a
@@ -53,6 +54,11 @@ public class ELConceptName extends ELConcept implements ELEntity {
 	public void accept(ELEntity.Visitor visitor) {
 		visitor.visit(this);
 
+	}
+
+	@Override
+	public Stream<ELConcept> streamOfThisConceptAndAllContainedConcepts() {
+		return Stream.of(this);
 	}
 
 }

@@ -1,5 +1,7 @@
 package eldlsyntax;
 
+import java.util.stream.Stream;
+
 /**
  * A set of objects of the modeled domain.
  *
@@ -32,5 +34,7 @@ public abstract class ELConcept extends ELObject {
     public void accept(ELObject.Visitor visitor) {
         accept((Visitor) visitor);
     }
+
+    public abstract Stream<ELConcept> streamOfThisConceptAndAllContainedConcepts();
 
 }
