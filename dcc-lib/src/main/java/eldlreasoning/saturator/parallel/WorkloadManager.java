@@ -1,129 +1,72 @@
 package eldlreasoning.saturator.parallel;
 
-import eldlsyntax.ELConcept;
-import eldlsyntax.ELConceptExistentialRestriction;
 import eldlsyntax.ELConceptInclusion;
-import eldlsyntax.IndexedELOntology;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
+import util.DistributedOWL2ELSaturationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-public class WorkloadManager implements Runnable {
-    private IndexedELOntology elOntology;
-
-    private Set<ELConcept> usedConceptsInOntology;
-
+public class WorkloadManager {
     private List<SaturatorPartition> partitions;
-    private int numberOfPartitions;
-
     private Set<ELConceptInclusion> consideredAxioms = new UnifiedSet<>();
-    private BlockingQueue<ELConceptInclusion> toDo = new LinkedBlockingQueue<>();
-
+    private BlockingQueue<ELConceptInclusion> toDo;
     private volatile boolean saturationFinished = false;
+    private List<Thread> threadPool;
 
-    public WorkloadManager(IndexedELOntology elOntology, int numberOfPartitions) {
-        this.elOntology = elOntology;
-        this.numberOfPartitions = numberOfPartitions;
-        init();
+    WorkloadManager() {
     }
 
-    private void init() {
-        this.elOntology.tBox().forEach(elAxiom -> {
-            if (elAxiom instanceof ELConceptInclusion) {
-                toDo.add((ELConceptInclusion) elAxiom);
-            }
-        });
-        this.usedConceptsInOntology = elOntology.getAllUsedConceptsInOntology();
-        initPartitions();
-    }
-
-    public static boolean isRelevantAxiomToPartition(Set<ELConcept> conceptPartition, ELConceptInclusion axiom) {
-        if (conceptPartition.contains(axiom.getSubConcept())
-                || conceptPartition.contains(axiom.getSuperConcept())) {
-            return true;
-        } else if (axiom.getSuperConcept() instanceof ELConceptExistentialRestriction) {
-            ELConceptExistentialRestriction exist = (ELConceptExistentialRestriction) axiom.getSuperConcept();
-            if (conceptPartition.contains(exist.getFiller())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static boolean checkIfOtherPartitionsRequireAxiom(Set<ELConcept> conceptPartition, ELConceptInclusion axiom) {
-        if (!conceptPartition.contains(axiom.getSubConcept())
-                || !conceptPartition.contains(axiom.getSuperConcept())) {
-            return true;
-        } else if (axiom.getSuperConcept() instanceof ELConceptExistentialRestriction) {
-            ELConceptExistentialRestriction exist = (ELConceptExistentialRestriction) axiom.getSuperConcept();
-            return !conceptPartition.contains(exist.getFiller());
-        }
-        return false;
-    }
-
-    @Override
-    public void run() {
+    public Set<ELConceptInclusion> startSaturation() {
+        initAndStartThreads();
         try {
             while (!saturationFinished) {
                 ELConceptInclusion axiom = null;
-                axiom = toDo.take();
-                distributeAxiom(axiom);
+                axiom = toDo.poll(1000, TimeUnit.MILLISECONDS);
+
+                if (axiom == null) {
+                    // queue is empty, check if partitions have finished their work
+                    boolean nothingToDo = true;
+                    for (Thread t : threadPool) {
+                        if (t.getState().equals(Thread.State.RUNNABLE)) {
+                            nothingToDo = false;
+                            break;
+                        }
+                    }
+                    saturationFinished = nothingToDo;
+                } else {
+                    distributeAxiom(axiom);
+                }
+            }
+            for (Thread t : threadPool) {
+                t.interrupt();
             }
         } catch (InterruptedException e) {
-            // thread terminated
+            e.printStackTrace();
         }
 
+        Set<ELConceptInclusion> closure = new UnifiedSet<>();
+        for (SaturatorPartition partition : partitions) {
+            closure.addAll(partition.getClosure());
+        }
+        return closure;
     }
 
-    private void initPartitions() {
-        // create concept partitions
-        Set<ELConcept>[] conceptPartitions = new Set[numberOfPartitions];
-        for (int i = 0; i < conceptPartitions.length; i++) {
-            conceptPartitions[i] = new UnifiedSet<>();
+    private void initAndStartThreads() {
+        this.threadPool = new ArrayList<>();
+        for (SaturatorPartition partition : this.partitions) {
+            this.threadPool.add(new Thread(partition));
         }
-        int counter = 0;
-        int partitionIndex;
-        for (ELConcept concept : usedConceptsInOntology) {
-            partitionIndex = counter % numberOfPartitions;
-            conceptPartitions[partitionIndex].add(concept);
-            counter++;
-        }
-
-        // init saturator partitions
-        this.partitions = new ArrayList<>(numberOfPartitions);
-        for (Set<ELConcept> conceptPartition : conceptPartitions) {
-            partitions.add(initAndGetPartition(conceptPartition));
-        }
-    }
-
-
-    private SaturatorPartition initAndGetPartition(Set<ELConcept> conceptPartition) {
-        IndexedELOntology ontologyFragment = getOntologyFragmentForConceptPartition(conceptPartition);
-
-        Set<ELConceptInclusion> partitionClosure = new UnifiedSet<>();
-        BlockingQueue<ELConceptInclusion> partitionToDo = new LinkedBlockingQueue<>();
-
-        return new SaturatorPartition(conceptPartition, ontologyFragment, partitionClosure, partitionToDo, this);
-    }
-
-    private IndexedELOntology getOntologyFragmentForConceptPartition(Set<ELConcept> conceptPartition) {
-        IndexedELOntology ontologyFragment = new IndexedELOntology();
-        for (ELConceptInclusion axiom : elOntology.getOntologyAxioms()) {
-            if (isRelevantAxiomToPartition(conceptPartition, axiom)) {
-                ontologyFragment.add(axiom);
-            }
-        }
-        return ontologyFragment;
+        this.threadPool.forEach(Thread::start);
     }
 
     private void distributeAxiom(ELConceptInclusion axiom) {
         if (consideredAxioms.add(axiom)) {
             for (SaturatorPartition partition : partitions) {
-                if (isRelevantAxiomToPartition(partition.getConceptPartition(), axiom)) {
+                if (DistributedOWL2ELSaturationUtils.isRelevantAxiomToPartition(partition.getConceptPartition(), axiom)) {
                     partition.getToDo().add(axiom);
                 }
             }
@@ -142,7 +85,15 @@ public class WorkloadManager implements Runnable {
         return toDo;
     }
 
+    void setToDo(BlockingQueue<ELConceptInclusion> toDo) {
+        this.toDo = toDo;
+    }
+
     public List<SaturatorPartition> getPartitions() {
         return partitions;
+    }
+
+    void setPartitions(List<SaturatorPartition> partitions) {
+        this.partitions = partitions;
     }
 }

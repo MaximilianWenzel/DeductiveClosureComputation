@@ -10,7 +10,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ELOntologyTest {
+public class OWLELSaturationTest {
 
     public IndexedELOntology elOntology;
 
@@ -71,7 +71,7 @@ public class ELOntologyTest {
 
     @Test
     public void testParallelSaturation() {
-        ParallelELSaturator saturator = new ParallelELSaturator(elOntology, 2);
+        ParallelELSaturator saturator = new ParallelELSaturator(elOntology, 3);
         Set<ELConceptInclusion> closure = saturator.saturate();
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {

@@ -5,6 +5,7 @@ import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptInclusion;
 import eldlsyntax.IndexedELOntology;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
+import util.DistributedOWL2ELSaturationUtils;
 
 import java.util.Collection;
 import java.util.Set;
@@ -56,10 +57,10 @@ public class SaturatorPartition implements Runnable {
     }
 
     private void process(ELConceptInclusion axiom) {
-        if (WorkloadManager.checkIfOtherPartitionsRequireAxiom(conceptPartition, axiom)) {
+        if (DistributedOWL2ELSaturationUtils.checkIfOtherPartitionsRequireAxiom(conceptPartition, axiom)) {
             workloadManager.getToDo().add(axiom);
         }
-        if (WorkloadManager.isRelevantAxiomToPartition(conceptPartition, axiom)) {
+        if (DistributedOWL2ELSaturationUtils.isRelevantAxiomToPartition(conceptPartition, axiom)) {
             if (closure.add(axiom)) {
                 for (Rule rule : rules) {
                     rule.apply(axiom);
