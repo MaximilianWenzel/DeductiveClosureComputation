@@ -3,7 +3,6 @@ package eldlreasoning.rules;
 import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptInclusion;
 
-import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -13,8 +12,7 @@ public class UnfoldSubsumptionRule extends OWLELRule {
 
     private Iterable<ELConceptInclusion> ontology;
 
-    public UnfoldSubsumptionRule(Queue<ELConceptInclusion> toDo, Set<ELConceptInclusion> ontology) {
-        super(toDo);
+    public UnfoldSubsumptionRule(Set<ELConceptInclusion> ontology) {
         this.ontology = ontology;
     }
 
@@ -25,7 +23,7 @@ public class UnfoldSubsumptionRule extends OWLELRule {
 
         for (ELConceptInclusion conceptIncl : ontology) {
             if (d.equals(conceptIncl.getSubConcept())) {
-                toDo.add(new ELConceptInclusion(c, conceptIncl.getSuperConcept()));
+                addToToDo(new ELConceptInclusion(c, conceptIncl.getSuperConcept()));
             }
         }
     }

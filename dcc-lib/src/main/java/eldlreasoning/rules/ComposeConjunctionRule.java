@@ -4,7 +4,6 @@ import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptConjunction;
 import eldlsyntax.ELConceptInclusion;
 
-import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -13,14 +12,10 @@ import java.util.Set;
 public class ComposeConjunctionRule extends OWLELRule {
 
     private final Set<ELConcept> negativeConceptsFromOntology;
-    private final Set<ELConceptInclusion> closure;
 
-    public ComposeConjunctionRule(Queue<ELConceptInclusion> toDo,
-                                  Set<ELConcept> negativeConceptsFromOntology,
-                                  Set<ELConceptInclusion> closure) {
-        super(toDo);
+    public ComposeConjunctionRule(Set<ELConcept> negativeConceptsFromOntology) {
+        super();
         this.negativeConceptsFromOntology = negativeConceptsFromOntology;
-        this.closure = closure;
     }
 
     @Override
@@ -34,11 +29,11 @@ public class ComposeConjunctionRule extends OWLELRule {
                 ELConcept d2 = conceptInclusion.getSuperConcept();
                 ELConceptConjunction conjunction = new ELConceptConjunction(d1, d2);
                 if (this.negativeConceptsFromOntology.contains(conjunction)) {
-                    this.toDo.add(new ELConceptInclusion(c, conjunction));
+                    this.addToToDo(new ELConceptInclusion(c, conjunction));
                 }
                 ELConceptConjunction conjunction2 = new ELConceptConjunction(d2, d1);
                 if (this.negativeConceptsFromOntology.contains(conjunction2)) {
-                    this.toDo.add(new ELConceptInclusion(c, conjunction2));
+                    this.addToToDo(new ELConceptInclusion(c, conjunction2));
                 }
             }
         }

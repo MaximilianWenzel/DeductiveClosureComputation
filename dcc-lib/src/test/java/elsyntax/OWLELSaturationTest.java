@@ -1,11 +1,17 @@
 package elsyntax;
 
-import eldlreasoning.saturator.SingleThreadedELSaturator;
-import eldlreasoning.saturator.parallel.ParallelELSaturator;
+import data.IndexedELOntology;
+import eldlreasoning.OWL2ELParallelSaturator;
+import eldlreasoning.rules.OWLELRule;
 import eldlsyntax.*;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reasoning.saturator.SingleThreadedSaturator;
+import reasoning.saturator.parallel.ParallelSaturator;
+import util.OWL2ELSaturationUtils;
 
+import java.util.Collection;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,8 +58,7 @@ public class OWLELSaturationTest {
 
     @Test
     public void testSingleThreadedSaturation() {
-        SingleThreadedELSaturator saturator = new SingleThreadedELSaturator(elOntology);
-        Set<ELConceptInclusion> closure = saturator.saturate();
+
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override
@@ -66,13 +71,25 @@ public class OWLELSaturationTest {
 
         System.out.println();
         System.out.println("Closure: ");
-        closure.forEach(System.out::println);
+        getClosureOfSingleThreadedSaturator().forEach(System.out::println);
+    }
+
+    public Set<ELConceptInclusion> getClosureOfSingleThreadedSaturator() {
+        Collection<OWLELRule> owlelRules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
+        SingleThreadedSaturator<ELConceptInclusion, ELConcept> saturator = new SingleThreadedSaturator<>(elOntology, owlelRules);
+        Set<ELConceptInclusion> closure = saturator.saturate();
+        return closure;
+    }
+
+    public Set<ELConceptInclusion> getClosureOfParallelSaturator() {
+        OWL2ELParallelSaturator saturator = new OWL2ELParallelSaturator(elOntology, 3);
+        saturator.init();
+        return saturator.saturate();
     }
 
     @Test
     public void testParallelSaturation() {
-        ParallelELSaturator saturator = new ParallelELSaturator(elOntology, 3);
-        Set<ELConceptInclusion> closure = saturator.saturate();
+        Set<ELConceptInclusion> closure = getClosureOfParallelSaturator();
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override
@@ -86,5 +103,7 @@ public class OWLELSaturationTest {
         System.out.println();
         System.out.println("Closure: ");
         closure.forEach(System.out::println);
+
+        assertEquals(getClosureOfSingleThreadedSaturator(), closure);
     }
 }

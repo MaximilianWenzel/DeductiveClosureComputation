@@ -2,8 +2,6 @@ package eldlreasoning.rules;
 
 import eldlsyntax.*;
 
-import java.util.Queue;
-
 /**
  * C ⊑ ⊤ ⇐ no preconditions
  */
@@ -12,8 +10,7 @@ public class SubsumedByTopRule extends OWLELRule {
     private final ELConcept topConcept;
     private final ConceptVisitor visitor = new ConceptVisitor();
 
-    public SubsumedByTopRule(Queue<ELConceptInclusion> toDo, ELConcept topConcept) {
-        super(toDo);
+    public SubsumedByTopRule(ELConcept topConcept) {
         this.topConcept = topConcept;
     }
 
@@ -27,30 +24,30 @@ public class SubsumedByTopRule extends OWLELRule {
 
         @Override
         public void visit(ELConceptBottom concept) {
-            toDo.add(new ELConceptInclusion(concept, topConcept));
+            addToToDo(new ELConceptInclusion(concept, topConcept));
         }
 
         @Override
         public void visit(ELConceptConjunction concept) {
-            toDo.add(new ELConceptInclusion(concept, topConcept));
+            addToToDo(new ELConceptInclusion(concept, topConcept));
             concept.getFirstConjunct().accept(this);
             concept.getSecondConjunct().accept(this);
         }
 
         @Override
         public void visit(ELConceptExistentialRestriction concept) {
-            toDo.add(new ELConceptInclusion(concept, topConcept));
+            addToToDo(new ELConceptInclusion(concept, topConcept));
             concept.getFiller().accept(this);
         }
 
         @Override
         public void visit(ELConceptName concept) {
-            toDo.add(new ELConceptInclusion(concept, topConcept));
+            addToToDo(new ELConceptInclusion(concept, topConcept));
         }
 
         @Override
         public void visit(ELConceptTop concept) {
-            toDo.add(new ELConceptInclusion(concept, topConcept));
+            addToToDo(new ELConceptInclusion(concept, topConcept));
         }
     }
 }

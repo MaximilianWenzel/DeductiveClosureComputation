@@ -1,18 +1,16 @@
-package eldlsyntax;
+package data;
 
+import eldlsyntax.*;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class IndexedELOntology extends ELOntology {
+public class IndexedELOntology extends ELOntology implements Dataset<ELConceptInclusion, ELConcept> {
 
     private final Map<ELConcept, AtomicInteger> conceptNegativeOccurrences = new HashMap<>();
     private final Map<ELConcept, AtomicInteger> conceptPositiveOccurrences = new HashMap<>();
-    private final Set<ELConcept> negativeConcepts = new UnifiedSet<>();
+    private Set<ELConcept> negativeConcepts = new UnifiedSet<>();
     private final ELConcept top = new ELConceptTop();
     private final ELConcept bottom = new ELConceptBottom();
 
@@ -170,6 +168,12 @@ public class IndexedELOntology extends ELOntology {
         return concepts;
     }
 
+    public IndexedELOntology getOntologyWithIndexedNegativeConcepts() {
+        IndexedELOntology newIndexedOntology = new IndexedELOntology();
+        newIndexedOntology.negativeConcepts = this.negativeConcepts;
+        return newIndexedOntology;
+    }
+
 
     public Map<ELConcept, AtomicInteger> getConceptNegativeOccurrences() {
         return conceptNegativeOccurrences;
@@ -189,5 +193,15 @@ public class IndexedELOntology extends ELOntology {
 
     public ELConcept getBottom() {
         return bottom;
+    }
+
+    @Override
+    public Iterator<ELConcept> getAllOccurringTerms() {
+        return this.getAllUsedConceptsInOntology().iterator();
+    }
+
+    @Override
+    public Iterator<ELConceptInclusion> getInitialAxioms() {
+        return tBox_.iterator();
     }
 }
