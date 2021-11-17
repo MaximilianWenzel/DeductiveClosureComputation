@@ -1,14 +1,12 @@
 package elsyntax;
 
 import data.IndexedELOntology;
-import eldlreasoning.OWL2ELParallelSaturator;
+import eldlreasoning.OWL2ELParallelSaturation;
 import eldlreasoning.rules.OWLELRule;
 import eldlsyntax.*;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reasoning.saturator.SingleThreadedSaturator;
-import reasoning.saturator.parallel.ParallelSaturator;
+import reasoning.saturator.SingleThreadedSaturation;
 import util.OWL2ELSaturationUtils;
 
 import java.util.Collection;
@@ -76,13 +74,13 @@ public class OWLELSaturationTest {
 
     public Set<ELConceptInclusion> getClosureOfSingleThreadedSaturator() {
         Collection<OWLELRule> owlelRules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
-        SingleThreadedSaturator<ELConceptInclusion, ELConcept> saturator = new SingleThreadedSaturator<>(elOntology, owlelRules);
+        SingleThreadedSaturation<ELConceptInclusion, ELConcept> saturator = new SingleThreadedSaturation<>(elOntology, owlelRules);
         Set<ELConceptInclusion> closure = saturator.saturate();
         return closure;
     }
 
     public Set<ELConceptInclusion> getClosureOfParallelSaturator() {
-        OWL2ELParallelSaturator saturator = new OWL2ELParallelSaturator(elOntology, 3);
+        OWL2ELParallelSaturation saturator = new OWL2ELParallelSaturation(elOntology, 3);
         saturator.init();
         return saturator.saturate();
     }

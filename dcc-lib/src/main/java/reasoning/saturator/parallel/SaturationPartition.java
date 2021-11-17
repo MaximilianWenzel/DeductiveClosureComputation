@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SaturatorPartition<P, T> implements Runnable {
+public class SaturationPartition<P, T> implements Runnable {
 
     private static final AtomicLong partitionIDCounter = new AtomicLong(1L);
 
@@ -21,14 +21,14 @@ public class SaturatorPartition<P, T> implements Runnable {
     private final Dataset<P, T> datasetFragment;
     private final Closure<P> closure;
     private final ParallelToDo<P> toDo;
-    private final ParallelSaturator<P, T> mainNode;
+    private final ParallelSaturation<P, T> mainNode;
 
-    public SaturatorPartition(Collection<? extends Rule<P>> rules,
-                              Set<T> termPartition,
-                              Dataset<P, T> datasetFragment,
-                              Closure<P> closure,
-                              ParallelToDo<P> toDo,
-                              ParallelSaturator<P, T> mainNode) {
+    public SaturationPartition(Collection<? extends Rule<P>> rules,
+                               Set<T> termPartition,
+                               Dataset<P, T> datasetFragment,
+                               Closure<P> closure,
+                               ParallelToDo<P> toDo,
+                               ParallelSaturation<P, T> mainNode) {
         this.termPartition = termPartition;
         this.datasetFragment = datasetFragment;
         this.closure = closure;
@@ -92,7 +92,7 @@ public class SaturatorPartition<P, T> implements Runnable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SaturatorPartition<?, ?> that = (SaturatorPartition<?, ?>) o;
+        SaturationPartition<?, ?> that = (SaturationPartition<?, ?>) o;
         return id == that.id;
     }
 }

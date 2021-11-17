@@ -5,31 +5,32 @@ import data.Dataset;
 import data.DefaultClosure;
 import data.ParallelToDo;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
+import reasoning.saturator.PartitionModel;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public abstract class ParallelSaturator<P, T> {
+public abstract class ParallelSaturation<P, T> {
 
     private final Dataset<P, T> dataset;
     private final ParallelToDo<P> toDo = new ParallelToDo<>();
     private final Set<P> consideredAxioms = new UnifiedSet<>();
-    private List<SaturatorPartition<P, T>> partitions;
+    private List<SaturationPartition<P, T>> partitions;
     private volatile boolean saturationFinished = false;
     private List<Thread> threadPool;
 
 
-    protected ParallelSaturator(Dataset<P, T> dataset) {
+    protected ParallelSaturation(Dataset<P, T> dataset) {
         this.dataset = dataset;
     }
 
-    protected SaturatorPartition<P, T> generateSaturatorPartition(PartitionModel<P, T> partition) {
+    protected SaturationPartition<P, T> generateSaturatorPartition(PartitionModel<P, T> partition) {
         Closure<P> partitionClosure = new DefaultClosure<>();
         ParallelToDo<P> partitionToDo = new ParallelToDo<>();
 
-        return new SaturatorPartition<>(partition.getRules(), partition.getTermPartition(),
+        return new SaturationPartition<>(partition.getRules(), partition.getTermPartition(),
                 partition.getDatasetFragment(),
                 partitionClosure,
                 partitionToDo,
@@ -68,7 +69,7 @@ public abstract class ParallelSaturator<P, T> {
         }
 
         Set<P> closure = new UnifiedSet<>();
-        for (SaturatorPartition<P, T> partition : partitions) {
+        for (SaturationPartition<P, T> partition : partitions) {
             closure.addAll(partition.getClosure());
         }
         return closure;
@@ -87,7 +88,7 @@ public abstract class ParallelSaturator<P, T> {
 
     private void initAndStartThreads() {
         this.threadPool = new ArrayList<>();
-        for (SaturatorPartition<P, T> partition : this.partitions) {
+        for (SaturationPartition<P, T> partition : this.partitions) {
             this.threadPool.add(new Thread(partition));
         }
         this.threadPool.forEach(Thread::start);
@@ -95,7 +96,7 @@ public abstract class ParallelSaturator<P, T> {
 
     private void distributeAxiom(P axiom) {
         if (consideredAxioms.add(axiom)) {
-            for (SaturatorPartition<P, T> partition : partitions) {
+            for (SaturationPartition<P, T> partition : partitions) {
                 if (isRelevantAxiomToPartition(partition, axiom)) {
                     partition.getToDo().add(axiom);
                 }
@@ -105,9 +106,9 @@ public abstract class ParallelSaturator<P, T> {
 
     protected abstract List<PartitionModel<P, T>> initializePartitions();
 
-    public abstract boolean isRelevantAxiomToPartition(SaturatorPartition<P, T> partition, P axiom);
+    public abstract boolean isRelevantAxiomToPartition(SaturationPartition<P, T> partition, P axiom);
 
-    public abstract boolean checkIfOtherPartitionsRequireAxiom(SaturatorPartition<P, T> partition, P axiom);
+    public abstract boolean checkIfOtherPartitionsRequireAxiom(SaturationPartition<P, T> partition, P axiom);
 
     public boolean isSaturationFinished() {
         return saturationFinished;

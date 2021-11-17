@@ -4,15 +4,17 @@ import data.*;
 import reasoning.rules.Rule;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SingleThreadedSaturator<P, T> {
+public class SingleThreadedSaturation<P, T> {
 
     private Closure<P> closure = new DefaultClosure<>();
     private ToDoQueue<P> toDo = new SingleThreadToDo<>();
     private Dataset<P, T> dataset;
     private Collection<? extends Rule<P>> rules;
+    private final AtomicBoolean saturationFinished = new AtomicBoolean(true);
 
-    public SingleThreadedSaturator(Dataset<P, T> dataset, Collection<? extends Rule<P>> rules) {
+    public SingleThreadedSaturation(Dataset<P, T> dataset, Collection<? extends Rule<P>> rules) {
         this.dataset = dataset;
         this.rules = rules;
         initializeRules();
@@ -31,14 +33,16 @@ public class SingleThreadedSaturator<P, T> {
     }
 
     public Set<P> saturate() {
-        initializeRules();
-        rules.forEach(r -> r.setToDo(this.toDo));
-        initializeToDoQueue();
-
+        saturationFinished.set(false);
         while (!toDo.isEmpty()) {
             process(toDo.remove());
         }
+        saturationFinished.set(true);
         return closure;
+    }
+
+    public ToDoQueue<P> getToDo() {
+        return toDo;
     }
 
     protected void process(P axiom) {
@@ -47,5 +51,13 @@ public class SingleThreadedSaturator<P, T> {
                 rule.apply(axiom);
             }
         }
+    }
+
+    public Closure<P> getClosure() {
+        return closure;
+    }
+
+    public boolean isSaturationFinished() {
+        return this.saturationFinished.get();
     }
 }

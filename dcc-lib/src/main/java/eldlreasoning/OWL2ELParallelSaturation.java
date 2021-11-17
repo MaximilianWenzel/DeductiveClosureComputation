@@ -7,19 +7,19 @@ import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptExistentialRestriction;
 import eldlsyntax.ELConceptInclusion;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
-import reasoning.saturator.parallel.ParallelSaturator;
-import reasoning.saturator.parallel.PartitionModel;
-import reasoning.saturator.parallel.SaturatorPartition;
+import reasoning.saturator.parallel.ParallelSaturation;
+import reasoning.saturator.PartitionModel;
+import reasoning.saturator.parallel.SaturationPartition;
 import util.OWL2ELSaturationUtils;
 
 import java.util.*;
 
-public class OWL2ELParallelSaturator extends ParallelSaturator<ELConceptInclusion, ELConcept> {
+public class OWL2ELParallelSaturation extends ParallelSaturation<ELConceptInclusion, ELConcept> {
 
     private int numberOfPartitions;
     private IndexedELOntology elOntology;
 
-    public OWL2ELParallelSaturator(IndexedELOntology elOntology, int numberOfPartitions) {
+    public OWL2ELParallelSaturation(IndexedELOntology elOntology, int numberOfPartitions) {
         super(elOntology);
         this.elOntology = elOntology;
         this.numberOfPartitions = numberOfPartitions;
@@ -71,7 +71,7 @@ public class OWL2ELParallelSaturator extends ParallelSaturator<ELConceptInclusio
     }
 
     @Override
-    public boolean isRelevantAxiomToPartition(SaturatorPartition<ELConceptInclusion, ELConcept> partition, ELConceptInclusion axiom) {
+    public boolean isRelevantAxiomToPartition(SaturationPartition<ELConceptInclusion, ELConcept> partition, ELConceptInclusion axiom) {
         Set<ELConcept> conceptPartition = partition.getTermPartition();
         return isRelevantAxiomToPartition(conceptPartition, axiom);
     }
@@ -90,7 +90,7 @@ public class OWL2ELParallelSaturator extends ParallelSaturator<ELConceptInclusio
     }
 
     @Override
-    public boolean checkIfOtherPartitionsRequireAxiom(SaturatorPartition<ELConceptInclusion, ELConcept> partition, ELConceptInclusion axiom) {
+    public boolean checkIfOtherPartitionsRequireAxiom(SaturationPartition<ELConceptInclusion, ELConcept> partition, ELConceptInclusion axiom) {
         Set<ELConcept> conceptPartition = partition.getTermPartition();
         if (!conceptPartition.contains(axiom.getSubConcept())
                 || !conceptPartition.contains(axiom.getSuperConcept())) {
