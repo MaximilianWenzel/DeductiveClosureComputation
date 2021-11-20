@@ -1,73 +1,71 @@
 package elsyntax;
 
-import eldlsyntax.ELConcept;
-import eldlsyntax.ELConceptInclusion;
-import networking.ClientComponent;
-import networking.ServerComponent;
-import networking.messages.DebugMessage;
-import networking.messages.InitPartitionMessage;
-import networking.messages.SaturationAxiomsMessage;
-import networking.messages.StateInfoMessage;
+import networking.*;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class NetworkingTest {
 
     @Test
-    public void testClientServerCommunication() {
+    public void testNIOServerCommunication() {
         int serverPort = 6066;
-        ServerComponent<ELConceptInclusion, ELConcept> serverComponent = new ServerComponent<>(serverPort) {
-            @Override
-            public void processReceivedMessage(SaturationAxiomsMessage<ELConceptInclusion> message) {
-            }
 
-            @Override
-            public void processReceivedMessage(StateInfoMessage message) {
-            }
+        List<Long> socketID = new ArrayList<>();
 
+        MessageProcessor messageProcessor = new MessageProcessor() {
             @Override
-            public void processReceivedMessage(InitPartitionMessage<ELConceptInclusion, ELConcept> message) {
-            }
-
-            @Override
-            public void processReceivedMessage(DebugMessage message) {
+            public void process(MessageEnvelope message) {
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                System.out.println("Server: " + message.getMessage());
-            }
-        };
-        serverComponent.startListeningOnPort();
-
-        ClientComponent<ELConceptInclusion, ELConcept> clientComponent = new ClientComponent<>("localhost", serverPort) {
-            @Override
-            public void processReceivedMessage(SaturationAxiomsMessage<ELConceptInclusion> message) {
-            }
-
-            @Override
-            public void processReceivedMessage(StateInfoMessage message) {
-            }
-
-            @Override
-            public void processReceivedMessage(InitPartitionMessage<ELConceptInclusion, ELConcept> message) {
-            }
-
-            @Override
-            public void processReceivedMessage(DebugMessage message) {
+                System.out.println("Received message: " + message.getMessage());
             }
         };
 
-        clientComponent.connectToServer();
-        clientComponent.sendMessageAsync(new DebugMessage("Hello World!"));
+        ClientConnectionListener clientConnectionListener = new ClientConnectionListener() {
+            @Override
+            public void newClientConnected(SocketManager socketManager) {
+                try {
+                    System.out.println("Client connected: " + socketManager.getSocketChannel().getRemoteAddress());
+                    socketID.add(socketManager.getSocketID());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        NetworkingComponent networkingComponent = new NetworkingComponent(
+                messageProcessor, clientConnectionListener,
+                Collections.singletonList(serverPort),
+                Collections.singletonList(new ServerData("localhost", serverPort)));
+        networkingComponent.startNIOThread();
+
+        while (socketID.isEmpty()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        long id = socketID.iterator().next();
+        MessageEnvelope envelope = new MessageEnvelope(id, "Hello socket " + id + "!");
+
+        for (int i = 0; i < 5; i++) {
+            networkingComponent.sendMessage(envelope);
+        }
 
         try {
-            Thread.sleep(50);
-            System.out.println("Waiting...");
-            Thread.sleep(1000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
     }
+
 }

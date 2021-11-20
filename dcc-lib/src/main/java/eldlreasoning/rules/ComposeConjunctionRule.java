@@ -7,7 +7,31 @@ import eldlsyntax.ELConceptInclusion;
 import java.util.Set;
 
 /**
- * C ⊑ D1 ⊓ D2 ⇐ C ⊑ D1 ∧ C ⊑ D2 : D1 ⊓ D2 occurs negatively in ontology O.
+ * derived(C ⊑ D1 ⊓ D2) ⇐ derived(C ⊑ D1) ∧ derived(C ⊑ D2) ∧ occursNegatively(D1 ⊓ D2)
+ *
+ * occursNegatively(C) ⇐ told(C ⊑ E)
+ * occursNegatively(D1), occursNegatively(D2) ⇐ occursNegatively(D1 ⊓ D2)
+ * occursNegatively(C) ⇐ occursNegatively(∃R.C)
+ *
+ * option 0
+ * derived(C ⊑ D1 ⊓ D2) ⇐ derived(C ⊑ D1) ∧ derived(C ⊑ D2) ∧ occursNegatively(D1 ⊓ D2)
+ *
+ * option 1
+ * derivedCandidate(C ⊑ D1 ⊓ D2) ⇐ derived(C ⊑ D1) ∧ derived(C ⊑ D2)
+ * derived(C ⊑ E) ⇐ derivedCandidate(C ⊑ E), occursNegatively(E)
+ *
+ * option 2
+ * check(C, D1, D2) ⇐ derived(C ⊑ D2), occursNegatively(D1 ⊓ D2)
+ * derived(C ⊑ D1 ⊓ D2) ⇐ derived(C ⊑ D1) ∧ check(C, D1, D2)
+ *
+ * option 3
+ * check(C, D1, n) ⇐ derived(C ⊑ D1) ∧ signatureOfSuperConcepts(C, n)
+ * possiblyDerived(C ⊑ D1 ⊓ D2) ⇐ check(C, D1, n), occursNegatively(D1 ⊓ D2) : D2 possibly in n
+ * derived(C ⊑ D1 ⊓ D2) ⇐ derived(C ⊑ D2), possiblyDerived(C ⊑ D1 ⊓ D2)
+ *
+ * signatureOfSuperConcepts(C, n + E) ⇐ derived(C ⊑ E), signatureOfSuperConcepts(C, n)
+ *
+ *
  */
 public class ComposeConjunctionRule extends OWLELRule {
 

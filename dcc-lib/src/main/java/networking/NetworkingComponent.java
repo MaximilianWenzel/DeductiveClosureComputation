@@ -1,106 +1,213 @@
 package networking;
 
-import networking.messages.*;
+import util.ConsoleUtils;
 
-import java.io.*;
-import java.net.Socket;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.*;
+import java.util.*;
+import java.util.logging.Logger;
 
-public abstract class NetworkingComponent<P, T> {
+public class NetworkingComponent implements Runnable {
 
-    protected Socket socket;
-    protected InputStream in;
-    protected OutputStream out;
-    protected ObjectInputStream objIn;
-    protected ObjectOutputStream objOut;
-    protected BlockingQueue<MessageModel> messagesToSend;
+    protected Logger log = ConsoleUtils.getLogger();
 
-    protected Thread messageTransmitter;
-    protected Thread messageProcessor;
+    protected Thread nioThread;
 
-    protected void init(Socket socket) {
+    protected Selector selector;
+
+    protected ClientConnectionListener clientConnectionListener;
+
+    protected List<Integer> portNumbersToListen;
+    protected List<ServerData> serversToConnectTo;
+
+    protected List<ServerSocketChannel> serverSocketChannels = new ArrayList<>();
+    protected Queue<SocketManager> newConnectedSocketsQueue = new LinkedList<>();
+
+    protected Map<Long, SocketManager> socketIDToMessageManager = new HashMap<>();
+
+    protected MessageProcessor messageProcessor;
+
+    protected boolean running = true;
+
+    public NetworkingComponent(MessageProcessor messageProcessor,
+                               ClientConnectionListener clientConnectionListener,
+                               List<Integer> portNumbersToListen,
+                               List<ServerData> serversToConnectTo) {
+        this.portNumbersToListen = portNumbersToListen;
+        this.serversToConnectTo = serversToConnectTo;
+        this.clientConnectionListener = clientConnectionListener;
+
+        this.messageProcessor = messageProcessor;
+        init();
+    }
+
+    private void init() {
         try {
-            this.socket = socket;
-            this.out = this.socket.getOutputStream();
-            this.objOut = new ObjectOutputStream(out);
-            this.objOut.flush();
+            selector = Selector.open();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-            this.in = this.socket.getInputStream();
-            this.objIn = new ObjectInputStream(in);
+        this.serverSocketChannels = new ArrayList<>(portNumbersToListen.size());
 
-            // TODO adjust capacity of message buffer
-            this.messagesToSend = new ArrayBlockingQueue<>(1000);
+        try {
+            for (Integer portNumber : portNumbersToListen) {
+                ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+                serverSocketChannel.configureBlocking(false);
+                serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+                serverSocketChannel.bind(new InetSocketAddress(portNumber));
+                this.serverSocketChannels.add(serverSocketChannel);
+                log.info("Listening on port " + portNumber + "...");
+            }
 
-            this.messageTransmitter = new Thread(new MessageTransmitter());
-            this.messageTransmitter.start();
+            for (ServerData serverData : this.serversToConnectTo) {
+                SocketChannel socketChannel = SocketChannel.open();
+                socketChannel.configureBlocking(false);
+                socketChannel.register(selector, SelectionKey.OP_CONNECT);
+                socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
+                if (socketChannel.finishConnect()) {
+                    this.newConnectedSocketsQueue.add(new SocketManager(socketChannel));
+                    SelectionKey key = socketChannel.keyFor(selector);
+                    key.cancel();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-            this.messageProcessor = new Thread(new MessageProcessor());
-            this.messageProcessor.start();
+    }
 
+    public void startNIOThread() {
+        if (nioThread == null) {
+            nioThread = new Thread(this);
+            nioThread.start();
+        }
+    }
+
+    @Override
+    public void run() {
+        try {
+            while (running) {
+                mainNIOSelectorLoop();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void sendMessageAsync(MessageModel message) {
-        this.messagesToSend.add(message);
+    private void mainNIOSelectorLoop() throws IOException {
+        selector.select();
+        Set<SelectionKey> keys = selector.selectedKeys();
+        for (SelectionKey key : keys) {
+            if (key.isReadable()) {
+                readFromSocket(key);
+            }
+            if (key.isWritable()) {
+                writeToSocket(key);
+            }
+            if (key.isAcceptable()) {
+                acceptClientConnection(key);
+            }
+            if (key.isConnectable()) {
+                connectToServer(key);
+            }
+            initNewConnectedSockets();
+        }
+        keys.clear();
     }
 
-    public abstract void processReceivedMessage(SaturationAxiomsMessage<P> message);
+    private void connectToServer(SelectionKey key) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) key.channel();
+        if (!socketChannel.finishConnect()) {
+            throw new IllegalStateException("Could not connect to server: " + socketChannel.getRemoteAddress());
+        }
+        SocketManager socketManager = new SocketManager(socketChannel);
+        this.newConnectedSocketsQueue.add(socketManager);
+    }
 
-    public abstract void processReceivedMessage(StateInfoMessage message);
+    private void initNewConnectedSockets() throws IOException {
+        while (!this.newConnectedSocketsQueue.isEmpty()) {
+            SocketManager socketManager = newConnectedSocketsQueue.poll();
+            this.socketIDToMessageManager.put(socketManager.getSocketID(), socketManager);
 
-    public abstract void processReceivedMessage(InitPartitionMessage<P, T> message);
-
-    public abstract void processReceivedMessage(DebugMessage message);
-
-    class MessageTransmitter implements Runnable {
-        @Override
-        public void run() {
-            try {
-                while (!socket.isClosed()) {
-                    MessageModel message = messagesToSend.take();
-                    objOut.writeInt(message.getMessageID());
-                    objOut.writeObject(message);
-                    objOut.flush();
-                }
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
-            }
+            SocketChannel socketChannel = socketManager.getSocketChannel();
+            socketChannel.configureBlocking(false);
+            SelectionKey key = socketChannel.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            key.attach(socketManager);
         }
     }
 
-    class MessageProcessor implements Runnable {
-        @Override
-        public void run() {
-            try {
-                while (!socket.isClosed()) {
-                    int messageType = objIn.readInt();
-                    switch (messageType) {
-                        case MessageType.SATURATION_DATA:
-                            SaturationAxiomsMessage<P> saturationAxiomsMessage = (SaturationAxiomsMessage<P>) objIn.readObject();
-                            processReceivedMessage(saturationAxiomsMessage);
-                            break;
-                        case MessageType.CONTROL_DATA:
-                            StateInfoMessage stateInfoMessage = (StateInfoMessage) objIn.readObject();
-                            processReceivedMessage(stateInfoMessage);
-                            break;
-                        case MessageType.INITIALIZE_PARTITION:
-                            InitPartitionMessage<P, T> initPartitionMessage = (InitPartitionMessage<P, T>) objIn.readObject();
-                            processReceivedMessage(initPartitionMessage);
-                            break;
-                        case MessageType.DEBUG_MESSAGE:
-                            DebugMessage debugMessage = (DebugMessage) objIn.readObject();
-                            processReceivedMessage(debugMessage);
-                            break;
-                        default:
-                            throw new IllegalStateException("Unknown message type: " + messageType);
-                    }
-                }
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
+    private void readFromSocket(SelectionKey key) throws IOException {
+        SocketManager socketManager = (SocketManager) key.attachment();
+        Queue<Object> receivedMessages = socketManager.readMessages();
+        while (!receivedMessages.isEmpty()) {
+            MessageEnvelope messageEnvelope = new MessageEnvelope(socketManager.getSocketID(), receivedMessages.poll());
+            messageProcessor.process(messageEnvelope);
+        }
+
+        // connected socket is closed
+        if (socketManager.endOfStreamReached()) {
+            this.socketIDToMessageManager.remove(socketManager.getSocketID());
+            key.attach(null);
+            key.cancel();
+            key.channel().close();
+        }
+    }
+
+
+    private void writeToSocket(SelectionKey key) {
+        SocketManager socketManager = (SocketManager) key.attachment();
+
+        if (socketManager.hasMessagesToSend()) {
+            socketManager.sendMessages();
+        } else {
+            // TODO remove write as interest operation
+        }
+    }
+
+    public void sendMessage(MessageEnvelope messageEnvelope) {
+        SocketManager socketManager = this.socketIDToMessageManager.get(messageEnvelope.getSocketID());
+        try {
+            if (socketManager != null) {
+                socketManager.enqueueMessageToSend(messageEnvelope.getMessage());
+            } else {
+                throw new IllegalArgumentException("Socket with given ID does not exist: " + messageEnvelope.getSocketID());
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void acceptClientConnection(SelectionKey key) throws IOException {
+        ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
+
+        SocketChannel socketChannel = serverSocketChannel.accept();
+        while (socketChannel != null) {
+            SocketManager socketManager = new SocketManager(socketChannel);
+            this.newConnectedSocketsQueue.add(socketManager);
+            log.info("Client connected: " + socketChannel.socket().getRemoteSocketAddress());
+            clientConnectionListener.newClientConnected(socketManager);
+
+            socketChannel = serverSocketChannel.accept();
+        }
+    }
+
+    public void terminate() {
+        // TODO close all connections
+        this.running = false;
+        try {
+            for (ServerSocketChannel serverSocketChannel : serverSocketChannels) {
+                serverSocketChannel.close();
+            }
+
+            for (SocketManager socketManager : this.socketIDToMessageManager.values()) {
+                socketManager.close();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

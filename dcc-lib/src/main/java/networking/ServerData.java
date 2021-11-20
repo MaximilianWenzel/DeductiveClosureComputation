@@ -2,8 +2,8 @@ package networking;
 
 public class ServerData {
 
-    private String serverName;
-    private int portNumber;
+    private final String serverName;
+    private final int portNumber;
 
     public ServerData(String serverName, int portNumber) {
         this.serverName = serverName;

@@ -35,6 +35,7 @@ public class IndexedELOntology extends ELOntology implements Dataset<ELConceptIn
                 ELConcept c = axiom.getSubConcept();
                 ELConcept d = axiom.getSuperConcept();
 
+                // TODO implement recursive procedure for concepts
                 AtomicInteger negativeCounter = conceptNegativeOccurrences.computeIfAbsent(c, e -> new AtomicInteger(0));
                 if (negativeCounter.incrementAndGet() > 0) {
                     negativeConcepts.add(c);

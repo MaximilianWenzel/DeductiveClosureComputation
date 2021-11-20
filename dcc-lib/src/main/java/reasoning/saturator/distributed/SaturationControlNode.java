@@ -1,5 +1,5 @@
 package reasoning.saturator.distributed;
-
+/*
 
 import data.Dataset;
 import data.ParallelToDo;
@@ -83,7 +83,7 @@ public abstract class SaturationControlNode<P, T> {
                             case DistributedPartitionModel.RUNNING_SATURATION:
                                 nothingToDo = false;
                                 break;
-                            case DistributedPartitionModel.FINISHED_SATURATION_WAITING_ON_CONTROL_NODE:
+                            case DistributedPartitionModel.FINISHED_SATURATION_WAITING_FOR_CONTROL_NODE:
                                 break;
                             default:
                                 // TODO partitions might be in state 'INITIALIZED'
@@ -131,7 +131,7 @@ public abstract class SaturationControlNode<P, T> {
                                 allClosureResultsReceived = false;
                                 // TODO probably resend message if partition has not received it
                                 break;
-                            case DistributedPartitionModel.FINISHED_SATURATION_WAITING_ON_CONTROL_NODE:
+                            case DistributedPartitionModel.FINISHED_SATURATION_WAITING_FOR_CONTROL_NODE:
                                 // closure result received
                                 break;
                             default:
@@ -171,3 +171,4 @@ public abstract class SaturationControlNode<P, T> {
         return toDo;
     }
 }
+*/

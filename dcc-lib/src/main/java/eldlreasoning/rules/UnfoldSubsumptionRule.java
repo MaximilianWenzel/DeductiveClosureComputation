@@ -6,7 +6,7 @@ import eldlsyntax.ELConceptInclusion;
 import java.util.Set;
 
 /**
- * C ⊑ E ⇐ C ⊑ D : D ⊑ E ∈ O
+ * derived(C ⊑ E) ⇐ derived(C ⊑ D) : told(D ⊑ E)
  */
 public class UnfoldSubsumptionRule extends OWLELRule {
 

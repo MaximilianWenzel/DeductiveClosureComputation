@@ -56,8 +56,6 @@ public class OWLELSaturationTest {
 
     @Test
     public void testSingleThreadedSaturation() {
-
-
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override
             public void visit(ELConceptInclusion axiom) {

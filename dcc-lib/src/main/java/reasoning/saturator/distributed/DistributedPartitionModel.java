@@ -1,7 +1,6 @@
 package reasoning.saturator.distributed;
-
+/*
 import data.Dataset;
-import networking.ClientComponent;
 import networking.ServerData;
 import networking.messages.SaturationAxiomsMessage;
 import reasoning.rules.Rule;
@@ -14,12 +13,12 @@ public class DistributedPartitionModel<P, T> extends PartitionModel<P, T> {
 
     public static final int INITIALIZED = 0;
     public static final int RUNNING_SATURATION = 1;
-    public static final int FINISHED_SATURATION_WAITING_ON_CONTROL_NODE = 2;
+    public static final int FINISHED_SATURATION_WAITING_FOR_CONTROL_NODE = 2;
     public static final int FINISHED = 3;
 
     protected final Object bufferedAxiomsLock = new Object();
     protected ServerData serverData;
-    protected ClientComponent<P, T> clientComponent;
+    //protected ClientComponent<P, T> clientComponent;
     protected List<P> bufferedAxioms = new ArrayList<>();
 
     protected int state;
@@ -74,3 +73,4 @@ public class DistributedPartitionModel<P, T> extends PartitionModel<P, T> {
         return currentlyLargestStateSequenceNumber;
     }
 }
+*/
