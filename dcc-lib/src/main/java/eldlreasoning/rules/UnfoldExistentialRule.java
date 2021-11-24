@@ -10,6 +10,7 @@ import eldlsyntax.ELConceptInclusion;
 public class UnfoldExistentialRule extends OWLELRule {
 
     public UnfoldExistentialRule() {
+        super();
     }
 
     @Override
@@ -22,11 +23,15 @@ public class UnfoldExistentialRule extends OWLELRule {
         ELConceptExistentialRestriction exist = (ELConceptExistentialRestriction) axiom.getSuperConcept();
         ELConcept c = exist.getFiller();
 
-        for (ELConceptInclusion conceptInclusion : closure) {
+        for (Object obj : closure) {
+            if (!(obj instanceof ELConceptInclusion)) {
+                continue;
+            }
+            ELConceptInclusion conceptInclusion = (ELConceptInclusion) obj;
             if (c.equals(conceptInclusion.getSubConcept())) {
                 ELConcept d = conceptInclusion.getSuperConcept();
                 ELConceptExistentialRestriction existForSupertype = new ELConceptExistentialRestriction(exist.getRelation(), d);
-                addToToDo(new ELConceptInclusion(e, existForSupertype));
+                processInference(new ELConceptInclusion(e, existForSupertype));
             }
         }
     }

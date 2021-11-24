@@ -1,174 +1,140 @@
 package reasoning.saturator.distributed;
-/*
 
-import data.Dataset;
-import data.ParallelToDo;
-import networking.ClientComponent;
-import networking.messages.DebugMessage;
-import networking.messages.InitPartitionMessage;
-import networking.messages.SaturationAxiomsMessage;
-import networking.messages.StateInfoMessage;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
+import data.Closure;
+import data.DefaultClosure;
+import networking.messages.MessageModel;
+import reasoning.saturator.distributed.state.controlnodestates.CNSFinished;
+import reasoning.saturator.distributed.state.controlnodestates.CNSInitializing;
+import reasoning.saturator.distributed.state.controlnodestates.ControlNodeState;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
-public abstract class SaturationControlNode<P, T> {
+public class SaturationControlNode {
 
-    private int state;
+    private final SaturationCommunicationChannel communicationChannel;
+    private final Closure closureResult = new DefaultClosure();
+    private List<SaturationPartition> partitions;
+    private List<Thread> threadPool;
+    private Map<Long, SaturationPartition> partitionIDToPartition;
 
-    private final Dataset<P, T> dataset;
-    private final ParallelToDo<P> toDo = new ParallelToDo<>();
-    private final Set<P> consideredAxioms = new UnifiedSet<>();
-    private List<DistributedPartitionModel<P, T>> partitionNodes;
-    private List<ClientComponent<P, T>> saturationDataChannels = new ArrayList<>();
-    private volatile boolean saturationFinished = false;
+    private ControlNodeState state;
 
-    protected SaturationControlNode(Dataset<P, T> dataset) {
-        this.dataset = dataset;
+
+    protected SaturationControlNode(SaturationCommunicationChannel communicationChannel,
+                                    List<SaturationPartition> partitions) {
+        this.communicationChannel = communicationChannel;
+        this.partitions = partitions;
+        init();
     }
 
-    protected void initSaturationPartitionNodeConnection(DistributedPartitionModel<P, T> partition) {
-        int portNumber = partition.getServerData().getPortNumber();
-        String serverName = partition.getServerData().getServerName();
-        ClientComponent<P, T> clientComponent = new ClientComponent<>(serverName, portNumber) {
-            @Override
-            public void processReceivedMessage(SaturationAxiomsMessage<P> message) {
-                toDo.addAll(message.getAxioms());
-            }
-
-            @Override
-            public void processReceivedMessage(StateInfoMessage message) {
-                long sequenceNumber = message.getStateSequenceNumber();
-                if (sequenceNumber > partition.getCurrentlyLargestStateSequenceNumber().get()) {
-                    partition.getCurrentlyLargestStateSequenceNumber().set(sequenceNumber);
-                    partition.setState(message.getState());
-                }
-            }
-
-            @Override
-            public void processReceivedMessage(InitPartitionMessage<P, T> message) {
-                // TODO implement
-            }
-
-            @Override
-            public void processReceivedMessage(DebugMessage message) {
-                // TODO implement
-            }
-        };
-        partition.initializeConnectionToPartitionNode(clientComponent);
-        saturationDataChannels.add(partition.getClientComponent());
+    private void init() {
+        this.partitionIDToPartition = new HashMap<>();
+        this.partitions.forEach(p -> {
+            partitionIDToPartition.put(p.getPartitionID(), p);
+        });
+        this.state = new CNSInitializing(this);
     }
 
-    public void init() {
-        this.dataset.getInitialAxioms().forEachRemaining(toDo::add);
 
-        // init connection to partition nodes
-        this.partitionNodes = initializePartitions();
-        this.partitionNodes.forEach(this::initSaturationPartitionNodeConnection);
-    }
+    public Closure saturate() {
+        initAndStartThreads();
 
-    public Set<P> saturate() {
         try {
-            while (!saturationFinished) {
-                P axiom = null;
-                axiom = toDo.poll(1000, TimeUnit.MILLISECONDS);
-
-                if (axiom == null) {
-                    boolean nothingToDo = true;
-                    for (DistributedPartitionModel<P, T> partitionNode : partitionNodes) {
-                        switch (partitionNode.getState()) {
-                            case DistributedPartitionModel.RUNNING_SATURATION:
-                                nothingToDo = false;
-                                break;
-                            case DistributedPartitionModel.FINISHED_SATURATION_WAITING_FOR_CONTROL_NODE:
-                                break;
-                            default:
-                                // TODO partitions might be in state 'INITIALIZED'
-                                throw new IllegalStateException();
-                        }
-                        if (!nothingToDo) {
-                            break;
-                        }
-                    }
-                    saturationFinished = nothingToDo;
-                } else {
-                    distributeAxiom(axiom);
-                }
+            while (!(state instanceof CNSFinished)) {
+                MessageModel message = communicationChannel.read();
+                message.accept(state);
+            }
+            for (Thread t : threadPool) {
+                t.join();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-        return collectClosureResultsFromPartitions();
+        return closureResult;
     }
 
-    private void distributeAxiom(P axiom) {
-        if (consideredAxioms.add(axiom)) {
-            for (DistributedPartitionModel<P, T> partition : partitionNodes) {
-                if (isRelevantAxiomToPartition(partition, axiom)) {
-                    partition.addAxiomToBuffer(axiom);
+    private void initAndStartThreads() {
+        this.threadPool = new ArrayList<>();
+        for (SaturationPartition partition : this.partitions) {
+            this.threadPool.add(new Thread(partition));
+        }
+        this.threadPool.forEach(Thread::start);
+    }
+
+    /*
+    private void processStatusMessage(StateInfoMessage partitionMessage) {
+        SaturationStatusMessage message = partitionMessage.getStatusMessage();
+        SaturationPartition partition = this.partitionIDToPartition.get(partitionMessage.getSenderID());
+        switch (message) {
+            case PARTITION_INFO_TODO_IS_EMPTY:
+                this.partitionsWithEmptyToDo.add(partition);
+                if (partitionsWithEmptyToDo.size() == partitions.size()) {
+                    // ensure that all partitions have no work
+                    this.partitionsWithEmptyToDo.removeIf(saturationPartition -> !saturationPartition.isToDoEmpty());
+                    if (partitionsWithEmptyToDo.size() != partitions.size()) {
+                        // still work to do
+                        return;
+                    }
+                    // all partitions have an empty queue
+                    partitionsWithEmptyToDo.clear();
+                    state = ControlNodeState.INTERRUPTING_PARTITIONS;
+                    communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUESTS_SATURATION_INTERRUPT);
                 }
-            }
+                break;
+            case PARTITION_INFO_SATURATION_INTERRUPTED:
+                interruptedPartitions.add(partition);
+                if (interruptedPartitions.size() == partitions.size()) {
+                    // all partitions are interrupted
+                    interruptedPartitions.clear();
+                    state = ControlNodeState.CHECK_IF_PARTITIONS_FINISHED;
+                    communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUESTS_SATURATION_STATUS);
+                }
+                break;
+            case PARTITION_INFO_SATURATION_CONVERGED:
+                convergedPartitions.add(partition);
+                if (convergedPartitions.size() == partitions.size()) {
+                    // all partitions converged - request closure from partitions
+                    state = ControlNodeState.WAITING_FOR_CLOSURE_RESULTS;
+                    communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_INFO_ALL_PARTITIONS_CONVERGED);
+                }
+                break;
         }
     }
 
-    private Set<P> collectClosureResultsFromPartitions() {
-        // add remaining axioms to closure
-        Set<P> closure = new UnifiedSet<>();
-        try {
-            while (true) {
-                P axiom = toDo.poll(1000, TimeUnit.MILLISECONDS);
-                if (axiom == null) {
-                    // check if all closure results from partitions have been received
-                    boolean allClosureResultsReceived = true;
-                    for (DistributedPartitionModel<P, T> partitionNode : partitionNodes) {
-                        switch (partitionNode.getState()) {
-                            case DistributedPartitionModel.FINISHED:
-                                // closure result not received
-                                allClosureResultsReceived = false;
-                                // TODO probably resend message if partition has not received it
-                                break;
-                            case DistributedPartitionModel.FINISHED_SATURATION_WAITING_FOR_CONTROL_NODE:
-                                // closure result received
-                                break;
-                            default:
-                                // TODO partitions might be in state 'INITIALIZED'
-                                throw new IllegalStateException();
-                        }
-                        if (!allClosureResultsReceived) {
-                            break;
-                        }
-                    }
+    private void processClosureMessage(SaturationAxiomsMessage message) {
+        SaturationPartition partition = this.partitionIDToPartition.get(message.getSenderID());
 
-                    if (allClosureResultsReceived) {
-                        break;
-                    }
-
-                } else {
-                    closure.add(axiom);
-                }
-            }
-
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if (!state.equals(ControlNodeState.WAITING_FOR_CLOSURE_RESULTS)) {
+            throw new IllegalStateException("Control node must be in state: " + ControlNodeState.WAITING_FOR_CLOSURE_RESULTS);
         }
-        return closure;
+        this.closureResult.addAll(message.getAxioms());
+        this.partitionsWhichSentClosure.add(partition);
+
+        // check if all closure results have been received
+        if (this.partitionsWhichSentClosure.size() == this.partitions.size()) {
+            this.state = ControlNodeState.FINISHED;
+        }
     }
 
-    protected abstract List<DistributedPartitionModel<P, T>> initializePartitions();
+     */
 
-    public abstract boolean isRelevantAxiomToPartition(DistributedPartitionModel<P, T> partition, P axiom);
-
-    public boolean isSaturationFinished() {
-        return saturationFinished;
+    public SaturationPartition getPartition(long partitionID) {
+        return this.partitionIDToPartition.get(partitionID);
     }
 
-    public ParallelToDo<P> getToDo() {
-        return toDo;
+    public List<SaturationPartition> getPartitions() {
+        return partitions;
+    }
+
+    public void switchState(ControlNodeState state) {
+        this.state = state;
+    }
+
+    public SaturationCommunicationChannel getCommunicationChannel() {
+        return communicationChannel;
     }
 }
-*/

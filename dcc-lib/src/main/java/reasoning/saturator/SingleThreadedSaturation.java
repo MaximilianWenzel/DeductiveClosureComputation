@@ -6,33 +6,30 @@ import reasoning.rules.Rule;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SingleThreadedSaturation<P, T> {
+public class SingleThreadedSaturation {
 
-    private Closure<P> closure = new DefaultClosure<>();
-    private ToDoQueue<P> toDo = new SingleThreadToDo<>();
-    private Dataset<P, T> dataset;
-    private Collection<? extends Rule<P>> rules;
+    private final Closure closure = new DefaultClosure();
+    private final ToDoQueue toDo = new SingleThreadToDo();
+    private Collection<? extends Rule> rules;
     private final AtomicBoolean saturationFinished = new AtomicBoolean(true);
 
-    public SingleThreadedSaturation(Dataset<P, T> dataset, Collection<? extends Rule<P>> rules) {
-        this.dataset = dataset;
+    public SingleThreadedSaturation(Iterator<?> initialAxioms, Collection<? extends Rule> rules) {
         this.rules = rules;
         initializeRules();
-        initializeToDoQueue();
+        initializeToDoQueue(initialAxioms);
     }
 
     private void initializeRules() {
         this.rules.forEach(r -> {
-            r.setToDo(this.toDo);
             r.setClosure(this.closure);
         });
     }
 
-    private void initializeToDoQueue() {
-        dataset.getInitialAxioms().forEachRemaining(toDo::add);
+    private void initializeToDoQueue(Iterator<?> initialAxioms) {
+        initialAxioms.forEachRemaining(toDo::add);
     }
 
-    public Set<P> saturate() {
+    public Closure saturate() {
         saturationFinished.set(false);
         while (!toDo.isEmpty()) {
             process(toDo.remove());
@@ -41,19 +38,19 @@ public class SingleThreadedSaturation<P, T> {
         return closure;
     }
 
-    public ToDoQueue<P> getToDo() {
+    public ToDoQueue getToDo() {
         return toDo;
     }
 
-    protected void process(P axiom) {
+    protected void process(Object axiom) {
         if (closure.add(axiom)) {
-            for (Rule<P> rule : rules) {
+            for (Rule rule : rules) {
                 rule.apply(axiom);
             }
         }
     }
 
-    public Closure<P> getClosure() {
+    public Closure getClosure() {
         return closure;
     }
 

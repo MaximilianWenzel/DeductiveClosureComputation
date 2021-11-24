@@ -4,6 +4,7 @@ import networking.*;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,19 +25,14 @@ public class NetworkingTest {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                System.out.println("Received message: " + message.getMessage());
+                System.out.println(LocalDateTime.now() + " - Received message: " + message.getMessage());
             }
         };
 
         ClientConnectionListener clientConnectionListener = new ClientConnectionListener() {
             @Override
             public void newClientConnected(SocketManager socketManager) {
-                try {
-                    System.out.println("Client connected: " + socketManager.getSocketChannel().getRemoteAddress());
-                    socketID.add(socketManager.getSocketID());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                socketID.add(socketManager.getSocketID());
             }
         };
 
@@ -55,9 +51,8 @@ public class NetworkingTest {
         }
 
         long id = socketID.iterator().next();
-        MessageEnvelope envelope = new MessageEnvelope(id, "Hello socket " + id + "!");
-
         for (int i = 0; i < 5; i++) {
+            MessageEnvelope envelope = new MessageEnvelope(id, "Hello socket " + id + "! - " + LocalDateTime.now());
             networkingComponent.sendMessage(envelope);
         }
 

@@ -13,6 +13,7 @@ public class UnfoldSubsumptionRule extends OWLELRule {
     private Iterable<ELConceptInclusion> ontology;
 
     public UnfoldSubsumptionRule(Set<ELConceptInclusion> ontology) {
+        super();
         this.ontology = ontology;
     }
 
@@ -23,7 +24,7 @@ public class UnfoldSubsumptionRule extends OWLELRule {
 
         for (ELConceptInclusion conceptIncl : ontology) {
             if (d.equals(conceptIncl.getSubConcept())) {
-                addToToDo(new ELConceptInclusion(c, conceptIncl.getSuperConcept()));
+                processInference(new ELConceptInclusion(c, conceptIncl.getSuperConcept()));
             }
         }
     }

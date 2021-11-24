@@ -1,21 +1,22 @@
 package networking.messages;
 
-import java.util.List;
+import java.util.Collection;
 
-public class SaturationAxiomsMessage<P> implements MessageModel {
+public class SaturationAxiomsMessage extends MessageModel {
 
-    private List<P> axioms;
+    private Collection<Object> axioms;
 
-    public SaturationAxiomsMessage(List<P> axioms) {
+    public SaturationAxiomsMessage(long sequenceNumber, long senderID, Collection<Object> axioms) {
+        super(sequenceNumber, senderID);
         this.axioms = axioms;
     }
 
-    public List<P> getAxioms() {
+    public Collection<Object> getAxioms() {
         return axioms;
     }
 
     @Override
-    public int getMessageID() {
-        return MessageType.SATURATION_DATA;
+    public void accept(MessageModelVisitor visitor) {
+        visitor.visit(this);
     }
 }

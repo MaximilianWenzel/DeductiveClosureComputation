@@ -6,7 +6,7 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class IndexedELOntology extends ELOntology implements Dataset<ELConceptInclusion, ELConcept> {
+public class IndexedELOntology extends ELOntology {
 
     private final Map<ELConcept, AtomicInteger> conceptNegativeOccurrences = new HashMap<>();
     private final Map<ELConcept, AtomicInteger> conceptPositiveOccurrences = new HashMap<>();
@@ -35,14 +35,17 @@ public class IndexedELOntology extends ELOntology implements Dataset<ELConceptIn
                 ELConcept c = axiom.getSubConcept();
                 ELConcept d = axiom.getSuperConcept();
 
-                // TODO implement recursive procedure for concepts
-                AtomicInteger negativeCounter = conceptNegativeOccurrences.computeIfAbsent(c, e -> new AtomicInteger(0));
-                if (negativeCounter.incrementAndGet() > 0) {
-                    negativeConcepts.add(c);
-                }
+                c.streamOfThisConceptAndAllContainedConcepts().forEach(concept -> {
+                    AtomicInteger negativeCounter = conceptNegativeOccurrences.computeIfAbsent(concept, e -> new AtomicInteger(0));
+                    if (negativeCounter.incrementAndGet() > 0) {
+                        negativeConcepts.add(concept);
+                    }
+                });
 
-                AtomicInteger positiveCounter = conceptPositiveOccurrences.computeIfAbsent(c, e -> new AtomicInteger(0));
-                positiveCounter.incrementAndGet();
+                d.streamOfThisConceptAndAllContainedConcepts().forEach(concept -> {
+                    AtomicInteger positiveCounter = conceptPositiveOccurrences.computeIfAbsent(concept, e -> new AtomicInteger(0));
+                    positiveCounter.incrementAndGet();
+                });
             }
         });
     }
@@ -196,12 +199,10 @@ public class IndexedELOntology extends ELOntology implements Dataset<ELConceptIn
         return bottom;
     }
 
-    @Override
     public Iterator<ELConcept> getAllOccurringTerms() {
         return this.getAllUsedConceptsInOntology().iterator();
     }
 
-    @Override
     public Iterator<ELConceptInclusion> getInitialAxioms() {
         return tBox_.iterator();
     }

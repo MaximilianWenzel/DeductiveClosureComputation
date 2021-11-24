@@ -2,9 +2,9 @@ package data;
 
 import java.util.Iterator;
 
-public interface Dataset<P, T> {
+public interface Dataset {
 
-    Iterator<T> getAllOccurringTerms();
+    Iterator<Object> getAllOccurringTerms();
 
-    Iterator<P> getInitialAxioms();
+    Iterator<Object> getInitialAxioms();
 }

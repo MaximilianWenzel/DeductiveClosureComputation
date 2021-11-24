@@ -1,25 +1,22 @@
 package networking.messages;
 
-public class StateInfoMessage implements MessageModel {
+import enums.SaturationStatusMessage;
 
-    protected long stateSequenceNumber;
-    protected int state;
+public class StateInfoMessage extends MessageModel {
 
-    public StateInfoMessage(int stateSequenceNumber, int state) {
-        this.stateSequenceNumber = stateSequenceNumber;
+    protected SaturationStatusMessage state;
+
+    public StateInfoMessage(long sequenceNumber, long senderID, SaturationStatusMessage state) {
+        super(sequenceNumber, senderID);
         this.state = state;
     }
 
-    @Override
-    public int getMessageID() {
-        return MessageType.CONTROL_DATA;
-    }
-
-    public int getState() {
+    public SaturationStatusMessage getStatusMessage() {
         return state;
     }
 
-    public long getStateSequenceNumber() {
-        return stateSequenceNumber;
+    @Override
+    public void accept(MessageModelVisitor visitor) {
+        visitor.visit(this);
     }
 }

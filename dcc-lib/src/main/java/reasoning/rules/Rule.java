@@ -1,27 +1,27 @@
 package reasoning.rules;
 
 import data.Closure;
-import data.ToDoQueue;
 
-public abstract class Rule<P> {
+public abstract class Rule {
 
-    protected Closure<P> closure;
-    private ToDoQueue<P> toDo;
+    protected Closure closure;
+    private InferenceProcessor inferenceProcessor = NoOPInferenceProcessor.getInstance();
 
     protected Rule() {
+
     }
 
-    public abstract void apply(P axiom);
+    public abstract void apply(Object axiom);
 
-    public void setToDo(ToDoQueue<P> toDo) {
-        this.toDo = toDo;
-    }
-
-    public void setClosure(Closure<P> closure) {
+    public void setClosure(Closure closure) {
         this.closure = closure;
     }
 
-    protected boolean addToToDo(P axiom) {
-        return this.toDo.add(axiom);
+    protected void processInference(Object axiom) {
+        inferenceProcessor.processInference(axiom);
+    }
+
+    public void setInferenceProcessor(InferenceProcessor inferenceProcessor) {
+        this.inferenceProcessor = inferenceProcessor;
     }
 }

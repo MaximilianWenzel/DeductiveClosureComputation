@@ -11,6 +11,7 @@ public class SubsumedByTopRule extends OWLELRule {
     private final ConceptVisitor visitor = new ConceptVisitor();
 
     public SubsumedByTopRule(ELConcept topConcept) {
+        super();
         this.topConcept = topConcept;
     }
 
@@ -24,30 +25,30 @@ public class SubsumedByTopRule extends OWLELRule {
 
         @Override
         public void visit(ELConceptBottom concept) {
-            addToToDo(new ELConceptInclusion(concept, topConcept));
+            processInference(new ELConceptInclusion(concept, topConcept));
         }
 
         @Override
         public void visit(ELConceptConjunction concept) {
-            addToToDo(new ELConceptInclusion(concept, topConcept));
+            processInference(new ELConceptInclusion(concept, topConcept));
             concept.getFirstConjunct().accept(this);
             concept.getSecondConjunct().accept(this);
         }
 
         @Override
         public void visit(ELConceptExistentialRestriction concept) {
-            addToToDo(new ELConceptInclusion(concept, topConcept));
+            processInference(new ELConceptInclusion(concept, topConcept));
             concept.getFiller().accept(this);
         }
 
         @Override
         public void visit(ELConceptName concept) {
-            addToToDo(new ELConceptInclusion(concept, topConcept));
+            processInference(new ELConceptInclusion(concept, topConcept));
         }
 
         @Override
         public void visit(ELConceptTop concept) {
-            addToToDo(new ELConceptInclusion(concept, topConcept));
+            processInference(new ELConceptInclusion(concept, topConcept));
         }
     }
 }

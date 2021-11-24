@@ -11,6 +11,7 @@ public class ReflexiveSubsumptionRule extends OWLELRule {
     private final ConceptVisitor visitor = new ConceptVisitor();
 
     public ReflexiveSubsumptionRule() {
+        super();
     }
 
     @Override
@@ -23,30 +24,30 @@ public class ReflexiveSubsumptionRule extends OWLELRule {
 
         @Override
         public void visit(ELConceptBottom concept) {
-            addToToDo(new ELConceptInclusion(concept, concept));
+            processInference(new ELConceptInclusion(concept, concept));
         }
 
         @Override
         public void visit(ELConceptConjunction concept) {
-            addToToDo(new ELConceptInclusion(concept, concept));
+            processInference(new ELConceptInclusion(concept, concept));
             concept.getFirstConjunct().accept(this);
             concept.getSecondConjunct().accept(this);
         }
 
         @Override
         public void visit(ELConceptExistentialRestriction concept) {
-            addToToDo(new ELConceptInclusion(concept, concept));
+            processInference(new ELConceptInclusion(concept, concept));
             concept.getFiller().accept(this);
         }
 
         @Override
         public void visit(ELConceptName concept) {
-            addToToDo(new ELConceptInclusion(concept, concept));
+            processInference(new ELConceptInclusion(concept, concept));
         }
 
         @Override
         public void visit(ELConceptTop concept) {
-            addToToDo(new ELConceptInclusion(concept, concept));
+            processInference(new ELConceptInclusion(concept, concept));
         }
     }
 }

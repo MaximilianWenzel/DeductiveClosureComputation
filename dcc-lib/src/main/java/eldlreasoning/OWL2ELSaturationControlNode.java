@@ -1,31 +1,27 @@
 package eldlreasoning;
 
-import data.Dataset;
-import data.IndexedELOntology;
-import eldlreasoning.rules.OWLELRule;
-import eldlsyntax.ELConcept;
-import eldlsyntax.ELConceptExistentialRestriction;
-import eldlsyntax.ELConceptInclusion;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
-import reasoning.saturator.parallel.ParallelSaturation;
-import reasoning.saturator.PartitionModel;
-import reasoning.saturator.parallel.SaturationPartition;
-import util.OWL2ELSaturationUtils;
+import reasoning.saturator.distributed.SaturationCommunicationChannel;
+import reasoning.saturator.distributed.SaturationControlNode;
+import reasoning.saturator.distributed.SaturationPartition;
 
 import java.util.*;
 
-public class OWL2ELParallelSaturation extends ParallelSaturation<ELConceptInclusion, ELConcept> {
+public class OWL2ELSaturationControlNode extends SaturationControlNode {
+    protected OWL2ELSaturationControlNode(SaturationCommunicationChannel communicationChannel, List<SaturationPartition> partitions) {
+        super(communicationChannel, partitions);
+    }
 
+    /*
     private int numberOfPartitions;
     private IndexedELOntology elOntology;
 
-    public OWL2ELParallelSaturation(IndexedELOntology elOntology, int numberOfPartitions) {
+    public OWL2ELSaturationControlNode(IndexedELOntology elOntology, int numberOfPartitions) {
         super(elOntology);
         this.elOntology = elOntology;
         this.numberOfPartitions = numberOfPartitions;
     }
 
-    protected Dataset<ELConceptInclusion, ELConcept> getDatasetFragmentForPartition(Set<ELConcept> termPartition) {
+    protected Dataset getDatasetFragmentForPartition(Set<ELConcept> termPartition) {
         IndexedELOntology ontologyFragment = elOntology.getOntologyWithIndexedNegativeConcepts();
         for (ELConceptInclusion axiom : elOntology.getOntologyAxioms()) {
             if (this.isRelevantAxiomToPartition(termPartition, axiom)) {
@@ -36,7 +32,7 @@ public class OWL2ELParallelSaturation extends ParallelSaturation<ELConceptInclus
     }
 
     @Override
-    protected List<PartitionModel<ELConceptInclusion, ELConcept>> initializePartitions() {
+    protected List<PartitionModel> initializePartitions() {
 
         Iterator<ELConcept> occurringConceptsInDataset = this.elOntology.getAllUsedConceptsInOntology().iterator();
 
@@ -55,12 +51,12 @@ public class OWL2ELParallelSaturation extends ParallelSaturation<ELConceptInclus
             counter++;
         }
 
-        List<PartitionModel<ELConceptInclusion, ELConcept>> partitionModels = new ArrayList<>(numberOfPartitions);
+        List<PartitionModel> partitionModels = new ArrayList<>(numberOfPartitions);
 
         for (Set<ELConcept> conceptPartition : conceptPartitions) {
             Collection<OWLELRule> rules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
-            Dataset<ELConceptInclusion, ELConcept> ontologyFragment = getDatasetFragmentForPartition(conceptPartition);
-            PartitionModel<ELConceptInclusion, ELConcept> pm = new PartitionModel<>(
+            Dataset ontologyFragment = getDatasetFragmentForPartition(conceptPartition);
+            PartitionModel pm = new PartitionModel<>(
                     rules,
                     conceptPartition,
                     ontologyFragment
@@ -101,5 +97,7 @@ public class OWL2ELParallelSaturation extends ParallelSaturation<ELConceptInclus
         }
         return false;
     }
+
+     */
 
 }

@@ -48,16 +48,20 @@ public class ComposeConjunctionRule extends OWLELRule {
         ELConcept c = axiom.getSubConcept();
         ELConcept d1 = axiom.getSuperConcept();
 
-        for (ELConceptInclusion conceptInclusion : closure) {
+        for (Object obj : closure) {
+            if (!(obj instanceof ELConceptInclusion)) {
+                continue;
+            }
+            ELConceptInclusion conceptInclusion = (ELConceptInclusion) obj;
             if (c.equals(conceptInclusion.getSubConcept())) {
                 ELConcept d2 = conceptInclusion.getSuperConcept();
                 ELConceptConjunction conjunction = new ELConceptConjunction(d1, d2);
                 if (this.negativeConceptsFromOntology.contains(conjunction)) {
-                    this.addToToDo(new ELConceptInclusion(c, conjunction));
+                    this.processInference(new ELConceptInclusion(c, conjunction));
                 }
                 ELConceptConjunction conjunction2 = new ELConceptConjunction(d2, d1);
                 if (this.negativeConceptsFromOntology.contains(conjunction2)) {
-                    this.addToToDo(new ELConceptInclusion(c, conjunction2));
+                    this.processInference(new ELConceptInclusion(c, conjunction2));
                 }
             }
         }

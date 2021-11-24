@@ -11,6 +11,7 @@ public class DecomposeConjunctionRule extends OWLELRule {
 
 
     public DecomposeConjunctionRule() {
+        super();
     }
 
     @Override
@@ -20,8 +21,8 @@ public class DecomposeConjunctionRule extends OWLELRule {
             ELConceptConjunction conjunction = (ELConceptConjunction) axiom.getSuperConcept();
             ELConcept d1 = conjunction.getFirstConjunct();
             ELConcept d2 = conjunction.getSecondConjunct();
-            addToToDo(new ELConceptInclusion(c, d1));
-            addToToDo(new ELConceptInclusion(c, d2));
+            processInference(new ELConceptInclusion(c, d1));
+            processInference(new ELConceptInclusion(c, d2));
         }
     }
 }
