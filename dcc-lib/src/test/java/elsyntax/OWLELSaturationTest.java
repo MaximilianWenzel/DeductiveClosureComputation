@@ -72,8 +72,8 @@ public class OWLELSaturationTest {
 
     public Set<Object> getClosureOfSingleThreadedSaturator() {
         Collection<OWLELRule> owlelRules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
-        SingleThreadedSaturation saturator = new SingleThreadedSaturation(elOntology.getInitialAxioms(), owlelRules);
-        Set<Object> closure = saturator.saturate();
+        SingleThreadedSaturation saturation = new SingleThreadedSaturation(elOntology.getInitialAxioms(), owlelRules);
+        Set<Object> closure = saturation.saturate();
         return closure;
     }
 

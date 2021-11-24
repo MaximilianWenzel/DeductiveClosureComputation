@@ -2,6 +2,7 @@ package reasoning.saturator;
 
 import data.*;
 import reasoning.rules.Rule;
+import reasoning.rules.SingleThreadedSaturationInferenceProcessor;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,6 +23,7 @@ public class SingleThreadedSaturation {
     private void initializeRules() {
         this.rules.forEach(r -> {
             r.setClosure(this.closure);
+            r.setInferenceProcessor(new SingleThreadedSaturationInferenceProcessor(this.toDo));
         });
     }
 
