@@ -20,8 +20,12 @@
             <artifactId>eclipse-collections</artifactId>
             <version>11.0.0.M3</version>
         </dependency>
-
-
+        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>31.0.1-jre</version>
+        </dependency>
     </dependencies>
 
     <properties>

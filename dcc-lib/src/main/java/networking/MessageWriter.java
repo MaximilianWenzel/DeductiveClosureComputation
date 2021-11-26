@@ -37,6 +37,7 @@ public class MessageWriter {
                 return;
             }
 
+            // TODO use Cryo framework for stepwise (stream) serialization
             byte[] messageBytes = SerializationUtils.serialize(currentMessage);
             messageBuffer = ByteBuffer.wrap(messageBytes);
 

@@ -1,12 +1,11 @@
 package elsyntax;
 
 import data.IndexedELOntology;
-import eldlreasoning.OWL2ELSaturationControlNode;
 import eldlreasoning.rules.OWLELRule;
 import eldlsyntax.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reasoning.saturator.SingleThreadedSaturation;
+import reasoning.saturation.SingleThreadedSaturation;
 import util.OWL2ELSaturationUtils;
 
 import java.util.Collection;

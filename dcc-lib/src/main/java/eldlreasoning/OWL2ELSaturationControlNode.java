@@ -1,14 +1,14 @@
 package eldlreasoning;
 
-import reasoning.saturator.distributed.SaturationCommunicationChannel;
-import reasoning.saturator.distributed.SaturationControlNode;
-import reasoning.saturator.distributed.SaturationPartition;
+import reasoning.saturation.distributed.communication.SaturationCommunicationChannel;
+import reasoning.saturation.distributed.SaturationControlNode;
+import reasoning.saturation.distributed.SaturationPartition;
 
 import java.util.*;
 
 public class OWL2ELSaturationControlNode extends SaturationControlNode {
     protected OWL2ELSaturationControlNode(SaturationCommunicationChannel communicationChannel, List<SaturationPartition> partitions) {
-        super(communicationChannel, partitions);
+        super(null);
     }
 
     /*

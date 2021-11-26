@@ -6,8 +6,8 @@ public class StateInfoMessage extends MessageModel {
 
     protected SaturationStatusMessage state;
 
-    public StateInfoMessage(long sequenceNumber, long senderID, SaturationStatusMessage state) {
-        super(sequenceNumber, senderID);
+    public StateInfoMessage(long senderID, SaturationStatusMessage state) {
+        super(senderID);
         this.state = state;
     }
 

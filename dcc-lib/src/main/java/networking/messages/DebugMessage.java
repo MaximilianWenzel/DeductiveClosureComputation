@@ -4,8 +4,8 @@ public class DebugMessage extends MessageModel {
 
     private String message;
 
-    public DebugMessage(long sequenceNumber, long senderID, String message) {
-        super(sequenceNumber, senderID);
+    public DebugMessage(long senderID, String message) {
+        super(senderID);
         this.message = message;
     }
 

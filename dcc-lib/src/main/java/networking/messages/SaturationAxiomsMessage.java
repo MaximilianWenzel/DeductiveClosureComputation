@@ -6,8 +6,8 @@ public class SaturationAxiomsMessage extends MessageModel {
 
     private Collection<Object> axioms;
 
-    public SaturationAxiomsMessage(long sequenceNumber, long senderID, Collection<Object> axioms) {
-        super(sequenceNumber, senderID);
+    public SaturationAxiomsMessage(long senderID, Collection<Object> axioms) {
+        super(senderID);
         this.axioms = axioms;
     }
 

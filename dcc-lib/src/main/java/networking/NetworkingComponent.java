@@ -62,15 +62,7 @@ public class NetworkingComponent implements Runnable {
             }
 
             for (ServerData serverData : this.serversToConnectTo) {
-                SocketChannel socketChannel = SocketChannel.open();
-                socketChannel.configureBlocking(false);
-                socketChannel.register(selector, SelectionKey.OP_CONNECT);
-                socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
-                if (socketChannel.finishConnect()) {
-                    this.newConnectedSocketsQueue.add(new SocketManager(socketChannel));
-                    SelectionKey key = socketChannel.keyFor(selector);
-                    key.cancel();
-                }
+                connectToServer(serverData);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -124,6 +116,13 @@ public class NetworkingComponent implements Runnable {
         }
         SocketManager socketManager = new SocketManager(socketChannel);
         this.newConnectedSocketsQueue.add(socketManager);
+    }
+
+    public void connectToServer(ServerData data) throws IOException {
+        SocketChannel socketChannel = SocketChannel.open();
+        socketChannel.configureBlocking(false);
+        socketChannel.register(selector, SelectionKey.OP_CONNECT);
+        socketChannel.connect(new InetSocketAddress(data.getServerName(), data.getPortNumber()));
     }
 
     private void initNewConnectedSockets() throws IOException {
@@ -209,5 +208,9 @@ public class NetworkingComponent implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void setMessageProcessor(MessageProcessor messageProcessor) {
+        this.messageProcessor = messageProcessor;
     }
 }
