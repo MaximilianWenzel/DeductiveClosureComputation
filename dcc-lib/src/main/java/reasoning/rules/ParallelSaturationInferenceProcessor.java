@@ -1,6 +1,6 @@
 package reasoning.rules;
 
-import reasoning.saturation.workloaddistribution.WorkloadDistributor;
+import reasoning.saturation.workload.WorkloadDistributor;
 
 public class ParallelSaturationInferenceProcessor implements InferenceProcessor {
 
@@ -12,6 +12,6 @@ public class ParallelSaturationInferenceProcessor implements InferenceProcessor 
 
     @Override
     public void processInference(Object axiom) {
-        distributor.getRelevantPartitionsForAxiom(axiom);
+        distributor.getRelevantPartitionIDsForAxiom(axiom);
     }
 }

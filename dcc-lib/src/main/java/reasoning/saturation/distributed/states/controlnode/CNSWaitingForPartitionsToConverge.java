@@ -1,17 +1,17 @@
-package reasoning.saturation.distributed.state.controlnodestates;
+package reasoning.saturation.distributed.states.controlnode;
 
-import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CNSRequestPartitionSaturationStatus extends ControlNodeState {
+public class CNSWaitingForPartitionsToConverge extends ControlNodeState {
+
     protected AtomicInteger convergedPartitions = new AtomicInteger(0);
     protected int numberOfPartitions;
 
-    public CNSRequestPartitionSaturationStatus(SaturationControlNode saturationControlNode) {
+    public CNSWaitingForPartitionsToConverge(SaturationControlNode saturationControlNode) {
         super(saturationControlNode);
         this.numberOfPartitions = saturationControlNode.getPartitions().size();
     }
@@ -20,18 +20,21 @@ public class CNSRequestPartitionSaturationStatus extends ControlNodeState {
     public void visit(StateInfoMessage message) {
         switch (message.getStatusMessage()) {
             case PARTITION_INFO_SATURATION_CONVERGED:
-                convergedPartitions.incrementAndGet();
+                convergedPartitions.getAndIncrement();
                 if (convergedPartitions.get() == numberOfPartitions) {
-                    saturationControlNode.switchState(new CNSWaitingForPartitionsToConverge(saturationControlNode));
-                    communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_INFO_ALL_PARTITIONS_CONVERGED);
+                    saturationControlNode.switchState(new CNSInterruptingPartitions(saturationControlNode));
                 }
                 break;
+            case PARTITION_INFO_TODO_IS_EMPTY:
+                convergedPartitions.getAndIncrement();
+                break;
             case PARTITION_INFO_SATURATION_RUNNING:
-                saturationControlNode.switchState(new CNSWaitingForPartitionsToConverge(saturationControlNode));
-                communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUESTS_SATURATION_CONTINUATION);
+                convergedPartitions.getAndDecrement();
                 break;
             default:
                 throw new MessageProtocolViolationException();
         }
+
     }
+
 }

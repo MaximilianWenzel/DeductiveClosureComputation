@@ -50,11 +50,6 @@ public class SingleThreadedSaturation implements Saturation {
         return closure;
     }
 
-    @Override
-    public void setRules(Collection<? extends Rule> rules) {
-        this.rules = rules;
-    }
-
     public Closure getClosure() {
         return closure;
     }

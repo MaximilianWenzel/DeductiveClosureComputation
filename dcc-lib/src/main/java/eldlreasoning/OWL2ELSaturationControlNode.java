@@ -3,12 +3,14 @@ package eldlreasoning;
 import reasoning.saturation.distributed.communication.SaturationCommunicationChannel;
 import reasoning.saturation.distributed.SaturationControlNode;
 import reasoning.saturation.distributed.SaturationPartition;
+import reasoning.saturation.models.DistributedPartitionModel;
+import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.util.*;
 
 public class OWL2ELSaturationControlNode extends SaturationControlNode {
-    protected OWL2ELSaturationControlNode(SaturationCommunicationChannel communicationChannel, List<SaturationPartition> partitions) {
-        super(null);
+    protected OWL2ELSaturationControlNode(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<Object> initialAxioms) {
+        super(partitions, workloadDistributor, initialAxioms);
     }
 
     /*

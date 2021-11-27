@@ -1,34 +1,27 @@
 package reasoning.saturation.distributed;
 
 import data.Closure;
-import reasoning.rules.Rule;
-import reasoning.saturation.models.PartitionModel;
 import reasoning.saturation.Saturation;
-import reasoning.saturation.workloaddistribution.WorkloadDistributor;
+import reasoning.saturation.models.DistributedPartitionModel;
+import reasoning.saturation.workload.WorkloadDistributor;
 
-import java.util.Collection;
 import java.util.List;
 
 public class DistributedSaturation implements Saturation {
 
     protected WorkloadDistributor workloadDistributor;
-    protected List<PartitionModel> partitions;
+    protected List<DistributedPartitionModel> partitions;
     protected SaturationControlNode controlNode;
 
-    public DistributedSaturation(WorkloadDistributor workloadDistributor, List<PartitionModel> partitions) {
+    public DistributedSaturation(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<Object> initialAxioms) {
         this.workloadDistributor = workloadDistributor;
         this.partitions = partitions;
-        this.controlNode = new SaturationControlNode(partitions);
+        this.controlNode = new SaturationControlNode(partitions, workloadDistributor, initialAxioms);
     }
 
     @Override
     public Closure saturate() {
         return this.controlNode.saturate();
-    }
-
-    @Override
-    public void setRules(Collection<? extends Rule> rules) {
-        // TODO implement
     }
 
 }

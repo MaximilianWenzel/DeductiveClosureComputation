@@ -1,4 +1,4 @@
-package reasoning.saturation.distributed.state.controlnodestates;
+package reasoning.saturation.distributed.states.controlnode;
 
 import exceptions.MessageProtocolViolationException;
 import networking.messages.SaturationAxiomsMessage;

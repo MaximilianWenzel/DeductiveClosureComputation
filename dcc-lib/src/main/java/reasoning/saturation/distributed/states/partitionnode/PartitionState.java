@@ -1,4 +1,4 @@
-package reasoning.saturation.distributed.state.partitionstates;
+package reasoning.saturation.distributed.states.partitionnode;
 
 import exceptions.MessageProtocolViolationException;
 import networking.messages.*;

@@ -4,26 +4,22 @@ import data.Closure;
 import exceptions.NotImplementedException;
 import reasoning.reasoner.IncrementalReasoner;
 import reasoning.reasoner.IncrementalReasonerImpl;
+import reasoning.rules.DistributedSaturationInferenceProcessor;
 import reasoning.rules.Rule;
-import reasoning.saturation.Saturation;
-import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.communication.PartitionNodeCommunicationChannel;
-import reasoning.saturation.distributed.state.partitionstates.PartitionState;
-import reasoning.saturation.distributed.state.partitionstates.PartitionStateFinished;
-import reasoning.saturation.distributed.state.partitionstates.PartitionStateInitialized;
-import reasoning.saturation.distributed.state.partitionstates.PartitionStateInitializing;
-import reasoning.saturation.models.PartitionModel;
+import reasoning.saturation.distributed.states.partitionnode.PartitionState;
+import reasoning.saturation.distributed.states.partitionnode.PartitionStateFinished;
+import reasoning.saturation.distributed.states.partitionnode.PartitionStateInitializing;
 
 import java.util.Collection;
 
 public class SaturationPartition implements Runnable {
 
+    private final IncrementalReasonerType incrementalReasonerType;
     private Collection<? extends Rule> rules;
-    private Closure closure;
+    private final Closure closure;
     private PartitionNodeCommunicationChannel communicationChannel;
     private PartitionState state;
-
-    private final IncrementalReasonerType incrementalReasonerType;
     private IncrementalReasoner incrementalReasoner;
 
     public SaturationPartition(int portToListen,
@@ -81,13 +77,13 @@ public class SaturationPartition implements Runnable {
         return communicationChannel;
     }
 
+    public IncrementalReasoner getIncrementalReasoner() {
+        return incrementalReasoner;
+    }
+
     public enum IncrementalReasonerType {
         SINGLE_THREADED,
         PARALLEL
-    }
-
-    public IncrementalReasoner getIncrementalReasoner() {
-        return incrementalReasoner;
     }
 
 }

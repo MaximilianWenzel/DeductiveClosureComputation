@@ -1,6 +1,8 @@
 package elsyntax;
 
 import networking.*;
+import networking.connectors.PortListener;
+import networking.connectors.ServerConnector;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -29,17 +31,25 @@ public class NetworkingTest {
             }
         };
 
-        ClientConnectionListener clientConnectionListener = new ClientConnectionListener() {
+        PortListener portListener = new PortListener(serverPort) {
             @Override
-            public void newClientConnected(SocketManager socketManager) {
+            public void onConnectionEstablished(SocketManager socketManager) {
                 socketID.add(socketManager.getSocketID());
             }
         };
 
+        ServerConnector serverConnector = new ServerConnector(new ServerData("localhost", serverPort)) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+
+            }
+        };
+
+
         NetworkingComponent networkingComponent = new NetworkingComponent(
-                messageProcessor, clientConnectionListener,
-                Collections.singletonList(serverPort),
-                Collections.singletonList(new ServerData("localhost", serverPort)));
+                messageProcessor,
+                Collections.singletonList(portListener),
+                Collections.singletonList(serverConnector));
         networkingComponent.startNIOThread();
 
         while (socketID.isEmpty()) {

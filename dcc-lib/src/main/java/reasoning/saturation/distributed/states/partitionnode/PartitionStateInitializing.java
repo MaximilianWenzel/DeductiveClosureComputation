@@ -1,4 +1,4 @@
-package reasoning.saturation.distributed.state.partitionstates;
+package reasoning.saturation.distributed.states.partitionnode;
 
 import networking.messages.InitializePartitionMessage;
 import reasoning.saturation.distributed.SaturationPartition;

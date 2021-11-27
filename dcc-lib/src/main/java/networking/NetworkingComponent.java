@@ -1,5 +1,7 @@
 package networking;
 
+import networking.connectors.PortListener;
+import networking.connectors.ServerConnector;
 import util.ConsoleUtils;
 
 import java.io.IOException;
@@ -16,10 +18,8 @@ public class NetworkingComponent implements Runnable {
 
     protected Selector selector;
 
-    protected ClientConnectionListener clientConnectionListener;
-
-    protected List<Integer> portNumbersToListen;
-    protected List<ServerData> serversToConnectTo;
+    protected List<PortListener> portNumbersToListen;
+    protected List<ServerConnector> serversToConnectTo;
 
     protected List<ServerSocketChannel> serverSocketChannels = new ArrayList<>();
     protected Queue<SocketManager> newConnectedSocketsQueue = new LinkedList<>();
@@ -31,12 +31,10 @@ public class NetworkingComponent implements Runnable {
     protected boolean running = true;
 
     public NetworkingComponent(MessageProcessor messageProcessor,
-                               ClientConnectionListener clientConnectionListener,
-                               List<Integer> portNumbersToListen,
-                               List<ServerData> serversToConnectTo) {
+                               List<PortListener> portNumbersToListen,
+                               List<ServerConnector> serversToConnectTo) {
         this.portNumbersToListen = portNumbersToListen;
         this.serversToConnectTo = serversToConnectTo;
-        this.clientConnectionListener = clientConnectionListener;
 
         this.messageProcessor = messageProcessor;
         init();
@@ -52,22 +50,27 @@ public class NetworkingComponent implements Runnable {
         this.serverSocketChannels = new ArrayList<>(portNumbersToListen.size());
 
         try {
-            for (Integer portNumber : portNumbersToListen) {
-                ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-                serverSocketChannel.configureBlocking(false);
-                serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-                serverSocketChannel.bind(new InetSocketAddress(portNumber));
-                this.serverSocketChannels.add(serverSocketChannel);
-                log.info("Listening on port " + portNumber + "...");
+            for (PortListener portListener : portNumbersToListen) {
+                listenToPort(portListener);
             }
 
-            for (ServerData serverData : this.serversToConnectTo) {
-                connectToServer(serverData);
+            for (ServerConnector serverConnector : this.serversToConnectTo) {
+                connectToServer(serverConnector);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+    }
+
+    public void listenToPort(PortListener portListener) throws IOException {
+        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.configureBlocking(false);
+        SelectionKey key = serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+        key.attach(portListener);
+        serverSocketChannel.bind(new InetSocketAddress(portListener.getPort()));
+        this.serverSocketChannels.add(serverSocketChannel);
+        log.info("Listening on port " + portListener + "...");
     }
 
     public void startNIOThread() {
@@ -115,14 +118,19 @@ public class NetworkingComponent implements Runnable {
             throw new IllegalStateException("Could not connect to server: " + socketChannel.getRemoteAddress());
         }
         SocketManager socketManager = new SocketManager(socketChannel);
+        ServerConnector serverConnector = (ServerConnector) key.attachment();
+        serverConnector.onConnectionEstablished(socketManager);
+
         this.newConnectedSocketsQueue.add(socketManager);
     }
 
-    public void connectToServer(ServerData data) throws IOException {
+    public void connectToServer(ServerConnector serverConnector) throws IOException {
         SocketChannel socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
-        socketChannel.register(selector, SelectionKey.OP_CONNECT);
-        socketChannel.connect(new InetSocketAddress(data.getServerName(), data.getPortNumber()));
+        SelectionKey key = socketChannel.register(selector, SelectionKey.OP_CONNECT);
+        key.attach(serverConnector);
+        ServerData serverData = serverConnector.getServerData();
+        socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
     }
 
     private void initNewConnectedSockets() throws IOException {
@@ -187,7 +195,9 @@ public class NetworkingComponent implements Runnable {
             SocketManager socketManager = new SocketManager(socketChannel);
             this.newConnectedSocketsQueue.add(socketManager);
             log.info("Client connected: " + socketChannel.socket().getRemoteSocketAddress());
-            clientConnectionListener.newClientConnected(socketManager);
+
+            PortListener portListener = (PortListener) key.attachment();
+            portListener.onConnectionEstablished(socketManager);
 
             socketChannel = serverSocketChannel.accept();
         }

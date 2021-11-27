@@ -1,11 +1,11 @@
-package reasoning.saturation.distributed;
+package reasoning.rules;
 
 import reasoning.rules.InferenceProcessor;
 import reasoning.saturation.distributed.communication.PartitionNodeCommunicationChannel;
 
 public class DistributedSaturationInferenceProcessor implements InferenceProcessor {
 
-    private PartitionNodeCommunicationChannel communicationChannel;
+    private final PartitionNodeCommunicationChannel communicationChannel;
 
     public DistributedSaturationInferenceProcessor(PartitionNodeCommunicationChannel communicationChannel) {
         this.communicationChannel = communicationChannel;

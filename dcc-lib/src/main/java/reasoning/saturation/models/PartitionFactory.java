@@ -1,6 +1,4 @@
-package reasoning.saturation.distributed;
-
-import reasoning.saturation.models.PartitionModel;
+package reasoning.saturation.models;
 
 import java.util.Collection;
 

@@ -1,4 +1,4 @@
-package reasoning.saturation.distributed.state.controlnodestates;
+package reasoning.saturation.distributed.states.controlnode;
 
 import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
@@ -19,6 +19,7 @@ public class CNSInitializing extends ControlNodeState {
         super(saturationControlNode);
         this.numberOfPartitions = saturationControlNode.getPartitions().size();
     }
+
 
     @Override
     public void visit(StateInfoMessage message) {

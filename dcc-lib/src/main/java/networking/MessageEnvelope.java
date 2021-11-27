@@ -4,8 +4,8 @@ public class MessageEnvelope {
     private final long socketID;
     private final Object message;
 
-    public MessageEnvelope(long socketID, Object message) {
-        this.socketID = socketID;
+    public MessageEnvelope(long receiverSocketID, Object message) {
+        this.socketID = receiverSocketID;
         this.message = message;
     }
 

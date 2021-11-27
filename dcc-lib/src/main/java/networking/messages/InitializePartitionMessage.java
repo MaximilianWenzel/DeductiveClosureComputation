@@ -1,7 +1,7 @@
 package networking.messages;
 
 import reasoning.saturation.models.DistributedPartitionModel;
-import reasoning.saturation.workloaddistribution.WorkloadDistributor;
+import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.util.Collection;
 import java.util.List;

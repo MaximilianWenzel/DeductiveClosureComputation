@@ -2,17 +2,15 @@ package reasoning.saturation.models;
 
 import networking.ServerData;
 import reasoning.rules.Rule;
-import reasoning.saturation.workloaddistribution.WorkloadDistributor;
 
 import java.util.Collection;
+import java.util.Set;
 
 public class DistributedPartitionModel extends PartitionModel {
     protected ServerData serverData;
 
-    public DistributedPartitionModel(Collection<? extends Rule> rules,
-                                     WorkloadDistributor workloadDistributor,
-                                     ServerData serverData) {
-        super(rules, workloadDistributor);
+    public DistributedPartitionModel(Collection<? extends Rule> rules, Set<?> partitionTerms, ServerData serverData) {
+        super(rules, partitionTerms);
         this.serverData = serverData;
     }
 

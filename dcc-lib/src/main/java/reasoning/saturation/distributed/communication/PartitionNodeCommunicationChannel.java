@@ -6,12 +6,14 @@ import data.Closure;
 import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
 import networking.*;
+import networking.connectors.PortListener;
+import networking.connectors.ServerConnector;
 import networking.messages.InitializePartitionMessage;
 import networking.messages.MessageModel;
 import networking.messages.SaturationAxiomsMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.models.DistributedPartitionModel;
-import reasoning.saturation.workloaddistribution.WorkloadDistributor;
+import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.IOException;
 import java.util.*;
@@ -46,8 +48,7 @@ public class PartitionNodeCommunicationChannel implements SaturationCommunicatio
     private void init() {
         networkingComponent = new NetworkingComponent(
                 new MessageProcessorImpl(),
-                new ClientConnectionListenerImpl(),
-                Collections.singletonList(portToListen),
+                Collections.singletonList(new PartitionServerPortListener(portToListen)),
                 Collections.emptyList());
         this.socketIDToPartitionID = HashBiMap.create();
         this.partitionIDToSocketID = this.socketIDToPartitionID.inverse();
@@ -61,23 +62,30 @@ public class PartitionNodeCommunicationChannel implements SaturationCommunicatio
 
         // connect to all partition nodes with a higher partition ID
         for (DistributedPartitionModel partitionModel : this.partitions) {
-            try {
-                networkingComponent.connectToServer(partitionModel.getServerData());
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (partitionModel.getID() > this.partitionID) {
+                try {
+                    PartitionServerConnector partitionServerConnector = new PartitionServerConnector(partitionModel.getServerData());
+                    networkingComponent.connectToServer(partitionServerConnector);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
 
     public void sendToControlNode(SaturationStatusMessage status) {
-        StateInfoMessage stateInfoMessage = new StateInfoMessage(partitionID, status);
-        MessageEnvelope messageEnvelope = new MessageEnvelope(controlNodeSocketID, stateInfoMessage);
-        networkingComponent.sendMessage(messageEnvelope);
+        send(controlNodeSocketID, status);
     }
 
     public void sendToControlNode(Closure closure) {
         SaturationAxiomsMessage saturationAxiomsMessage = new SaturationAxiomsMessage(partitionID, closure);
         MessageEnvelope messageEnvelope = new MessageEnvelope(controlNodeSocketID, saturationAxiomsMessage);
+        networkingComponent.sendMessage(messageEnvelope);
+    }
+
+    public void send(long receiverSocketID, SaturationStatusMessage status) {
+        StateInfoMessage stateInfoMessage = new StateInfoMessage(partitionID, status);
+        MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, stateInfoMessage);
         networkingComponent.sendMessage(messageEnvelope);
     }
 
@@ -92,17 +100,23 @@ public class PartitionNodeCommunicationChannel implements SaturationCommunicatio
     }
 
     public void distributeAxiom(Object axiom) {
-        List<Long> partitionIDs = workloadDistributor.getRelevantPartitionsForAxiom(axiom);
+        List<Long> partitionIDs = workloadDistributor.getRelevantPartitionIDsForAxiom(axiom);
 
         for (Long receiverPartitionID : partitionIDs) {
             List<Object> bufferedAxioms = this.partitionIDToBufferedAxioms.computeIfAbsent(receiverPartitionID, p -> new ArrayList<>());
             bufferedAxioms.add(axiom);
 
             if (bufferedAxioms.size() == maxNumAxiomsToBufferBeforeSending) {
-                sendAxioms(receiverPartitionID, bufferedAxioms);
-
+                if (receiverPartitionID != this.partitionID) {
+                    sendAxioms(receiverPartitionID, bufferedAxioms);
+                }
                 this.partitionIDToBufferedAxioms.remove(receiverPartitionID);
             }
+        }
+        // add axioms from this partition directly to the queue
+        List<Object> bufferedAxioms = this.partitionIDToBufferedAxioms.getOrDefault(this.partitionID, Collections.emptyList());
+        if (!bufferedAxioms.isEmpty()) {
+            receivedMessages.add(new SaturationAxiomsMessage(this.partitionID, bufferedAxioms));
         }
     }
 
@@ -144,14 +158,27 @@ public class PartitionNodeCommunicationChannel implements SaturationCommunicatio
         }
     }
 
-    private class ClientConnectionListenerImpl implements ClientConnectionListener {
+    private class PartitionServerConnector extends ServerConnector {
+
+        public PartitionServerConnector(ServerData serverData) {
+            super(serverData);
+        }
+
         @Override
-        public void newClientConnected(SocketManager socketManager) {
-            // send initialization message in order to introduce the partition ID of this node to the other node
-            StateInfoMessage stateInfoMessage = new StateInfoMessage(PartitionNodeCommunicationChannel.this.partitionID,
-                    SaturationStatusMessage.PARTITION_SERVER_HELLO);
-            MessageEnvelope messageEnvelope = new MessageEnvelope(socketManager.getSocketID(), stateInfoMessage);
-            networkingComponent.sendMessage(messageEnvelope);
+        public void onConnectionEstablished(SocketManager socketManager) {
+            send(socketManager.getSocketID(), SaturationStatusMessage.PARTITION_CLIENT_HELLO);
+        }
+    }
+
+    private class PartitionServerPortListener extends PortListener {
+
+        public PartitionServerPortListener(int port) {
+            super(port);
+        }
+
+        @Override
+        public void onConnectionEstablished(SocketManager socketManager) {
+            send(socketManager.getSocketID(), SaturationStatusMessage.PARTITION_SERVER_HELLO);
         }
     }
 

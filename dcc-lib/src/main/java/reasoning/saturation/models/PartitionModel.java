@@ -1,9 +1,9 @@
 package reasoning.saturation.models;
 
 import reasoning.rules.Rule;
-import reasoning.saturation.workloaddistribution.WorkloadDistributor;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class PartitionModel {
@@ -12,23 +12,24 @@ public class PartitionModel {
 
     protected long id;
     protected Collection<? extends Rule> rules;
-    protected WorkloadDistributor workloadDistributor;
+    protected Set<?> partitionTerms;
 
-    public PartitionModel(Collection<? extends Rule> rules, WorkloadDistributor workloadDistributor) {
+    public PartitionModel(Collection<? extends Rule> rules, Set<?> partitionTerms) {
         this.id = partitionIDCounter.getAndIncrement();
         this.rules = rules;
-        this.workloadDistributor = workloadDistributor;
+        this.partitionTerms = partitionTerms;
     }
 
     public Collection<? extends Rule> getRules() {
         return rules;
     }
 
-    public WorkloadDistributor getWorkloadDistributor() {
-        return workloadDistributor;
+
+    public long getID() {
+        return id;
     }
 
-    public long getId() {
-        return id;
+    public Set<?> getPartitionTerms() {
+        return partitionTerms;
     }
 }

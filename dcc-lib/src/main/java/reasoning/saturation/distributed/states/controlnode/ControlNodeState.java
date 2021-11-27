@@ -1,10 +1,7 @@
-package reasoning.saturation.distributed.state.controlnodestates;
+package reasoning.saturation.distributed.states.controlnode;
 
 import exceptions.MessageProtocolViolationException;
-import networking.messages.DebugMessage;
-import networking.messages.InitializePartitionMessage;
-import networking.messages.MessageModelVisitor;
-import networking.messages.SaturationAxiomsMessage;
+import networking.messages.*;
 import reasoning.saturation.distributed.SaturationControlNode;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 import util.ConsoleUtils;
@@ -21,6 +18,11 @@ public abstract class ControlNodeState implements MessageModelVisitor {
     public ControlNodeState(SaturationControlNode saturationControlNode) {
         this.saturationControlNode = saturationControlNode;
         this.communicationChannel = saturationControlNode.getCommunicationChannel();
+    }
+
+    public void mainControlNodeLoop() throws InterruptedException {
+        MessageModel message = communicationChannel.read();
+        message.accept(this);
     }
 
     @Override

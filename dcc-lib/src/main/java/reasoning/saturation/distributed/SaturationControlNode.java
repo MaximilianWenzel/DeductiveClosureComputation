@@ -2,26 +2,25 @@ package reasoning.saturation.distributed;
 
 import data.Closure;
 import data.DefaultClosure;
-import networking.messages.MessageModel;
-import reasoning.saturation.models.PartitionModel;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
-import reasoning.saturation.distributed.communication.SaturationCommunicationChannel;
-import reasoning.saturation.distributed.state.controlnodestates.CNSFinished;
-import reasoning.saturation.distributed.state.controlnodestates.CNSInitializing;
-import reasoning.saturation.distributed.state.controlnodestates.ControlNodeState;
+import reasoning.saturation.distributed.states.controlnode.CNSFinished;
+import reasoning.saturation.distributed.states.controlnode.CNSInitializing;
+import reasoning.saturation.distributed.states.controlnode.ControlNodeState;
+import reasoning.saturation.models.DistributedPartitionModel;
+import reasoning.saturation.workload.WorkloadDistributor;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 
 public class SaturationControlNode {
 
     private final ControlNodeCommunicationChannel communicationChannel;
-    private List<PartitionModel> partitions;
+    private final Closure closureResult = new DefaultClosure();
+    private final List<DistributedPartitionModel> partitions;
     private ControlNodeState state;
 
-    private final Closure closureResult = new DefaultClosure();
-
-    protected SaturationControlNode(List<PartitionModel> partitions) {
-        this.communicationChannel = new ControlNodeCommunicationChannel(partitions);
+    protected SaturationControlNode(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<Object> initialAxioms) {
+        this.communicationChannel = new ControlNodeCommunicationChannel(partitions, workloadDistributor, initialAxioms);
         this.partitions = partitions;
         init();
     }
@@ -33,8 +32,7 @@ public class SaturationControlNode {
     public Closure saturate() {
         try {
             while (!(state instanceof CNSFinished)) {
-                MessageModel message = communicationChannel.read();
-                message.accept(state);
+                state.mainControlNodeLoop();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -43,8 +41,7 @@ public class SaturationControlNode {
         return closureResult;
     }
 
-
-    public List<PartitionModel> getPartitions() {
+    public List<DistributedPartitionModel> getPartitions() {
         return partitions;
     }
 
