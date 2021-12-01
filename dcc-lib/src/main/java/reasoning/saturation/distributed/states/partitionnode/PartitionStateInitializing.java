@@ -10,7 +10,9 @@ public class PartitionStateInitializing extends PartitionState {
 
     @Override
     public void visit(InitializePartitionMessage message) {
-        this.communicationChannel.initializePartition(message);
+        log.info("Partition initialization message received from control node. Initializing partition...");
+        this.partition.initializePartition(message);
+        log.info("Partition successfully initialized.");
         this.partition.switchState(new PartitionStateEstablishingConnections(partition));
     }
 

@@ -3,6 +3,7 @@ package util;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Formatter;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
 public class LogFormatter extends Formatter
@@ -29,7 +30,12 @@ public class LogFormatter extends Formatter
         // This example will print date/time, class, and log level in yellow,
         // followed by the log message and it's parameters in white .
         StringBuilder builder = new StringBuilder();
-        builder.append(DEFAULT_WHITE);
+
+        if (record.getLevel().equals(Level.WARNING)) {
+            builder.append(ANSI_RED);
+        } else {
+            builder.append(DEFAULT_WHITE);
+        }
 
         builder.append("[");
         builder.append(calcDate(record.getMillis()));

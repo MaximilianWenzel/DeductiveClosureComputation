@@ -9,10 +9,11 @@ import reasoning.saturation.models.PartitionModel;
 import reasoning.saturation.parallel.ParallelSaturation;
 import reasoning.saturation.workload.WorkloadDistributor;
 
+import java.io.Serializable;
 import java.util.*;
 
 public class OWL2ELParallelSaturation extends ParallelSaturation {
-    protected OWL2ELParallelSaturation(List<Object> initialAxioms, Collection<PartitionModel> partitionModels, WorkloadDistributor workloadDistributor) {
+    protected OWL2ELParallelSaturation(List<? extends Serializable> initialAxioms, Collection<PartitionModel> partitionModels, WorkloadDistributor workloadDistributor) {
         super(initialAxioms, partitionModels, workloadDistributor);
     }
 /*

@@ -1,6 +1,8 @@
 package networking;
 
-public class ServerData {
+import java.io.Serializable;
+
+public class ServerData implements Serializable {
 
     private final String serverName;
     private final int portNumber;

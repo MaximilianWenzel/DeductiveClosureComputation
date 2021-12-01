@@ -2,6 +2,8 @@ package reasoning.rules;
 
 import reasoning.saturation.workload.WorkloadDistributor;
 
+import java.io.Serializable;
+
 public class ParallelSaturationInferenceProcessor implements InferenceProcessor {
 
     private final WorkloadDistributor distributor;
@@ -11,7 +13,7 @@ public class ParallelSaturationInferenceProcessor implements InferenceProcessor 
     }
 
     @Override
-    public void processInference(Object axiom) {
+    public void processInference(Serializable axiom) {
         distributor.getRelevantPartitionIDsForAxiom(axiom);
     }
 }

@@ -10,6 +10,7 @@ import reasoning.saturation.models.PartitionModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -25,13 +26,13 @@ public abstract class ParallelSaturation {
     private Collection<PartitionModel> partitionModels;
     private volatile boolean allPartitionsConverged = false;
     private List<Thread> threadPool;
-    private List<Object> initialAxioms;
+    private List<? extends Serializable> initialAxioms;
     private WorkloadDistributor workloadDistributor;
     private InitialAxiomsDistributor initialAxiomsDistributor;
 
     private int convergedPartitions = 0;
 
-    protected ParallelSaturation(List<Object> initialAxioms,
+    protected ParallelSaturation(List<? extends Serializable> initialAxioms,
                                  Collection<PartitionModel> partitionModels,
                                  WorkloadDistributor workloadDistributor) {
         this.initialAxioms = initialAxioms;
@@ -76,7 +77,7 @@ public abstract class ParallelSaturation {
 
                 if (message != null) {
                     switch (message) {
-                        case PARTITION_INFO_TODO_IS_EMPTY:
+                        case PARTITION_INFO_SATURATION_CONVERGED:
                             convergedPartitions++;
                             break;
                         case PARTITION_INFO_SATURATION_RUNNING:

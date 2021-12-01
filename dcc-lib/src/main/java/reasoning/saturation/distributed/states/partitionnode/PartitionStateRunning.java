@@ -17,8 +17,13 @@ public class PartitionStateRunning extends PartitionState {
 
     public void mainPartitionLoop() throws InterruptedException {
         if (!communicationChannel.hasMoreMessages()) {
+            // TODO inefficient
             communicationChannel.sendAllBufferedAxioms();
-            communicationChannel.sendToControlNode(SaturationStatusMessage.PARTITION_INFO_TODO_IS_EMPTY);
+            Thread.sleep(100);
+        }
+        if (!communicationChannel.hasMoreMessages()) {
+            communicationChannel.sendToControlNode(SaturationStatusMessage.PARTITION_INFO_SATURATION_CONVERGED);
+
             partition.switchState(new PartitionStateConverged(partition));
         }
 
@@ -36,19 +41,20 @@ public class PartitionStateRunning extends PartitionState {
         SaturationStatusMessage statusMessage = message.getStatusMessage();
         switch (statusMessage) {
             case CONTROL_NODE_REQUESTS_SATURATION_INTERRUPT:
+            case CONTROL_NODE_REQUESTS_SATURATION_STATUS:
                 communicationChannel.sendToControlNode(SaturationStatusMessage.PARTITION_INFO_SATURATION_RUNNING);
                 break;
             case CONTROL_NODE_REQUESTS_SATURATION_CONTINUATION:
                 // do nothing
                 break;
             default:
-                throw new IllegalArgumentException();
+                messageProtocolViolation(message);
         }
     }
 
     @Override
     public void visit(SaturationAxiomsMessage message) {
-        Collection<Object> axioms = message.getAxioms();
+        Collection<?> axioms = message.getAxioms();
         for (Object axiom : axioms) {
             incrementalReasoner.processAxiom(axiom);
         }

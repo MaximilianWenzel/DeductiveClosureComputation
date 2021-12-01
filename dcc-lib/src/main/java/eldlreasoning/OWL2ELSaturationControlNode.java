@@ -6,10 +6,11 @@ import reasoning.saturation.distributed.SaturationPartition;
 import reasoning.saturation.models.DistributedPartitionModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
+import java.io.Serializable;
 import java.util.*;
 
 public class OWL2ELSaturationControlNode extends SaturationControlNode {
-    protected OWL2ELSaturationControlNode(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<Object> initialAxioms) {
+    protected OWL2ELSaturationControlNode(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
         super(partitions, workloadDistributor, initialAxioms);
     }
 

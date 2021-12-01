@@ -1,5 +1,7 @@
 package reasoning.rules;
 
+import java.io.Serializable;
+
 public class NoOPInferenceProcessor implements InferenceProcessor {
 
     private static NoOPInferenceProcessor instance = new NoOPInferenceProcessor();
@@ -9,6 +11,6 @@ public class NoOPInferenceProcessor implements InferenceProcessor {
     }
 
     @Override
-    public void processInference(Object axiom) {
+    public void processInference(Serializable axiom) {
     }
 }

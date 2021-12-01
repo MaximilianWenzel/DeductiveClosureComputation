@@ -11,6 +11,6 @@ public class CNSFinished extends ControlNodeState {
 
     @Override
     public void visit(StateInfoMessage message) {
-        throw new MessageProtocolViolationException();
+        messageProtocolViolation(message);
     }
 }

@@ -18,8 +18,8 @@ public abstract class PartitionState implements MessageModelVisitor {
 
     public PartitionState(SaturationPartition partition) {
         this.partition = partition;
-        this.incrementalReasoner = partition.getIncrementalReasoner();
         this.communicationChannel = partition.getCommunicationChannel();
+        this.incrementalReasoner = partition.getIncrementalReasoner();
     }
 
     public void mainPartitionLoop() throws InterruptedException {
@@ -45,6 +45,12 @@ public abstract class PartitionState implements MessageModelVisitor {
 
     @Override
     public void visit(StateInfoMessage message) {
+        throw new MessageProtocolViolationException();
+    }
+
+
+    protected void messageProtocolViolation(StateInfoMessage message) {
+        log.warning("State: " + this.getClass() + ", message type: " + message.getStatusMessage());
         throw new MessageProtocolViolationException();
     }
 }

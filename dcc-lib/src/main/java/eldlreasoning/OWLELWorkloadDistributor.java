@@ -6,12 +6,13 @@ import reasoning.saturation.models.PartitionModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 public class OWLELWorkloadDistributor extends WorkloadDistributor {
 
-    public OWLELWorkloadDistributor(List<PartitionModel> partitionModels) {
+    public OWLELWorkloadDistributor(Collection<? extends PartitionModel> partitionModels) {
         super(partitionModels);
     }
 

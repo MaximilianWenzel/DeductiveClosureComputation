@@ -1,5 +1,7 @@
 package reasoning.rules;
 
-public interface InferenceProcessor {
-    void processInference(Object axiom);
+import java.io.Serializable;
+
+public interface InferenceProcessor extends Serializable {
+    void processInference(Serializable axiom);
 }

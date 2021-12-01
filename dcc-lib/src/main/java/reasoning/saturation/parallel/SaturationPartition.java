@@ -45,7 +45,7 @@ public class SaturationPartition implements Runnable {
         try {
             while (!controlNode.allPartitionsConverged()) {
                 if (toDo.isEmpty()) {
-                    sendStatusToControlNode(SaturationStatusMessage.PARTITION_INFO_TODO_IS_EMPTY);
+                    sendStatusToControlNode(SaturationStatusMessage.PARTITION_INFO_SATURATION_CONVERGED);
                     saturationConverged = true;
                 }
 

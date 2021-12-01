@@ -3,15 +3,16 @@ package reasoning.saturation.workload;
 import org.roaringbitmap.PeekableIntIterator;
 import org.roaringbitmap.RoaringBitmap;
 
+import java.io.Serializable;
 import java.util.*;
 
 public class InitialAxiomsDistributor {
 
     private Map<Long, RoaringBitmap> partitionIDToInitialAxiomsIndex;
-    private List<Object> initialAxioms;
+    private List<? extends Serializable> initialAxioms;
     private WorkloadDistributor workloadDistributor;
 
-    public InitialAxiomsDistributor(List<Object> initialAxioms, WorkloadDistributor workloadDistributor) {
+    public InitialAxiomsDistributor(List<? extends Serializable> initialAxioms, WorkloadDistributor workloadDistributor) {
         this.initialAxioms = initialAxioms;
         this.workloadDistributor = workloadDistributor;
         init();
@@ -29,9 +30,9 @@ public class InitialAxiomsDistributor {
         }
     }
 
-    public List<Object> getInitialAxioms(Long partitionID) {
+    public List<? extends Serializable> getInitialAxioms(Long partitionID) {
         RoaringBitmap initialAxiomsPos = partitionIDToInitialAxiomsIndex.get(partitionID);
-        List<Object> partitionAxioms = null;
+        List<Serializable> partitionAxioms = null;
         if (initialAxiomsPos == null) {
             partitionAxioms = Collections.emptyList();
         } else {

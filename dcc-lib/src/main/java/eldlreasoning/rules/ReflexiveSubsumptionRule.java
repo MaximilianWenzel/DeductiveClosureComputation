@@ -2,6 +2,8 @@ package eldlreasoning.rules;
 
 import eldlsyntax.*;
 
+import java.io.Serializable;
+
 /**
  * C ⊑ C ⇐ no premises
  */
@@ -20,7 +22,7 @@ public class ReflexiveSubsumptionRule extends OWLELRule {
         axiom.getSuperConcept().accept(visitor);
     }
 
-    private class ConceptVisitor implements ELConcept.Visitor {
+    private class ConceptVisitor implements ELConcept.Visitor, Serializable {
 
         @Override
         public void visit(ELConceptBottom concept) {

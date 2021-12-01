@@ -20,7 +20,7 @@ public class PartitionStateFinished extends PartitionState {
 
     @Override
     public void visit(StateInfoMessage message) {
-        throw new MessageProtocolViolationException();
+        messageProtocolViolation(message);
     }
 
     @Override

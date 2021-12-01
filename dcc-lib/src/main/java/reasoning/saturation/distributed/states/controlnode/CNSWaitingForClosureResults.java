@@ -1,15 +1,15 @@
 package reasoning.saturation.distributed.states.controlnode;
 
-import exceptions.MessageProtocolViolationException;
 import networking.messages.SaturationAxiomsMessage;
 import networking.messages.StateInfoMessage;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.distributed.SaturationControlNode;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 
 public class CNSWaitingForClosureResults extends ControlNodeState {
 
-    protected AtomicInteger receivedClosureResults = new AtomicInteger(0);
+    protected Set<Long> receivedClosureResults = new UnifiedSet<>();
     protected int numberOfPartitions;
 
     public CNSWaitingForClosureResults(SaturationControlNode saturationControlNode) {
@@ -20,9 +20,12 @@ public class CNSWaitingForClosureResults extends ControlNodeState {
     @Override
     public void visit(SaturationAxiomsMessage message) {
         // TODO what if multiple messages required to send complete closure?
-        receivedClosureResults.getAndIncrement();
+        receivedClosureResults.add(message.getSenderID());
         saturationControlNode.addAxiomsToClosureResult(message.getAxioms());
-        if (receivedClosureResults.get() == numberOfPartitions) {
+        log.info("Partition " + message.getSenderID() + " sent closure results.");
+        log.info("(" + receivedClosureResults.size() + "/" + numberOfPartitions + ") closure results received.");
+        if (receivedClosureResults.size() == numberOfPartitions) {
+            log.info("All closure results received.");
             saturationControlNode.switchState(new CNSFinished(saturationControlNode));
         }
     }
@@ -30,6 +33,6 @@ public class CNSWaitingForClosureResults extends ControlNodeState {
     @Override
     public void visit(StateInfoMessage message) {
         // no state messages allowed anymore
-        throw new MessageProtocolViolationException();
+        messageProtocolViolation(message);
     }
 }

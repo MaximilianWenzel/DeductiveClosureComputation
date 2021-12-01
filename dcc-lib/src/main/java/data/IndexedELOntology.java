@@ -203,7 +203,7 @@ public class IndexedELOntology extends ELOntology {
         return this.getAllUsedConceptsInOntology().iterator();
     }
 
-    public Iterator<ELConceptInclusion> getInitialAxioms() {
-        return tBox_.iterator();
+    public List<ELConceptInclusion> getInitialAxioms() {
+        return new ArrayList<>(tBox_);
     }
 }

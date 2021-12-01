@@ -90,6 +90,10 @@ public class MessageReader {
         this.newMessageStarts = true;
     }
 
+    public boolean readsCurrentlyMessage() {
+        return messageSizeInBytes != -1 && !newMessageStarts;
+    }
+
     public Queue<Object> getReceivedMessages() {
         return this.completedMessages;
     }

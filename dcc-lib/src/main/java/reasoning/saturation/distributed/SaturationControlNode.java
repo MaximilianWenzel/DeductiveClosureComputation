@@ -9,6 +9,7 @@ import reasoning.saturation.distributed.states.controlnode.ControlNodeState;
 import reasoning.saturation.models.DistributedPartitionModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class SaturationControlNode {
     private final List<DistributedPartitionModel> partitions;
     private ControlNodeState state;
 
-    protected SaturationControlNode(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<Object> initialAxioms) {
+    protected SaturationControlNode(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
         this.communicationChannel = new ControlNodeCommunicationChannel(partitions, workloadDistributor, initialAxioms);
         this.partitions = partitions;
         init();
@@ -41,7 +42,7 @@ public class SaturationControlNode {
         return closureResult;
     }
 
-    public List<DistributedPartitionModel> getPartitions() {
+    public Collection<DistributedPartitionModel> getPartitions() {
         return partitions;
     }
 
@@ -53,7 +54,7 @@ public class SaturationControlNode {
         return communicationChannel;
     }
 
-    public void addAxiomsToClosureResult(Collection<Object> axioms) {
-        this.closureResult.add(axioms);
+    public void addAxiomsToClosureResult(Collection<? extends Serializable> axioms) {
+        this.closureResult.addAll(axioms);
     }
 }

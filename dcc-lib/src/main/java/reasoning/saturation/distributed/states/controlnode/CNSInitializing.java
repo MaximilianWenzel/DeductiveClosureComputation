@@ -1,18 +1,15 @@
 package reasoning.saturation.distributed.states.controlnode;
 
 import enums.SaturationStatusMessage;
-import exceptions.MessageProtocolViolationException;
 import networking.messages.StateInfoMessage;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.distributed.SaturationControlNode;
-import reasoning.saturation.distributed.SaturationPartition;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 
 public class CNSInitializing extends ControlNodeState {
 
-    protected AtomicInteger initializedPartitions = new AtomicInteger(0);
-    protected Map<Long, SaturationPartition> partitionIDToPartition;
+    protected Set<Long> initializedPartitions = new UnifiedSet<>();
     protected int numberOfPartitions;
 
     public CNSInitializing(SaturationControlNode saturationControlNode) {
@@ -24,16 +21,20 @@ public class CNSInitializing extends ControlNodeState {
     @Override
     public void visit(StateInfoMessage message) {
         switch (message.getStatusMessage()) {
+            case PARTITION_SERVER_HELLO:
+                // do nothing
+                break;
             case PARTITION_INFO_INITIALIZED:
-                SaturationPartition partition = partitionIDToPartition.get(message.getSenderID());
-                initializedPartitions.getAndIncrement();
-                if (initializedPartitions.get() == numberOfPartitions) {
+                initializedPartitions.add(message.getSenderID());
+                if (initializedPartitions.size() == numberOfPartitions) {
+                    log.info("All partitions successfully initialized. Sending start signal to all partitions.");
                     // all partitions initialized
                     saturationControlNode.switchState(new CNSWaitingForPartitionsToConverge(saturationControlNode));
                     communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUESTS_START_SATURATION);
                 }
+                break;
             default:
-                throw new MessageProtocolViolationException();
+                messageProtocolViolation(message);
         }
     }
 }

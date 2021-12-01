@@ -62,4 +62,8 @@ public class SocketManager {
     public void close() throws IOException {
         this.socketChannel.close();
     }
+
+    public boolean hasMessagesToRead() {
+        return this.messageReader.readsCurrentlyMessage();
+    }
 }

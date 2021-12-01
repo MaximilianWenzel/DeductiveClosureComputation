@@ -22,7 +22,6 @@ public class NetworkingComponent implements Runnable {
     protected List<ServerConnector> serversToConnectTo;
 
     protected List<ServerSocketChannel> serverSocketChannels = new ArrayList<>();
-    protected Queue<SocketManager> newConnectedSocketsQueue = new LinkedList<>();
 
     protected Map<Long, SocketManager> socketIDToMessageManager = new HashMap<>();
 
@@ -49,18 +48,6 @@ public class NetworkingComponent implements Runnable {
 
         this.serverSocketChannels = new ArrayList<>(portNumbersToListen.size());
 
-        try {
-            for (PortListener portListener : portNumbersToListen) {
-                listenToPort(portListener);
-            }
-
-            for (ServerConnector serverConnector : this.serversToConnectTo) {
-                connectToServer(serverConnector);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
     }
 
     public void listenToPort(PortListener portListener) throws IOException {
@@ -70,7 +57,7 @@ public class NetworkingComponent implements Runnable {
         key.attach(portListener);
         serverSocketChannel.bind(new InetSocketAddress(portListener.getPort()));
         this.serverSocketChannels.add(serverSocketChannel);
-        log.info("Listening on port " + portListener + "...");
+        log.info("Listening on port " + portListener.getPort() + "...");
     }
 
     public void startNIOThread() {
@@ -83,6 +70,14 @@ public class NetworkingComponent implements Runnable {
     @Override
     public void run() {
         try {
+            for (PortListener portListener : portNumbersToListen) {
+                listenToPort(portListener);
+            }
+
+            for (ServerConnector serverConnector : this.serversToConnectTo) {
+                connectToServer(serverConnector);
+            }
+
             while (running) {
                 mainNIOSelectorLoop();
             }
@@ -107,7 +102,6 @@ public class NetworkingComponent implements Runnable {
             if (key.isConnectable()) {
                 connectToServer(key);
             }
-            initNewConnectedSockets();
         }
         keys.clear();
     }
@@ -119,9 +113,10 @@ public class NetworkingComponent implements Runnable {
         }
         SocketManager socketManager = new SocketManager(socketChannel);
         ServerConnector serverConnector = (ServerConnector) key.attachment();
+
+        initNewConnectedSocket(socketManager);
         serverConnector.onConnectionEstablished(socketManager);
 
-        this.newConnectedSocketsQueue.add(socketManager);
     }
 
     public void connectToServer(ServerConnector serverConnector) throws IOException {
@@ -131,18 +126,16 @@ public class NetworkingComponent implements Runnable {
         key.attach(serverConnector);
         ServerData serverData = serverConnector.getServerData();
         socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
+
     }
 
-    private void initNewConnectedSockets() throws IOException {
-        while (!this.newConnectedSocketsQueue.isEmpty()) {
-            SocketManager socketManager = newConnectedSocketsQueue.poll();
-            this.socketIDToMessageManager.put(socketManager.getSocketID(), socketManager);
+    private void initNewConnectedSocket(SocketManager socketManager) throws IOException {
+        this.socketIDToMessageManager.put(socketManager.getSocketID(), socketManager);
 
-            SocketChannel socketChannel = socketManager.getSocketChannel();
-            socketChannel.configureBlocking(false);
-            SelectionKey key = socketChannel.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-            key.attach(socketManager);
-        }
+        SocketChannel socketChannel = socketManager.getSocketChannel();
+        socketChannel.configureBlocking(false);
+        SelectionKey key = socketChannel.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+        key.attach(socketManager);
     }
 
     private void readFromSocket(SelectionKey key) throws IOException {
@@ -162,14 +155,15 @@ public class NetworkingComponent implements Runnable {
         }
     }
 
-
     private void writeToSocket(SelectionKey key) {
         SocketManager socketManager = (SocketManager) key.attachment();
 
         if (socketManager.hasMessagesToSend()) {
             socketManager.sendMessages();
         } else {
-            // TODO remove write as interest operation
+            // remove write selector
+            // TODO cannot remove write selection key
+            key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
         }
     }
 
@@ -178,8 +172,12 @@ public class NetworkingComponent implements Runnable {
         try {
             if (socketManager != null) {
                 socketManager.enqueueMessageToSend(messageEnvelope.getMessage());
+
+                // add write selector
+                SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
+                key.interestOpsOr(SelectionKey.OP_WRITE);
             } else {
-                throw new IllegalArgumentException("Socket with given ID does not exist: " + messageEnvelope.getSocketID());
+                throw new IllegalArgumentException("Socket with ID " + messageEnvelope.getSocketID() + " does not exist.");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -193,7 +191,7 @@ public class NetworkingComponent implements Runnable {
         SocketChannel socketChannel = serverSocketChannel.accept();
         while (socketChannel != null) {
             SocketManager socketManager = new SocketManager(socketChannel);
-            this.newConnectedSocketsQueue.add(socketManager);
+            initNewConnectedSocket(socketManager);
             log.info("Client connected: " + socketChannel.socket().getRemoteSocketAddress());
 
             PortListener portListener = (PortListener) key.attachment();
@@ -218,6 +216,15 @@ public class NetworkingComponent implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean socketsCurrentlyReadMessages() {
+        for (SocketManager socketManager : this.socketIDToMessageManager.values()) {
+            if (socketManager.hasMessagesToRead()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void setMessageProcessor(MessageProcessor messageProcessor) {

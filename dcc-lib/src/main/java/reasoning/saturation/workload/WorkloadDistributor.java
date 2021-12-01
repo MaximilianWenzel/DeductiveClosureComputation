@@ -3,13 +3,15 @@ package reasoning.saturation.workload;
 import eldlsyntax.ELConceptInclusion;
 import reasoning.saturation.models.PartitionModel;
 
+import java.io.Serializable;
+import java.util.Collection;
 import java.util.List;
 
-public abstract class WorkloadDistributor {
+public abstract class WorkloadDistributor implements Serializable {
 
-    protected List<? extends PartitionModel> partitionModels;
+    protected Collection<? extends PartitionModel> partitionModels;
 
-    public WorkloadDistributor(List<? extends PartitionModel> partitionModels) {
+    public WorkloadDistributor(Collection<? extends PartitionModel> partitionModels) {
         this.partitionModels = partitionModels;
     }
 

@@ -2,6 +2,7 @@ package reasoning.saturation.distributed;
 
 import data.Closure;
 import exceptions.NotImplementedException;
+import networking.messages.InitializePartitionMessage;
 import reasoning.reasoner.IncrementalReasoner;
 import reasoning.reasoner.IncrementalReasonerImpl;
 import reasoning.rules.DistributedSaturationInferenceProcessor;
@@ -16,8 +17,8 @@ import java.util.Collection;
 public class SaturationPartition implements Runnable {
 
     private final IncrementalReasonerType incrementalReasonerType;
-    private Collection<? extends Rule> rules;
     private final Closure closure;
+    private Collection<? extends Rule> rules;
     private PartitionNodeCommunicationChannel communicationChannel;
     private PartitionState state;
     private IncrementalReasoner incrementalReasoner;
@@ -26,11 +27,12 @@ public class SaturationPartition implements Runnable {
                                int maxNumberOfAxiomsToBufferBeforeSending,
                                Closure closure,
                                IncrementalReasonerType incrementalReasonerType) {
-        this.state = new PartitionStateInitializing(this);
         this.communicationChannel = new PartitionNodeCommunicationChannel(portToListen, maxNumberOfAxiomsToBufferBeforeSending);
+        this.state = new PartitionStateInitializing(this);
         this.closure = closure;
         this.incrementalReasonerType = incrementalReasonerType;
     }
+
 
     public void setRules(Collection<? extends Rule> rules) {
         this.rules = rules;
@@ -79,6 +81,14 @@ public class SaturationPartition implements Runnable {
 
     public IncrementalReasoner getIncrementalReasoner() {
         return incrementalReasoner;
+    }
+
+    public void initializePartition(InitializePartitionMessage message) {
+        this.communicationChannel.setPartitions(message.getPartitions());
+        this.communicationChannel.setPartitionID(message.getPartitionID());
+        this.communicationChannel.setWorkloadDistributor(message.getWorkloadDistributor());
+        this.communicationChannel.setInitialAxioms(message.getInitialAxioms());
+        this.setRules(message.getRules());
     }
 
     public enum IncrementalReasonerType {

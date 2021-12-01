@@ -2,6 +2,8 @@ package reasoning.rules;
 
 import data.ToDoQueue;
 
+import java.io.Serializable;
+
 public class SingleThreadedSaturationInferenceProcessor implements InferenceProcessor {
 
     private ToDoQueue toDoQueue;
@@ -11,7 +13,7 @@ public class SingleThreadedSaturationInferenceProcessor implements InferenceProc
     }
 
     @Override
-    public void processInference(Object axiom) {
+    public void processInference(Serializable axiom) {
         toDoQueue.add(axiom);
     }
 }

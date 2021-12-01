@@ -1,8 +1,10 @@
 package networking.messages;
 
+import reasoning.rules.Rule;
 import reasoning.saturation.models.DistributedPartitionModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
@@ -11,16 +13,20 @@ public class InitializePartitionMessage extends MessageModel {
     private long partitionID;
     private List<DistributedPartitionModel> partitions;
     private WorkloadDistributor workloadDistributor;
-    private Collection<Object> initialAxioms;
+    private Collection<? extends Rule> rules;
+    private Collection<? extends Serializable> initialAxioms;
 
-    public InitializePartitionMessage(long senderID, long partitionID,
+    public InitializePartitionMessage(long senderID,
+                                      long partitionID,
                                       List<DistributedPartitionModel> partitions,
                                       WorkloadDistributor workloadDistributor,
-                                      Collection<Object> initialAxioms) {
+                                      Collection<? extends Rule> rules,
+                                      Collection<? extends Serializable> initialAxioms) {
         super(senderID);
         this.partitionID = partitionID;
         this.partitions = partitions;
         this.workloadDistributor = workloadDistributor;
+        this.rules = rules;
         this.initialAxioms = initialAxioms;
     }
 
@@ -41,8 +47,11 @@ public class InitializePartitionMessage extends MessageModel {
         return workloadDistributor;
     }
 
-    public Collection<Object> getInitialAxioms() {
+    public Collection<? extends Serializable> getInitialAxioms() {
         return initialAxioms;
     }
 
+    public Collection<? extends Rule> getRules() {
+        return rules;
+    }
 }

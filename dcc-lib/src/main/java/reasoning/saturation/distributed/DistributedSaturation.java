@@ -5,6 +5,7 @@ import reasoning.saturation.Saturation;
 import reasoning.saturation.models.DistributedPartitionModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
+import java.io.Serializable;
 import java.util.List;
 
 public class DistributedSaturation implements Saturation {
@@ -13,7 +14,7 @@ public class DistributedSaturation implements Saturation {
     protected List<DistributedPartitionModel> partitions;
     protected SaturationControlNode controlNode;
 
-    public DistributedSaturation(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<Object> initialAxioms) {
+    public DistributedSaturation(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
         this.workloadDistributor = workloadDistributor;
         this.partitions = partitions;
         this.controlNode = new SaturationControlNode(partitions, workloadDistributor, initialAxioms);

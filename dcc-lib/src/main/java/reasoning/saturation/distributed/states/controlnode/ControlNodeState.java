@@ -40,4 +40,9 @@ public abstract class ControlNodeState implements MessageModelVisitor {
         // only allowed if closure has been requested by control node
         throw new MessageProtocolViolationException();
     }
+
+    protected void messageProtocolViolation(StateInfoMessage message) {
+        log.warning("State: " + this.getClass() + ", message type: " + message.getStatusMessage());
+        throw new MessageProtocolViolationException();
+    }
 }

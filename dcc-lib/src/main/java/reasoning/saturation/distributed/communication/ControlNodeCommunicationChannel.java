@@ -14,13 +14,18 @@ import org.roaringbitmap.RoaringBitmap;
 import reasoning.saturation.models.DistributedPartitionModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
+import util.ConsoleUtils;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ControlNodeCommunicationChannel implements SaturationCommunicationChannel {
+
+    private final Logger log = ConsoleUtils.getLogger();
 
     protected NetworkingComponent networkingComponent;
     protected List<DistributedPartitionModel> partitions;
@@ -30,13 +35,13 @@ public class ControlNodeCommunicationChannel implements SaturationCommunicationC
     protected long controlNodeID = 0L;
     protected BlockingDeque<MessageModel> receivedMessages = new LinkedBlockingDeque<>();
     protected WorkloadDistributor workloadDistributor;
-    protected List<Object> initialAxioms;
+    protected List<? extends Serializable> initialAxioms;
 
     protected InitialAxiomsDistributor initialAxiomsDistributor;
 
     public ControlNodeCommunicationChannel(List<DistributedPartitionModel> partitions,
                                            WorkloadDistributor workloadDistributor,
-                                           List<Object> initialAxioms) {
+                                           List<? extends Serializable> initialAxioms) {
         this.partitions = partitions;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
@@ -50,14 +55,15 @@ public class ControlNodeCommunicationChannel implements SaturationCommunicationC
         this.partitionIDToPartition = new HashMap<>();
         partitions.forEach(p -> partitionIDToPartition.put(p.getID(), p));
 
+        initialAxiomsDistributor = new InitialAxiomsDistributor(initialAxioms, workloadDistributor);
+
         networkingComponent = new NetworkingComponent(
                 new MessageProcessorImpl(),
                 Collections.emptyList(),
                 partitions.stream().map(p -> new PartitionServerConnector(p.getServerData(), p))
                         .collect(Collectors.toList())
         );
-
-        initialAxiomsDistributor = new InitialAxiomsDistributor(initialAxioms, workloadDistributor);
+        networkingComponent.startNIOThread();
     }
 
     @Override
@@ -104,15 +110,19 @@ public class ControlNodeCommunicationChannel implements SaturationCommunicationC
 
         @Override
         public void onConnectionEstablished(SocketManager socketManager) {
+            log.info("Connection established to partition server " + partitionModel.getID() + ".");
+
             // get partition ID to socket ID mapping
             socketIDToPartitionID.put(socketManager.getSocketID(), partitionModel.getID());
 
             // send message
+            log.info("Sending initialization message to partition " + partitionModel.getID() + ".");
             InitializePartitionMessage initializePartitionMessage = new InitializePartitionMessage(
                     ControlNodeCommunicationChannel.this.controlNodeID,
                     partitionModel.getID(),
                     ControlNodeCommunicationChannel.this.partitions,
                     workloadDistributor,
+                    partitionModel.getRules(),
                     initialAxiomsDistributor.getInitialAxioms(partitionModel.getID())
             );
             send(socketManager.getSocketID(), initializePartitionMessage);

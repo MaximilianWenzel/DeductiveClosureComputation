@@ -17,7 +17,7 @@ public class NetworkingTest {
     public void testNIOServerCommunication() {
         int serverPort = 6066;
 
-        List<Long> socketID = new ArrayList<>();
+        List<Long> socketIDs = new ArrayList<>();
 
         MessageProcessor messageProcessor = new MessageProcessor() {
             @Override
@@ -34,25 +34,35 @@ public class NetworkingTest {
         PortListener portListener = new PortListener(serverPort) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
-                socketID.add(socketManager.getSocketID());
+                socketIDs.add(socketManager.getSocketID());
             }
         };
 
-        ServerConnector serverConnector = new ServerConnector(new ServerData("localhost", serverPort)) {
+        ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort)) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
-
+                socketIDs.add(socketManager.getSocketID());
             }
         };
+
+        ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort)) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                socketIDs.add(socketManager.getSocketID());
+            }
+        };
+        List<ServerConnector> serverConnectors = new ArrayList<>();
+        serverConnectors.add(serverConnector1);
+        serverConnectors.add(serverConnector2);
 
 
         NetworkingComponent networkingComponent = new NetworkingComponent(
                 messageProcessor,
                 Collections.singletonList(portListener),
-                Collections.singletonList(serverConnector));
+                serverConnectors);
         networkingComponent.startNIOThread();
 
-        while (socketID.isEmpty()) {
+        while (socketIDs.isEmpty()) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -60,10 +70,11 @@ public class NetworkingTest {
             }
         }
 
-        long id = socketID.iterator().next();
-        for (int i = 0; i < 5; i++) {
-            MessageEnvelope envelope = new MessageEnvelope(id, "Hello socket " + id + "! - " + LocalDateTime.now());
-            networkingComponent.sendMessage(envelope);
+        for (long id : socketIDs) {
+            for (int i = 0; i < 2; i++) {
+                MessageEnvelope envelope = new MessageEnvelope(id, "Hello socket " + id + "! - " + LocalDateTime.now());
+                networkingComponent.sendMessage(envelope);
+            }
         }
 
         try {

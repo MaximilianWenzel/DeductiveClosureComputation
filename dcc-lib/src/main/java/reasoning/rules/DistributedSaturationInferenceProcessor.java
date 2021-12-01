@@ -3,6 +3,8 @@ package reasoning.rules;
 import reasoning.rules.InferenceProcessor;
 import reasoning.saturation.distributed.communication.PartitionNodeCommunicationChannel;
 
+import java.io.Serializable;
+
 public class DistributedSaturationInferenceProcessor implements InferenceProcessor {
 
     private final PartitionNodeCommunicationChannel communicationChannel;
@@ -12,7 +14,7 @@ public class DistributedSaturationInferenceProcessor implements InferenceProcess
     }
 
     @Override
-    public void processInference(Object axiom) {
+    public void processInference(Serializable axiom) {
         communicationChannel.distributeAxiom(axiom);
     }
 }

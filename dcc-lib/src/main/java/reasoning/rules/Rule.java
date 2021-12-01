@@ -2,10 +2,12 @@ package reasoning.rules;
 
 import data.Closure;
 
-public abstract class Rule {
+import java.io.Serializable;
+
+public abstract class Rule implements Serializable {
 
     protected Closure closure;
-    private InferenceProcessor inferenceProcessor = NoOPInferenceProcessor.getInstance();
+    private InferenceProcessor inferenceProcessor = null;
 
     protected Rule() {
 
@@ -17,7 +19,7 @@ public abstract class Rule {
         this.closure = closure;
     }
 
-    protected void processInference(Object axiom) {
+    protected void processInference(Serializable axiom) {
         inferenceProcessor.processInference(axiom);
     }
 

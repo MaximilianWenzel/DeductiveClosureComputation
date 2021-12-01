@@ -23,24 +23,29 @@ public class PartitionStateConverged extends PartitionState {
         SaturationStatusMessage statusMessage = message.getStatusMessage();
         switch (statusMessage) {
             case CONTROL_NODE_REQUESTS_SATURATION_INTERRUPT:
+                log.info("Partition interrupted by control node.");
                 communicationChannel.sendToControlNode(SaturationStatusMessage.PARTITION_INFO_SATURATION_INTERRUPTED);
+                partition.switchState(new PartitionStateInterrupted(partition));
                 break;
             case CONTROL_NODE_REQUESTS_SATURATION_STATUS:
+                // ignore
+            case CONTROL_NODE_INFO_ALL_PARTITIONS_CONVERGED:
+                // ignore
+                break;
+            case CONTROL_NODE_REQUESTS_SATURATION_CONTINUATION:
                 communicationChannel.sendToControlNode(SaturationStatusMessage.PARTITION_INFO_SATURATION_CONVERGED);
                 break;
-            case CONTROL_NODE_INFO_ALL_PARTITIONS_CONVERGED:
-                communicationChannel.sendToControlNode(partition.getClosure());
-                partition.switchState(new PartitionStateFinished(partition));
-                break;
             default:
-                throw new MessageProtocolViolationException();
+                messageProtocolViolation(message);
         }
     }
 
     @Override
     public void visit(SaturationAxiomsMessage message) {
         PartitionStateRunning runningState = new PartitionStateRunning(partition);
+        log.info("Axioms received. Continuing saturation...");
         partition.switchState(runningState);
+        communicationChannel.sendToControlNode(SaturationStatusMessage.PARTITION_INFO_SATURATION_RUNNING);
         runningState.visit(message);
     }
 
