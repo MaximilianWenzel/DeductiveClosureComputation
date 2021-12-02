@@ -1,4 +1,6 @@
-package networking;
+package networking.io;
+
+import networking.messages.MessageEnvelope;
 
 import java.util.concurrent.BlockingQueue;
 

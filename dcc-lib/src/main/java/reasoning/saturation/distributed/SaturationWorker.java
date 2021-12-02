@@ -2,33 +2,33 @@ package reasoning.saturation.distributed;
 
 import data.Closure;
 import exceptions.NotImplementedException;
-import networking.messages.InitializePartitionMessage;
+import networking.messages.InitializeWorkerMessage;
 import reasoning.reasoner.IncrementalReasoner;
 import reasoning.reasoner.IncrementalReasonerImpl;
 import reasoning.rules.DistributedSaturationInferenceProcessor;
 import reasoning.rules.Rule;
-import reasoning.saturation.distributed.communication.PartitionNodeCommunicationChannel;
-import reasoning.saturation.distributed.states.partitionnode.PartitionState;
-import reasoning.saturation.distributed.states.partitionnode.PartitionStateFinished;
-import reasoning.saturation.distributed.states.partitionnode.PartitionStateInitializing;
+import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
+import reasoning.saturation.distributed.states.workernode.WorkerState;
+import reasoning.saturation.distributed.states.workernode.WorkerStateFinished;
+import reasoning.saturation.distributed.states.workernode.WorkerStateInitializing;
 
 import java.util.Collection;
 
-public class SaturationPartition implements Runnable {
+public class SaturationWorker implements Runnable {
 
     private final IncrementalReasonerType incrementalReasonerType;
     private final Closure closure;
     private Collection<? extends Rule> rules;
-    private PartitionNodeCommunicationChannel communicationChannel;
-    private PartitionState state;
+    private WorkerNodeCommunicationChannel communicationChannel;
+    private WorkerState state;
     private IncrementalReasoner incrementalReasoner;
 
-    public SaturationPartition(int portToListen,
-                               int maxNumberOfAxiomsToBufferBeforeSending,
-                               Closure closure,
-                               IncrementalReasonerType incrementalReasonerType) {
-        this.communicationChannel = new PartitionNodeCommunicationChannel(portToListen, maxNumberOfAxiomsToBufferBeforeSending);
-        this.state = new PartitionStateInitializing(this);
+    public SaturationWorker(int portToListen,
+                            int maxNumberOfAxiomsToBufferBeforeSending,
+                            Closure closure,
+                            IncrementalReasonerType incrementalReasonerType) {
+        this.communicationChannel = new WorkerNodeCommunicationChannel(portToListen, maxNumberOfAxiomsToBufferBeforeSending);
+        this.state = new WorkerStateInitializing(this);
         this.closure = closure;
         this.incrementalReasonerType = incrementalReasonerType;
     }
@@ -58,7 +58,7 @@ public class SaturationPartition implements Runnable {
     @Override
     public void run() {
         try {
-            while (!(state instanceof PartitionStateFinished)) {
+            while (!(state instanceof WorkerStateFinished)) {
                 state.mainPartitionLoop();
             }
 
@@ -71,11 +71,11 @@ public class SaturationPartition implements Runnable {
         return closure;
     }
 
-    public void switchState(PartitionState newState) {
+    public void switchState(WorkerState newState) {
         this.state = newState;
     }
 
-    public PartitionNodeCommunicationChannel getCommunicationChannel() {
+    public WorkerNodeCommunicationChannel getCommunicationChannel() {
         return communicationChannel;
     }
 
@@ -83,9 +83,9 @@ public class SaturationPartition implements Runnable {
         return incrementalReasoner;
     }
 
-    public void initializePartition(InitializePartitionMessage message) {
-        this.communicationChannel.setPartitions(message.getPartitions());
-        this.communicationChannel.setPartitionID(message.getPartitionID());
+    public void initializePartition(InitializeWorkerMessage message) {
+        this.communicationChannel.setWorkers(message.getPartitions());
+        this.communicationChannel.setWorkerID(message.getWorkerID());
         this.communicationChannel.setWorkloadDistributor(message.getWorkloadDistributor());
         this.communicationChannel.setInitialAxioms(message.getInitialAxioms());
         this.setRules(message.getRules());

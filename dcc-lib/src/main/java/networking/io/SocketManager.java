@@ -1,4 +1,4 @@
-package networking;
+package networking.io;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
@@ -64,6 +64,6 @@ public class SocketManager {
     }
 
     public boolean hasMessagesToRead() {
-        return this.messageReader.readsCurrentlyMessage();
+        return this.messageReader.hasMessagesOrReadsCurrentlyMessage();
     }
 }

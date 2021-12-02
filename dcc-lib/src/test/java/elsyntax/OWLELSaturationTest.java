@@ -1,21 +1,19 @@
 package elsyntax;
 
-import data.Closure;
 import data.DefaultClosure;
 import data.IndexedELOntology;
 import eldlreasoning.OWLELDistributedPartitionFactory;
-import eldlreasoning.OWLELPartitionFactory;
 import eldlreasoning.OWLELWorkloadDistributor;
 import eldlreasoning.rules.OWLELRule;
 import eldlsyntax.*;
 import networking.ServerData;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
-import reasoning.saturation.distributed.SaturationPartition;
-import reasoning.saturation.models.DistributedPartitionModel;
-import reasoning.saturation.models.PartitionModel;
+import reasoning.saturation.distributed.SaturationWorker;
+import reasoning.saturation.models.DistributedWorkerModel;
 import util.OWL2ELSaturationUtils;
 
 import java.util.ArrayList;
@@ -127,17 +125,17 @@ public class OWLELSaturationTest {
             partitionServerData.add(new ServerData("localhost", portNumber));
         }
 
-        List<SaturationPartition> saturationPartitions = new ArrayList<>();
+        List<SaturationWorker> saturationWorkers = new ArrayList<>();
         for (ServerData serverData : partitionServerData) {
-            SaturationPartition partition = new SaturationPartition(
+            SaturationWorker partition = new SaturationWorker(
                     serverData.getPortNumber(),
                     10,
                     new DefaultClosure(),
-                    SaturationPartition.IncrementalReasonerType.SINGLE_THREADED
+                    SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
             );
-            saturationPartitions.add(partition);
+            saturationWorkers.add(partition);
         }
-        saturationPartitions.forEach(p -> new Thread(p).start());
+        saturationWorkers.forEach(p -> new Thread(p).start());
 
         try {
             Thread.sleep(2000);
@@ -146,7 +144,7 @@ public class OWLELSaturationTest {
         }
 
         OWLELDistributedPartitionFactory partitionFactory = new OWLELDistributedPartitionFactory(elOntology, partitionServerData);
-        List<DistributedPartitionModel> partitionModels = partitionFactory.generateDistributedPartitions();
+        List<DistributedWorkerModel> partitionModels = partitionFactory.generateDistributedPartitions();
         OWLELWorkloadDistributor workloadDistributor = new OWLELWorkloadDistributor(partitionModels);
         DistributedSaturation distributedSaturation = new DistributedSaturation(partitionModels, workloadDistributor, elOntology.getInitialAxioms());
 
@@ -162,8 +160,13 @@ public class OWLELSaturationTest {
 
         System.out.println();
         System.out.println("Closure: ");
+
         Set<Object> distributedClosure = distributedSaturation.saturate();
         Set<Object> singleThreadedClosure = getClosureOfSingleThreadedSaturator();
-        assertEquals(distributedClosure, singleThreadedClosure);
+        Set<Object> difference = new UnifiedSet<>(singleThreadedClosure);
+        difference.removeAll(distributedClosure);
+        System.out.println(difference);
+        assertEquals(singleThreadedClosure, distributedClosure);
+
     }
 }

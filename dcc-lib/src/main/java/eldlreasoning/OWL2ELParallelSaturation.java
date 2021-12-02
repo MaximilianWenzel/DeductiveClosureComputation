@@ -1,11 +1,6 @@
 package eldlreasoning;
 
-import data.Dataset;
-import data.IndexedELOntology;
-import eldlsyntax.ELConcept;
-import eldlsyntax.ELConceptExistentialRestriction;
-import eldlsyntax.ELConceptInclusion;
-import reasoning.saturation.models.PartitionModel;
+import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.parallel.ParallelSaturation;
 import reasoning.saturation.workload.WorkloadDistributor;
 
@@ -13,8 +8,8 @@ import java.io.Serializable;
 import java.util.*;
 
 public class OWL2ELParallelSaturation extends ParallelSaturation {
-    protected OWL2ELParallelSaturation(List<? extends Serializable> initialAxioms, Collection<PartitionModel> partitionModels, WorkloadDistributor workloadDistributor) {
-        super(initialAxioms, partitionModels, workloadDistributor);
+    protected OWL2ELParallelSaturation(List<? extends Serializable> initialAxioms, Collection<WorkerModel> workerModels, WorkloadDistributor workloadDistributor) {
+        super(initialAxioms, workerModels, workloadDistributor);
     }
 /*
     private int numberOfPartitions;

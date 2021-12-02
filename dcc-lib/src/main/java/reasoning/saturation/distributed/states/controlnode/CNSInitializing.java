@@ -1,40 +1,46 @@
 package reasoning.saturation.distributed.states.controlnode;
 
 import enums.SaturationStatusMessage;
+import networking.messages.AcknowledgementMessage;
 import networking.messages.StateInfoMessage;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.distributed.SaturationControlNode;
-
-import java.util.Set;
 
 public class CNSInitializing extends ControlNodeState {
 
-    protected Set<Long> initializedPartitions = new UnifiedSet<>();
     protected int numberOfPartitions;
 
     public CNSInitializing(SaturationControlNode saturationControlNode) {
         super(saturationControlNode);
-        this.numberOfPartitions = saturationControlNode.getPartitions().size();
+        this.numberOfPartitions = saturationControlNode.getWorkers().size();
+        this.communicationChannel.initializeConnectionToWorkerServers();
     }
-
 
     @Override
     public void visit(StateInfoMessage message) {
         switch (message.getStatusMessage()) {
-            case PARTITION_SERVER_HELLO:
-                // do nothing
-                break;
-            case PARTITION_INFO_INITIALIZED:
-                initializedPartitions.add(message.getSenderID());
-                if (initializedPartitions.size() == numberOfPartitions) {
-                    log.info("All partitions successfully initialized. Sending start signal to all partitions.");
-                    // all partitions initialized
-                    saturationControlNode.switchState(new CNSWaitingForPartitionsToConverge(saturationControlNode));
-                    communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUESTS_START_SATURATION);
-                }
+            case WORKER_SERVER_HELLO:
+                communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
                 break;
             default:
                 messageProtocolViolation(message);
+        }
+    }
+
+    @Override
+    public void visit(AcknowledgementMessage message) {
+        acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
+
+        if (communicationChannel.allWorkersInitialized()) {
+            log.info("All workers successfully initialized.");
+            communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_INFO_ALL_WORKERS_INITIALIZED,
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            // do nothing when message acknowledged
+                        }
+                    });
+            // all partitions initialized
+            saturationControlNode.switchState(new CNSWaitingForWorkersToConverge(saturationControlNode));
         }
     }
 }

@@ -2,7 +2,7 @@ package eldlreasoning;
 
 import eldlsyntax.ELConceptExistentialRestriction;
 import eldlsyntax.ELConceptInclusion;
-import reasoning.saturation.models.PartitionModel;
+import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.util.ArrayList;
@@ -12,7 +12,7 @@ import java.util.Set;
 
 public class OWLELWorkloadDistributor extends WorkloadDistributor {
 
-    public OWLELWorkloadDistributor(Collection<? extends PartitionModel> partitionModels) {
+    public OWLELWorkloadDistributor(Collection<? extends WorkerModel> partitionModels) {
         super(partitionModels);
     }
 
@@ -20,7 +20,7 @@ public class OWLELWorkloadDistributor extends WorkloadDistributor {
     public List<Long> getRelevantPartitionIDsForAxiom(Object axiom) {
         List<Long> partitionIDs = new ArrayList<>();
         ELConceptInclusion conceptInclusion = (ELConceptInclusion) axiom;
-        for (PartitionModel partition : partitionModels) {
+        for (WorkerModel partition : workerModels) {
             if (isRelevantAxiomToPartition(partition, conceptInclusion)) {
                 partitionIDs.add(partition.getID());
             }
@@ -29,8 +29,8 @@ public class OWLELWorkloadDistributor extends WorkloadDistributor {
     }
 
     @Override
-    public boolean isRelevantAxiomToPartition(PartitionModel partition, ELConceptInclusion axiom) {
-        Set<?> partitionTerms = partition.getPartitionTerms();
+    public boolean isRelevantAxiomToPartition(WorkerModel worker, ELConceptInclusion axiom) {
+        Set<?> partitionTerms = worker.getWorkerTerms();
         if (partitionTerms.contains(axiom.getSubConcept())
                 || partitionTerms.contains(axiom.getSuperConcept())) {
             return true;

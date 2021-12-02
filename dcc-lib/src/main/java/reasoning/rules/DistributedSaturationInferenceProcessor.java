@@ -1,15 +1,14 @@
 package reasoning.rules;
 
-import reasoning.rules.InferenceProcessor;
-import reasoning.saturation.distributed.communication.PartitionNodeCommunicationChannel;
+import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
 
 import java.io.Serializable;
 
 public class DistributedSaturationInferenceProcessor implements InferenceProcessor {
 
-    private final PartitionNodeCommunicationChannel communicationChannel;
+    private final WorkerNodeCommunicationChannel communicationChannel;
 
-    public DistributedSaturationInferenceProcessor(PartitionNodeCommunicationChannel communicationChannel) {
+    public DistributedSaturationInferenceProcessor(WorkerNodeCommunicationChannel communicationChannel) {
         this.communicationChannel = communicationChannel;
     }
 

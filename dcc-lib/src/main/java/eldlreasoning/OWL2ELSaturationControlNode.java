@@ -1,16 +1,14 @@
 package eldlreasoning;
 
-import reasoning.saturation.distributed.communication.SaturationCommunicationChannel;
 import reasoning.saturation.distributed.SaturationControlNode;
-import reasoning.saturation.distributed.SaturationPartition;
-import reasoning.saturation.models.DistributedPartitionModel;
+import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
 import java.util.*;
 
 public class OWL2ELSaturationControlNode extends SaturationControlNode {
-    protected OWL2ELSaturationControlNode(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
+    protected OWL2ELSaturationControlNode(List<DistributedWorkerModel> partitions, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
         super(partitions, workloadDistributor, initialAxioms);
     }
 

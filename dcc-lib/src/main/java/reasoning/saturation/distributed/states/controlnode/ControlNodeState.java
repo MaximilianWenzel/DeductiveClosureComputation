@@ -1,6 +1,7 @@
 package reasoning.saturation.distributed.states.controlnode;
 
 import exceptions.MessageProtocolViolationException;
+import networking.acknowledgement.AcknowledgementEventManager;
 import networking.messages.*;
 import reasoning.saturation.distributed.SaturationControlNode;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
@@ -14,19 +15,21 @@ public abstract class ControlNodeState implements MessageModelVisitor {
 
     protected ControlNodeCommunicationChannel communicationChannel;
     protected SaturationControlNode saturationControlNode;
+    protected AcknowledgementEventManager acknowledgementEventManager;
 
     public ControlNodeState(SaturationControlNode saturationControlNode) {
         this.saturationControlNode = saturationControlNode;
         this.communicationChannel = saturationControlNode.getCommunicationChannel();
+        this.acknowledgementEventManager = communicationChannel.getAcknowledgementEventManager();
     }
 
     public void mainControlNodeLoop() throws InterruptedException {
-        MessageModel message = communicationChannel.read();
+        MessageModel message = (MessageModel) communicationChannel.read();
         message.accept(this);
     }
 
     @Override
-    public void visit(InitializePartitionMessage message) {
+    public void visit(InitializeWorkerMessage message) {
         throw new MessageProtocolViolationException();
     }
 

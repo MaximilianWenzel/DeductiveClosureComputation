@@ -7,10 +7,10 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Set;
 
-public class DistributedPartitionModel extends PartitionModel {
+public class DistributedWorkerModel extends WorkerModel {
     protected ServerData serverData;
 
-    public DistributedPartitionModel(Collection<? extends Rule> rules, Set<? extends Serializable> partitionTerms, ServerData serverData) {
+    public DistributedWorkerModel(Collection<? extends Rule> rules, Set<? extends Serializable> partitionTerms, ServerData serverData) {
         super(rules, partitionTerms);
         this.serverData = serverData;
     }

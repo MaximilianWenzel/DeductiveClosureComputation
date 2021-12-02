@@ -3,6 +3,9 @@ package elsyntax;
 import networking.*;
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
+import networking.io.MessageProcessor;
+import networking.io.SocketManager;
+import networking.messages.MessageEnvelope;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -75,6 +78,19 @@ public class NetworkingTest {
                 MessageEnvelope envelope = new MessageEnvelope(id, "Hello socket " + id + "! - " + LocalDateTime.now());
                 networkingComponent.sendMessage(envelope);
             }
+        }
+
+        ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort)) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                System.out.println("Connection established!");
+                networkingComponent.sendMessage(new MessageEnvelope(socketIDs.iterator().next(), "Message from new connection!"));
+            }
+        };
+        try {
+            networkingComponent.connectToServer(serverConnector3);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         try {

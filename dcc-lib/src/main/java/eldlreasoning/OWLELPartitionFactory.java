@@ -5,7 +5,7 @@ import eldlreasoning.rules.OWLELRule;
 import eldlsyntax.ELConcept;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.models.PartitionFactory;
-import reasoning.saturation.models.PartitionModel;
+import reasoning.saturation.models.WorkerModel;
 import util.OWL2ELSaturationUtils;
 
 import java.util.*;
@@ -21,7 +21,7 @@ public class OWLELPartitionFactory implements PartitionFactory {
     }
 
     @Override
-    public List<PartitionModel> generatePartitions() {
+    public List<WorkerModel> generatePartitions() {
         Iterator<ELConcept> occurringConceptsInDataset = this.elOntology.getAllUsedConceptsInOntology().iterator();
 
         // partition by concepts
@@ -39,11 +39,11 @@ public class OWLELPartitionFactory implements PartitionFactory {
             counter++;
         }
 
-        List<PartitionModel> partitions = new ArrayList<>(numberOfPartitions);
+        List<WorkerModel> partitions = new ArrayList<>(numberOfPartitions);
 
         for (Set<ELConcept> conceptPartition : conceptPartitions) {
             Collection<OWLELRule> rules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
-            PartitionModel pm = new PartitionModel(
+            WorkerModel pm = new WorkerModel(
                     rules,
                     conceptPartition
             );

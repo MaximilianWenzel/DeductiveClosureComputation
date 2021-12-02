@@ -1,6 +1,7 @@
 package reasoning.saturation.distributed.states.controlnode;
 
 import exceptions.MessageProtocolViolationException;
+import networking.messages.AcknowledgementMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
 
@@ -12,5 +13,10 @@ public class CNSFinished extends ControlNodeState {
     @Override
     public void visit(StateInfoMessage message) {
         messageProtocolViolation(message);
+    }
+
+    @Override
+    public void visit(AcknowledgementMessage message) {
+        throw new MessageProtocolViolationException();
     }
 }

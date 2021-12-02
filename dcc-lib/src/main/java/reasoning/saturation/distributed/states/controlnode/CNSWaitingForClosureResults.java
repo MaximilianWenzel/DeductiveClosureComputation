@@ -1,30 +1,35 @@
 package reasoning.saturation.distributed.states.controlnode;
 
+import networking.messages.AcknowledgementMessage;
 import networking.messages.SaturationAxiomsMessage;
 import networking.messages.StateInfoMessage;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.distributed.SaturationControlNode;
 
-import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CNSWaitingForClosureResults extends ControlNodeState {
 
-    protected Set<Long> receivedClosureResults = new UnifiedSet<>();
-    protected int numberOfPartitions;
+    protected int numberOfWorkers;
+    protected AtomicInteger receivedClosureResults = new AtomicInteger(0);
 
     public CNSWaitingForClosureResults(SaturationControlNode saturationControlNode) {
         super(saturationControlNode);
-        this.numberOfPartitions = saturationControlNode.getPartitions().size();
+        this.numberOfWorkers = saturationControlNode.getWorkers().size();
     }
 
     @Override
     public void visit(SaturationAxiomsMessage message) {
-        // TODO what if multiple messages required to send complete closure?
-        receivedClosureResults.add(message.getSenderID());
         saturationControlNode.addAxiomsToClosureResult(message.getAxioms());
-        log.info("Partition " + message.getSenderID() + " sent closure results.");
-        log.info("(" + receivedClosureResults.size() + "/" + numberOfPartitions + ") closure results received.");
-        if (receivedClosureResults.size() == numberOfPartitions) {
+        log.info("Worker " + message.getSenderID() + " sent closure results.");
+
+    }
+
+    @Override
+    public void visit(AcknowledgementMessage message) {
+        acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
+        receivedClosureResults.getAndIncrement();
+
+        if (receivedClosureResults.get() == this.numberOfWorkers) {
             log.info("All closure results received.");
             saturationControlNode.switchState(new CNSFinished(saturationControlNode));
         }

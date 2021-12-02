@@ -1,6 +1,6 @@
 package networking.connectors;
 
-import networking.SocketManager;
+import networking.io.SocketManager;
 
 public interface ConnectionEstablishmentListener {
 

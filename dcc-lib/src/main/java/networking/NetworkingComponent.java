@@ -2,6 +2,9 @@ package networking;
 
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
+import networking.io.MessageProcessor;
+import networking.io.SocketManager;
+import networking.messages.MessageEnvelope;
 import util.ConsoleUtils;
 
 import java.io.IOException;
@@ -89,6 +92,7 @@ public class NetworkingComponent implements Runnable {
     private void mainNIOSelectorLoop() throws IOException {
         selector.select();
         Set<SelectionKey> keys = selector.selectedKeys();
+
         for (SelectionKey key : keys) {
             if (key.isReadable()) {
                 readFromSocket(key);
@@ -116,7 +120,6 @@ public class NetworkingComponent implements Runnable {
 
         initNewConnectedSocket(socketManager);
         serverConnector.onConnectionEstablished(socketManager);
-
     }
 
     public void connectToServer(ServerConnector serverConnector) throws IOException {
@@ -127,6 +130,8 @@ public class NetworkingComponent implements Runnable {
         ServerData serverData = serverConnector.getServerData();
         socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
 
+        // finish connection establishment by NIO thread
+        selector.wakeup();
     }
 
     private void initNewConnectedSocket(SocketManager socketManager) throws IOException {

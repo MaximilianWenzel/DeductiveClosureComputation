@@ -1,4 +1,4 @@
-package networking;
+package networking.io;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -90,8 +90,8 @@ public class MessageReader {
         this.newMessageStarts = true;
     }
 
-    public boolean readsCurrentlyMessage() {
-        return messageSizeInBytes != -1 && !newMessageStarts;
+    public boolean hasMessagesOrReadsCurrentlyMessage() {
+        return !this.completedMessages.isEmpty() || messageSizeInBytes != -1 || !newMessageStarts;
     }
 
     public Queue<Object> getReceivedMessages() {

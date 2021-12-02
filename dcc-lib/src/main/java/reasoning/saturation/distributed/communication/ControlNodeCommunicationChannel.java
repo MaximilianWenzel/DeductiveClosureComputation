@@ -5,81 +5,105 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import enums.SaturationStatusMessage;
 import networking.*;
+import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.ServerConnector;
-import networking.messages.InitializePartitionMessage;
-import networking.messages.MessageModel;
-import networking.messages.StateInfoMessage;
-import org.roaringbitmap.PeekableIntIterator;
-import org.roaringbitmap.RoaringBitmap;
-import reasoning.saturation.models.DistributedPartitionModel;
+import networking.io.MessageProcessor;
+import networking.io.SocketManager;
+import networking.messages.*;
+import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class ControlNodeCommunicationChannel implements SaturationCommunicationChannel {
 
     private final Logger log = ConsoleUtils.getLogger();
 
     protected NetworkingComponent networkingComponent;
-    protected List<DistributedPartitionModel> partitions;
-    protected Map<Long, DistributedPartitionModel> partitionIDToPartition;
-    protected BiMap<Long, Long> socketIDToPartitionID;
-    protected BiMap<Long, Long> partitionIDToSocketID;
+    protected List<DistributedWorkerModel> workers;
+    protected Map<Long, DistributedWorkerModel> workerIDToWorker;
+    protected BiMap<Long, Long> socketIDToWorkerID;
+    protected BiMap<Long, Long> workerIDToSocketID;
     protected long controlNodeID = 0L;
     protected BlockingDeque<MessageModel> receivedMessages = new LinkedBlockingDeque<>();
     protected WorkloadDistributor workloadDistributor;
     protected List<? extends Serializable> initialAxioms;
 
     protected InitialAxiomsDistributor initialAxiomsDistributor;
+    protected AcknowledgementEventManager acknowledgementEventManager;
 
-    public ControlNodeCommunicationChannel(List<DistributedPartitionModel> partitions,
+    protected boolean allConnectionsEstablished = false;
+    protected AtomicInteger initializedWorkers = new AtomicInteger(0);
+
+
+    public ControlNodeCommunicationChannel(List<DistributedWorkerModel> workers,
                                            WorkloadDistributor workloadDistributor,
                                            List<? extends Serializable> initialAxioms) {
-        this.partitions = partitions;
+        this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
         init();
     }
 
     private void init() {
-        this.socketIDToPartitionID = Maps.synchronizedBiMap(HashBiMap.create());
-        this.partitionIDToSocketID = this.socketIDToPartitionID.inverse();
+        this.socketIDToWorkerID = Maps.synchronizedBiMap(HashBiMap.create());
+        this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
 
-        this.partitionIDToPartition = new HashMap<>();
-        partitions.forEach(p -> partitionIDToPartition.put(p.getID(), p));
+        this.workerIDToWorker = new HashMap<>();
+        workers.forEach(p -> workerIDToWorker.put(p.getID(), p));
 
         initialAxiomsDistributor = new InitialAxiomsDistributor(initialAxioms, workloadDistributor);
+
+        acknowledgementEventManager = new AcknowledgementEventManager();
 
         networkingComponent = new NetworkingComponent(
                 new MessageProcessorImpl(),
                 Collections.emptyList(),
-                partitions.stream().map(p -> new PartitionServerConnector(p.getServerData(), p))
-                        .collect(Collectors.toList())
+                Collections.emptyList()
         );
         networkingComponent.startNIOThread();
     }
 
+    public void initializeConnectionToWorkerServers() {
+        workers.stream().map(p -> new WorkerServerConnector(p.getServerData(), p))
+                .forEach(s -> {
+                    try {
+                        networkingComponent.connectToServer(s);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
+
     @Override
-    public MessageModel read() throws InterruptedException {
+    public Object read() throws InterruptedException {
         return receivedMessages.take();
     }
 
     @Override
-    public boolean hasMoreMessages() {
+    public boolean hasMoreMessagesToReadWriteOrToBeAcknowledged() {
         return this.receivedMessages.isEmpty();
     }
 
-    public void broadcast(SaturationStatusMessage statusMessage) {
-        for (Long socketID : this.socketIDToPartitionID.keySet()) {
-            send(socketID, statusMessage);
+    public void broadcast(SaturationStatusMessage statusMessage, Runnable onAcknowledgement) {
+        for (Long socketID : this.socketIDToWorkerID.keySet()) {
+            StateInfoMessage stateInfoMessage = new StateInfoMessage(controlNodeID, statusMessage);
+            send(socketID, stateInfoMessage, onAcknowledgement);
         }
+    }
+
+    public void acknowledgeMessage(long receiverWorkerID, long messageID) {
+        AcknowledgementMessage ack = new AcknowledgementMessage(controlNodeID, messageID);
+        long receiverSocketID = workerIDToSocketID.get(receiverWorkerID);
+        send(receiverSocketID, ack);
     }
 
     public void send(long receiverSocketID, SaturationStatusMessage status) {
@@ -87,46 +111,73 @@ public class ControlNodeCommunicationChannel implements SaturationCommunicationC
         send(receiverSocketID, stateInfoMessage);
     }
 
+    public void send(long receiverSocketID, MessageModel message, Runnable onAcknowledgement) {
+        acknowledgementEventManager.messageRequiresAcknowledgment(message.getMessageID(), onAcknowledgement);
+        MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, message);
+        networkingComponent.sendMessage(messageEnvelope);
+    }
     public void send(long receiverSocketID, MessageModel message) {
         MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, message);
         networkingComponent.sendMessage(messageEnvelope);
     }
 
+    public AcknowledgementEventManager getAcknowledgementEventManager() {
+        return this.acknowledgementEventManager;
+    }
+
     private class MessageProcessorImpl implements MessageProcessor {
+
         @Override
         public void process(MessageEnvelope message) {
+            if (!allConnectionsEstablished) {
+                long workerID = ((MessageModel)message.getMessage()).getSenderID();
+                ControlNodeCommunicationChannel.this.socketIDToWorkerID.put(message.getSocketID(), workerID);
+                if (socketIDToWorkerID.size() == ControlNodeCommunicationChannel.this.workers.size()) {
+                    allConnectionsEstablished = true;
+                }
+            }
             receivedMessages.add((MessageModel) message.getMessage());
         }
     }
+    private class WorkerServerConnector extends ServerConnector {
 
-    private class PartitionServerConnector extends ServerConnector {
+        private final DistributedWorkerModel workerModel;
 
-        private final DistributedPartitionModel partitionModel;
-
-        public PartitionServerConnector(ServerData serverData, DistributedPartitionModel partitionModel) {
+        public WorkerServerConnector(ServerData serverData, DistributedWorkerModel workerModel) {
             super(serverData);
-            this.partitionModel = partitionModel;
+            this.workerModel = workerModel;
         }
 
         @Override
         public void onConnectionEstablished(SocketManager socketManager) {
-            log.info("Connection established to partition server " + partitionModel.getID() + ".");
+            log.info("Connection established to worker server " + workerModel.getID() + ".");
 
-            // get partition ID to socket ID mapping
-            socketIDToPartitionID.put(socketManager.getSocketID(), partitionModel.getID());
+            // get worker ID to socket ID mapping
+            socketIDToWorkerID.put(socketManager.getSocketID(), workerModel.getID());
 
             // send message
-            log.info("Sending initialization message to partition " + partitionModel.getID() + ".");
-            InitializePartitionMessage initializePartitionMessage = new InitializePartitionMessage(
+            log.info("Sending initialization message to worker " + workerModel.getID() + ".");
+            InitializeWorkerMessage initializeWorkerMessage = new InitializeWorkerMessage(
                     ControlNodeCommunicationChannel.this.controlNodeID,
-                    partitionModel.getID(),
-                    ControlNodeCommunicationChannel.this.partitions,
+                    workerModel.getID(),
+                    ControlNodeCommunicationChannel.this.workers,
                     workloadDistributor,
-                    partitionModel.getRules(),
-                    initialAxiomsDistributor.getInitialAxioms(partitionModel.getID())
+                    workerModel.getRules(),
+                    initialAxiomsDistributor.getInitialAxioms(workerModel.getID())
             );
-            send(socketManager.getSocketID(), initializePartitionMessage);
+
+            send(socketManager.getSocketID(), initializeWorkerMessage, new Runnable() {
+                @Override
+                public void run() {
+                    initializedWorkers.getAndIncrement();
+                }
+            });
         }
+
     }
+    public boolean allWorkersInitialized() {
+        return this.initializedWorkers.get() == this.workers.size();
+    }
+
 
 }

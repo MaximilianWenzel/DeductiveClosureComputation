@@ -1,4 +1,4 @@
-package networking;
+package networking.io;
 
 import util.SerializationUtils;
 
@@ -37,7 +37,7 @@ public class MessageWriter {
                 return;
             }
 
-            // TODO use Cryo framework for stepwise (stream) serialization
+            // TODO use Kryo framework for stepwise (stream) serialization
             byte[] messageBytes = SerializationUtils.serialize(currentMessage);
             messageBuffer = ByteBuffer.wrap(messageBytes);
 

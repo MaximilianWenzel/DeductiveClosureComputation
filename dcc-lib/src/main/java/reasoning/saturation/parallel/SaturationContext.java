@@ -12,7 +12,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SaturationPartition implements Runnable {
+public class SaturationContext implements Runnable {
 
     private static final AtomicLong partitionIDCounter = new AtomicLong(1L);
 
@@ -25,10 +25,10 @@ public class SaturationPartition implements Runnable {
 
     private boolean saturationConverged = false;
 
-    public SaturationPartition(ParallelSaturation controlNode, Collection<? extends Rule> rules,
-                               Closure closure,
-                               ParallelToDo toDo,
-                               InferenceProcessor inferenceProcessor) {
+    public SaturationContext(ParallelSaturation controlNode, Collection<? extends Rule> rules,
+                             Closure closure,
+                             ParallelToDo toDo,
+                             InferenceProcessor inferenceProcessor) {
         this.controlNode = controlNode;
         this.closure = closure;
         this.toDo = toDo;
@@ -45,7 +45,7 @@ public class SaturationPartition implements Runnable {
         try {
             while (!controlNode.allPartitionsConverged()) {
                 if (toDo.isEmpty()) {
-                    sendStatusToControlNode(SaturationStatusMessage.PARTITION_INFO_SATURATION_CONVERGED);
+                    sendStatusToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_CONVERGED);
                     saturationConverged = true;
                 }
 
@@ -53,7 +53,7 @@ public class SaturationPartition implements Runnable {
 
                 if (saturationConverged) {
                     saturationConverged = false;
-                    sendStatusToControlNode(SaturationStatusMessage.PARTITION_INFO_SATURATION_RUNNING);
+                    sendStatusToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_RUNNING);
                 }
 
                 incrementalReasoner.processAxiom(axiom);
@@ -77,7 +77,7 @@ public class SaturationPartition implements Runnable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SaturationPartition that = (SaturationPartition) o;
+        SaturationContext that = (SaturationContext) o;
         return id == that.id;
     }
 

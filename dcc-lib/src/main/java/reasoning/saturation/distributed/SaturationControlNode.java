@@ -6,7 +6,7 @@ import reasoning.saturation.distributed.communication.ControlNodeCommunicationCh
 import reasoning.saturation.distributed.states.controlnode.CNSFinished;
 import reasoning.saturation.distributed.states.controlnode.CNSInitializing;
 import reasoning.saturation.distributed.states.controlnode.ControlNodeState;
-import reasoning.saturation.models.DistributedPartitionModel;
+import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
@@ -17,12 +17,12 @@ public class SaturationControlNode {
 
     private final ControlNodeCommunicationChannel communicationChannel;
     private final Closure closureResult = new DefaultClosure();
-    private final List<DistributedPartitionModel> partitions;
+    private final List<DistributedWorkerModel> workers;
     private ControlNodeState state;
 
-    protected SaturationControlNode(List<DistributedPartitionModel> partitions, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
-        this.communicationChannel = new ControlNodeCommunicationChannel(partitions, workloadDistributor, initialAxioms);
-        this.partitions = partitions;
+    protected SaturationControlNode(List<DistributedWorkerModel> workers, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
+        this.communicationChannel = new ControlNodeCommunicationChannel(workers, workloadDistributor, initialAxioms);
+        this.workers = workers;
         init();
     }
 
@@ -42,8 +42,8 @@ public class SaturationControlNode {
         return closureResult;
     }
 
-    public Collection<DistributedPartitionModel> getPartitions() {
-        return partitions;
+    public Collection<DistributedWorkerModel> getWorkers() {
+        return workers;
     }
 
     public void switchState(ControlNodeState state) {

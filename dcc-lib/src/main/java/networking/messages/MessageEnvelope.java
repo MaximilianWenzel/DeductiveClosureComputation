@@ -1,4 +1,4 @@
-package networking;
+package networking.messages;
 
 public class MessageEnvelope {
     private final long socketID;
