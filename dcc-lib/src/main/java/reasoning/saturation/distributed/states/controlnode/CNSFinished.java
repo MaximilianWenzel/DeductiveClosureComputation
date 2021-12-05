@@ -1,12 +1,15 @@
 package reasoning.saturation.distributed.states.controlnode;
 
+import data.Closure;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
 
-public class CNSFinished extends ControlNodeState {
-    public CNSFinished(SaturationControlNode saturationControlNode) {
+import java.io.Serializable;
+
+public class CNSFinished<C extends Closure<A>, A extends Serializable> extends ControlNodeState<C, A> {
+    public CNSFinished(SaturationControlNode<C, A> saturationControlNode) {
         super(saturationControlNode);
     }
 

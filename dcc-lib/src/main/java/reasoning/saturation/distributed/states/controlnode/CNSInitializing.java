@@ -1,15 +1,18 @@
 package reasoning.saturation.distributed.states.controlnode;
 
+import data.Closure;
 import enums.SaturationStatusMessage;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
 
-public class CNSInitializing extends ControlNodeState {
+import java.io.Serializable;
+
+public class CNSInitializing<C extends Closure<A>, A extends Serializable> extends ControlNodeState<C, A> {
 
     protected int numberOfPartitions;
 
-    public CNSInitializing(SaturationControlNode saturationControlNode) {
+    public CNSInitializing(SaturationControlNode<C, A> saturationControlNode) {
         super(saturationControlNode);
         this.numberOfPartitions = saturationControlNode.getWorkers().size();
         this.communicationChannel.initializeConnectionToWorkerServers();
@@ -40,7 +43,7 @@ public class CNSInitializing extends ControlNodeState {
                         }
                     });
             // all partitions initialized
-            saturationControlNode.switchState(new CNSWaitingForWorkersToConverge(saturationControlNode));
+            saturationControlNode.switchState(new CNSWaitingForWorkersToConverge<>(saturationControlNode));
         }
     }
 }

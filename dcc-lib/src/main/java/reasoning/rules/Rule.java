@@ -4,26 +4,26 @@ import data.Closure;
 
 import java.io.Serializable;
 
-public abstract class Rule implements Serializable {
+public abstract class Rule<C extends Closure<A>, A extends Serializable> implements Serializable {
 
-    protected Closure closure;
-    private InferenceProcessor inferenceProcessor = null;
+    protected C closure;
+    private InferenceProcessor<A> inferenceProcessor = null;
 
     protected Rule() {
 
     }
 
-    public abstract void apply(Object axiom);
+    public abstract void apply(A axiom);
 
-    public void setClosure(Closure closure) {
+    public void setClosure(C closure) {
         this.closure = closure;
     }
 
-    protected void processInference(Serializable axiom) {
+    protected void processInference(A axiom) {
         inferenceProcessor.processInference(axiom);
     }
 
-    public void setInferenceProcessor(InferenceProcessor inferenceProcessor) {
+    public void setInferenceProcessor(InferenceProcessor<A> inferenceProcessor) {
         this.inferenceProcessor = inferenceProcessor;
     }
 }

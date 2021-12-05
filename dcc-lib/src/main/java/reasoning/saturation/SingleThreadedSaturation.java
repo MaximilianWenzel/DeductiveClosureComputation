@@ -8,28 +8,31 @@ import reasoning.reasoner.IncrementalReasonerImpl;
 import reasoning.rules.Rule;
 import reasoning.rules.SingleThreadedSaturationInferenceProcessor;
 
+import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 
-public class SingleThreadedSaturation implements Saturation {
+public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializable> implements Saturation<C, A> {
 
-    private final Closure closure = new DefaultClosure();
-    private final ToDoQueue toDo = new SingleThreadToDo();
-    private Collection<? extends Rule> rules;
+    private final ToDoQueue<A> toDo = new SingleThreadToDo<>();
+    private C closure;
+    private Collection<? extends Rule<C, A>> rules;
 
-    private IncrementalReasonerImpl incrementalReasoner;
+    private IncrementalReasonerImpl<C, A> incrementalReasoner;
 
     public SingleThreadedSaturation() {
         this.rules = Collections.emptyList();
     }
 
-    public SingleThreadedSaturation(Iterator<?> initialAxioms, Collection<? extends Rule> rules) {
+    public SingleThreadedSaturation(Iterator<A> initialAxioms, Collection<? extends Rule<C, A>> rules, C closure) {
         this.rules = rules;
+        this.closure = closure;
         initializeRules();
         initializeToDoQueue(initialAxioms);
 
-        this.incrementalReasoner = new IncrementalReasonerImpl(this.rules, this.closure);
+        this.incrementalReasoner = new IncrementalReasonerImpl<>(this.rules, this.closure);
     }
 
     private void initializeRules() {
@@ -39,18 +42,18 @@ public class SingleThreadedSaturation implements Saturation {
         });
     }
 
-    private void initializeToDoQueue(Iterator<?> initialAxioms) {
+    private void initializeToDoQueue(Iterator<A> initialAxioms) {
         initialAxioms.forEachRemaining(toDo::add);
     }
 
-    public Closure saturate() {
+    public C saturate() {
         while (!toDo.isEmpty()) {
             incrementalReasoner.processAxiom(toDo.remove());
         }
         return closure;
     }
 
-    public Closure getClosure() {
+    public C getClosure() {
         return closure;
     }
 }

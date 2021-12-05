@@ -6,13 +6,13 @@ import org.roaringbitmap.RoaringBitmap;
 import java.io.Serializable;
 import java.util.*;
 
-public class InitialAxiomsDistributor {
+public class InitialAxiomsDistributor<A extends Serializable> {
 
-    private Map<Long, RoaringBitmap> partitionIDToInitialAxiomsIndex;
-    private List<? extends Serializable> initialAxioms;
+    private Map<Long, RoaringBitmap> workerIDToInitialAxiomsIndex;
+    private List<A> initialAxioms;
     private WorkloadDistributor workloadDistributor;
 
-    public InitialAxiomsDistributor(List<? extends Serializable> initialAxioms, WorkloadDistributor workloadDistributor) {
+    public InitialAxiomsDistributor(List<A> initialAxioms, WorkloadDistributor workloadDistributor) {
         this.initialAxioms = initialAxioms;
         this.workloadDistributor = workloadDistributor;
         init();
@@ -20,29 +20,29 @@ public class InitialAxiomsDistributor {
 
     private void init() {
         // distribute initial axioms across partitions
-        this.partitionIDToInitialAxiomsIndex = new HashMap<>();
+        this.workerIDToInitialAxiomsIndex = new HashMap<>();
         for (int i = 0; i < initialAxioms.size(); i++) {
             List<Long> relevantPartitions = workloadDistributor.getRelevantPartitionIDsForAxiom(initialAxioms.get(i));
             for (Long partitionID : relevantPartitions) {
-                RoaringBitmap relevantAxiomsForPartition = partitionIDToInitialAxiomsIndex.computeIfAbsent(partitionID, pID -> new RoaringBitmap());
+                RoaringBitmap relevantAxiomsForPartition = workerIDToInitialAxiomsIndex.computeIfAbsent(partitionID, pID -> new RoaringBitmap());
                 relevantAxiomsForPartition.add(i);
             }
         }
     }
 
-    public List<? extends Serializable> getInitialAxioms(Long partitionID) {
-        RoaringBitmap initialAxiomsPos = partitionIDToInitialAxiomsIndex.get(partitionID);
-        List<Serializable> partitionAxioms = null;
+    public List<A> getInitialAxioms(Long partitionID) {
+        RoaringBitmap initialAxiomsPos = workerIDToInitialAxiomsIndex.get(partitionID);
+        List<A> workerAxioms = null;
         if (initialAxiomsPos == null) {
-            partitionAxioms = Collections.emptyList();
+            workerAxioms = Collections.emptyList();
         } else {
-            partitionAxioms = new ArrayList<>(initialAxiomsPos.getCardinality());
+            workerAxioms = new ArrayList<>(initialAxiomsPos.getCardinality());
             PeekableIntIterator intIt = initialAxiomsPos.getIntIterator();
             while (intIt.hasNext()) {
                 int pos = intIt.next();
-                partitionAxioms.add(initialAxioms.get(pos));
+                workerAxioms.add(initialAxioms.get(pos));
             }
         }
-        return partitionAxioms;
+        return workerAxioms;
     }
 }

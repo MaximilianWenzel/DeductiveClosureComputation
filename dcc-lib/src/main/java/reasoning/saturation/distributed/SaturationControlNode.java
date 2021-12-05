@@ -1,7 +1,6 @@
 package reasoning.saturation.distributed;
 
 import data.Closure;
-import data.DefaultClosure;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 import reasoning.saturation.distributed.states.controlnode.CNSFinished;
 import reasoning.saturation.distributed.states.controlnode.CNSInitializing;
@@ -13,24 +12,28 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public class SaturationControlNode {
+public class SaturationControlNode<C extends Closure<A>, A extends Serializable> {
 
-    private final ControlNodeCommunicationChannel communicationChannel;
-    private final Closure closureResult = new DefaultClosure();
-    private final List<DistributedWorkerModel> workers;
-    private ControlNodeState state;
+    private final ControlNodeCommunicationChannel<C, A> communicationChannel;
+    private final List<DistributedWorkerModel<C, A>> workers;
+    private C resultingClosure;
+    private ControlNodeState<C, A> state;
 
-    protected SaturationControlNode(List<DistributedWorkerModel> workers, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
-        this.communicationChannel = new ControlNodeCommunicationChannel(workers, workloadDistributor, initialAxioms);
+    protected SaturationControlNode(List<DistributedWorkerModel<C, A>> workers,
+                                    WorkloadDistributor workloadDistributor,
+                                    List<A> initialAxioms,
+                                    C resultingClosure) {
+        this.communicationChannel = new ControlNodeCommunicationChannel<>(workers, workloadDistributor, initialAxioms);
         this.workers = workers;
+        this.resultingClosure = resultingClosure;
         init();
     }
 
     private void init() {
-        this.state = new CNSInitializing(this);
+        this.state = new CNSInitializing<>(this);
     }
 
-    public Closure saturate() {
+    public C saturate() {
         try {
             while (!(state instanceof CNSFinished)) {
                 state.mainControlNodeLoop();
@@ -39,22 +42,24 @@ public class SaturationControlNode {
             e.printStackTrace();
         }
 
-        return closureResult;
+        return resultingClosure;
     }
 
-    public Collection<DistributedWorkerModel> getWorkers() {
+    public Collection<DistributedWorkerModel<C, A>> getWorkers() {
         return workers;
     }
 
-    public void switchState(ControlNodeState state) {
+    public void switchState(ControlNodeState<C, A> state) {
         this.state = state;
     }
 
-    public ControlNodeCommunicationChannel getCommunicationChannel() {
+    public ControlNodeCommunicationChannel<C, A> getCommunicationChannel() {
         return communicationChannel;
     }
 
-    public void addAxiomsToClosureResult(Collection<? extends Serializable> axioms) {
-        this.closureResult.addAll(axioms);
+    public void addAxiomsToClosureResult(Collection<A> axioms) {
+        for (A axiom : axioms) {
+            this.resultingClosure.add(axiom);
+        }
     }
 }

@@ -1,23 +1,26 @@
 package networking.messages;
 
+import data.Closure;
+import org.checkerframework.checker.units.qual.C;
+
 import java.io.Serializable;
 import java.util.Collection;
 
-public class SaturationAxiomsMessage extends MessageModel {
+public class SaturationAxiomsMessage<C extends Closure<A>, A extends Serializable> extends MessageModel<C, A> {
 
-    private Collection<? extends Serializable> axioms;
+    private final Collection<A> axioms;
 
-    public SaturationAxiomsMessage(long senderID, Collection<? extends Serializable> axioms) {
+    public SaturationAxiomsMessage(long senderID, Collection<A> axioms) {
         super(senderID);
         this.axioms = axioms;
     }
 
-    public Collection<? extends Serializable> getAxioms() {
+    public Collection<A> getAxioms() {
         return axioms;
     }
 
     @Override
-    public void accept(MessageModelVisitor visitor) {
+    public void accept(MessageModelVisitor<C, A> visitor) {
         visitor.visit(this);
     }
 }

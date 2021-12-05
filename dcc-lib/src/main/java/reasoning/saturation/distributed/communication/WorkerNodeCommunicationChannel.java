@@ -12,6 +12,7 @@ import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
 import networking.messages.*;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
@@ -24,13 +25,13 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-public class WorkerNodeCommunicationChannel implements SaturationCommunicationChannel {
+public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Serializable> implements SaturationCommunicationChannel {
 
     private final Logger log = ConsoleUtils.getLogger();
 
     private final int portToListen;
     private long workerID = -1L;
-    private List<DistributedWorkerModel> workers;
+    private List<DistributedWorkerModel<C, A>> workers;
     private NetworkingComponent networkingComponent;
     private WorkloadDistributor workloadDistributor;
 
@@ -51,7 +52,7 @@ public class WorkerNodeCommunicationChannel implements SaturationCommunicationCh
     private final AtomicLong establishedConnections = new AtomicLong(0);
 
 
-    private SaturationAxiomsMessage initialAxioms;
+    private SaturationAxiomsMessage<C, A> initialAxioms;
 
     public WorkerNodeCommunicationChannel(int portToListen,
                                           int maxNumAxiomsToBufferBeforeSending) {
@@ -97,8 +98,12 @@ public class WorkerNodeCommunicationChannel implements SaturationCommunicationCh
         send(0, status, onAcknowledgement);
     }
 
-    public void sendToControlNode(Closure closure) {
-        SaturationAxiomsMessage saturationAxiomsMessage = new SaturationAxiomsMessage(workerID, closure);
+    public void sendToControlNode(Closure<? extends Serializable> closure) {
+        // generate closure
+        Set<Serializable> closureResult = new UnifiedSet<>();
+        closure.getClosureResults().forEach(closureResult::add);
+
+        SaturationAxiomsMessage saturationAxiomsMessage = new SaturationAxiomsMessage(workerID, closureResult);
         MessageEnvelope messageEnvelope = new MessageEnvelope(controlNodeSocketID, saturationAxiomsMessage);
         networkingComponent.sendMessage(messageEnvelope);
     }
@@ -190,11 +195,11 @@ public class WorkerNodeCommunicationChannel implements SaturationCommunicationCh
         });
     }
 
-    public List<DistributedWorkerModel> getWorkers() {
+    public List<DistributedWorkerModel<C, A>> getWorkers() {
         return this.workers;
     }
 
-    public void setWorkers(List<DistributedWorkerModel> workers) {
+    public void setWorkers(List<DistributedWorkerModel<C, A>> workers) {
         this.workers = workers;
     }
 
@@ -213,11 +218,11 @@ public class WorkerNodeCommunicationChannel implements SaturationCommunicationCh
         this.workloadDistributor = workloadDistributor;
     }
 
-    public void setInitialAxioms(Collection<? extends Serializable> initialAxioms) {
-        this.initialAxioms = new SaturationAxiomsMessage(controlNodeSocketID, initialAxioms);
+    public void setInitialAxioms(Collection<A> initialAxioms) {
+        this.initialAxioms = new SaturationAxiomsMessage<>(controlNodeSocketID, initialAxioms);
     }
 
-    public void addAxiomsToQueue(List<SaturationAxiomsMessage> saturationAxiomsMessages) {
+    public void addAxiomsToQueue(List<SaturationAxiomsMessage<C, A>> saturationAxiomsMessages) {
         this.toDo.addAll(saturationAxiomsMessages);
     }
 

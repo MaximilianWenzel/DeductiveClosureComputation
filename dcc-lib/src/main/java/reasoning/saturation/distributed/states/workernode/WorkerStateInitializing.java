@@ -1,28 +1,30 @@
 package reasoning.saturation.distributed.states.workernode;
 
+import data.Closure;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.InitializeWorkerMessage;
 import networking.messages.SaturationAxiomsMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationWorker;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WorkerStateInitializing extends WorkerState {
+public class WorkerStateInitializing<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
     private long allWorkersInitializedMessageID;
 
     /**
      * Received axiom messages from other workers while in state 'initialized'.
      */
-    private List<SaturationAxiomsMessage> bufferedAxiomMessages = new ArrayList<>();
+    private List<SaturationAxiomsMessage<C, A>> bufferedAxiomMessages = new ArrayList<>();
 
-    public WorkerStateInitializing(SaturationWorker partition) {
+    public WorkerStateInitializing(SaturationWorker<C, A> partition) {
         super(partition);
     }
 
     @Override
-    public void visit(InitializeWorkerMessage message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         log.info("Partition initialization message received from control node. Initializing partition...");
         this.worker.initializePartition(message);
         log.info("Partition successfully initialized.");
@@ -48,7 +50,7 @@ public class WorkerStateInitializing extends WorkerState {
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage message) {
+    public void visit(SaturationAxiomsMessage<C, A> message) {
         this.bufferedAxiomMessages.add(message);
     }
 
@@ -60,7 +62,7 @@ public class WorkerStateInitializing extends WorkerState {
             log.info("All connections to other workers successfully initialized.");
             this.communicationChannel.addInitialAxiomsToQueue();
             this.communicationChannel.addAxiomsToQueue(bufferedAxiomMessages);
-            this.worker.switchState(new WorkerStateRunning(worker));
+            this.worker.switchState(new WorkerStateRunning<>(worker));
 
             communicationChannel.acknowledgeMessage(communicationChannel.getControlNodeID(), allWorkersInitializedMessageID);
         }

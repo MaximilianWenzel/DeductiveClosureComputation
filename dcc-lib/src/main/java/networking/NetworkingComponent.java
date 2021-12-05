@@ -167,8 +167,7 @@ public class NetworkingComponent implements Runnable {
             socketManager.sendMessages();
         } else {
             // remove write selector
-            // TODO cannot remove write selection key
-            key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            key.interestOpsAnd(~SelectionKey.OP_WRITE);
         }
     }
 
@@ -181,6 +180,7 @@ public class NetworkingComponent implements Runnable {
                 // add write selector
                 SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
                 key.interestOpsOr(SelectionKey.OP_WRITE);
+                selector.wakeup();
             } else {
                 throw new IllegalArgumentException("Socket with ID " + messageEnvelope.getSocketID() + " does not exist.");
             }

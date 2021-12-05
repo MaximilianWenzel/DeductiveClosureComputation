@@ -1,5 +1,6 @@
 package reasoning.saturation.distributed.states.workernode;
 
+import data.Closure;
 import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.AcknowledgementMessage;
@@ -8,14 +9,16 @@ import networking.messages.SaturationAxiomsMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationWorker;
 
-public class WorkerStateConverged extends WorkerState {
+import java.io.Serializable;
 
-    public WorkerStateConverged(SaturationWorker worker) {
+public class WorkerStateConverged<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
+
+    public WorkerStateConverged(SaturationWorker<C, A> worker) {
         super(worker);
     }
 
     @Override
-    public void visit(InitializeWorkerMessage message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -26,7 +29,7 @@ public class WorkerStateConverged extends WorkerState {
             case CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT:
                 communicationChannel.sendToControlNode(worker.getClosure());
                 communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
-                worker.switchState(new WorkerStateFinished(worker));
+                worker.switchState(new WorkerStateFinished<>(worker));
                 break;
             default:
                 messageProtocolViolation(message);
@@ -34,10 +37,10 @@ public class WorkerStateConverged extends WorkerState {
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage message) {
+    public void visit(SaturationAxiomsMessage<C, A> message) {
         long axiomSenderID = message.getSenderID();
 
-        WorkerStateRunning runningState = new WorkerStateRunning(worker);
+        WorkerStateRunning<C, A> runningState = new WorkerStateRunning<>(worker);
         log.info("Axioms received. Continuing saturation...");
         worker.switchState(runningState);
         communicationChannel.sendToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_RUNNING, new Runnable() {

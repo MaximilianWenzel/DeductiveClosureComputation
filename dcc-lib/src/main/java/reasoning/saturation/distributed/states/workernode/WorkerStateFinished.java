@@ -1,5 +1,6 @@
 package reasoning.saturation.distributed.states.workernode;
 
+import data.Closure;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.InitializeWorkerMessage;
@@ -7,15 +8,17 @@ import networking.messages.SaturationAxiomsMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationWorker;
 
-public class WorkerStateFinished extends WorkerState {
+import java.io.Serializable;
 
-    public WorkerStateFinished(SaturationWorker partition) {
+public class WorkerStateFinished<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
+
+    public WorkerStateFinished(SaturationWorker<C, A> partition) {
         super(partition);
     }
 
 
     @Override
-    public void visit(InitializeWorkerMessage message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -25,7 +28,7 @@ public class WorkerStateFinished extends WorkerState {
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage message) {
+    public void visit(SaturationAxiomsMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 

@@ -1,5 +1,6 @@
 package eldlreasoning;
 
+import data.Closure;
 import reasoning.saturation.distributed.SaturationControlNode;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
@@ -8,9 +9,10 @@ import java.io.Serializable;
 import java.util.*;
 
 public class OWL2ELSaturationControlNode extends SaturationControlNode {
-    protected OWL2ELSaturationControlNode(List<DistributedWorkerModel> partitions, WorkloadDistributor workloadDistributor, List<? extends Serializable> initialAxioms) {
-        super(partitions, workloadDistributor, initialAxioms);
+    protected OWL2ELSaturationControlNode(List workers, WorkloadDistributor workloadDistributor, List initialAxioms, Closure resultingClosure) {
+        super(workers, workloadDistributor, initialAxioms, resultingClosure);
     }
+
 
     /*
     private int numberOfPartitions;

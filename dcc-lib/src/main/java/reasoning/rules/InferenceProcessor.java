@@ -2,6 +2,6 @@ package reasoning.rules;
 
 import java.io.Serializable;
 
-public interface InferenceProcessor extends Serializable {
-    void processInference(Serializable axiom);
+public interface InferenceProcessor<A extends Serializable> extends Serializable {
+    void processInference(A axiom);
 }

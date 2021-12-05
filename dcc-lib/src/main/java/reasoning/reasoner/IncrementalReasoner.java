@@ -1,6 +1,10 @@
 package reasoning.reasoner;
 
-public interface IncrementalReasoner {
+import data.Closure;
 
-    void processAxiom(Object axiom);
+import java.io.Serializable;
+
+public interface IncrementalReasoner<C extends Closure<A>, A extends Serializable> {
+
+    void processAxiom(A axiom);
 }

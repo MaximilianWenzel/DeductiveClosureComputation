@@ -1,18 +1,20 @@
 package reasoning.saturation.distributed.states.controlnode;
 
+import data.Closure;
 import enums.SaturationStatusMessage;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
 
+import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CNSWaitingForWorkersToConverge extends ControlNodeState {
+public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Serializable> extends ControlNodeState<C, A> {
 
     protected AtomicInteger convergedWorkers = new AtomicInteger();
     protected int numberOfWorkers;
 
-    public CNSWaitingForWorkersToConverge(SaturationControlNode saturationControlNode) {
+    public CNSWaitingForWorkersToConverge(SaturationControlNode<C, A> saturationControlNode) {
         super(saturationControlNode);
         this.numberOfWorkers = saturationControlNode.getWorkers().size();
     }
@@ -27,7 +29,7 @@ public class CNSWaitingForWorkersToConverge extends ControlNodeState {
 
                 if (convergedWorkers.get() == numberOfWorkers) {
                     log.info("All workers converged.");
-                    saturationControlNode.switchState(new CNSWaitingForClosureResults(saturationControlNode));
+                    saturationControlNode.switchState(new CNSWaitingForClosureResults<>(saturationControlNode));
                     communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT, new Runnable() {
                         @Override
                         public void run() {

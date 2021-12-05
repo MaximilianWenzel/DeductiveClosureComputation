@@ -1,8 +1,9 @@
 package elsyntax;
 
+import data.Closure;
 import data.DefaultClosure;
 import data.IndexedELOntology;
-import eldlreasoning.OWLELDistributedPartitionFactory;
+import eldlreasoning.OWLELDistributedWorkerFactory;
 import eldlreasoning.OWLELWorkloadDistributor;
 import eldlreasoning.rules.OWLELRule;
 import eldlsyntax.*;
@@ -79,11 +80,12 @@ public class OWLELSaturationTest {
         getClosureOfSingleThreadedSaturator().forEach(System.out::println);
     }
 
-    public Set<Object> getClosureOfSingleThreadedSaturator() {
+    public DefaultClosure<ELConceptInclusion> getClosureOfSingleThreadedSaturator() {
         Collection<OWLELRule> owlelRules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
-        SingleThreadedSaturation saturation = new SingleThreadedSaturation(elOntology.getInitialAxioms().iterator(), owlelRules);
-        Set<Object> closure = saturation.saturate();
-        return closure;
+        DefaultClosure<ELConceptInclusion> closure = new DefaultClosure<>();
+        SingleThreadedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> saturation =
+                new SingleThreadedSaturation<>(elOntology.getInitialAxioms().iterator(), owlelRules, closure);
+        return saturation.saturate();
     }
 
     /*
@@ -125,12 +127,12 @@ public class OWLELSaturationTest {
             partitionServerData.add(new ServerData("localhost", portNumber));
         }
 
-        List<SaturationWorker> saturationWorkers = new ArrayList<>();
+        List<SaturationWorker<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> saturationWorkers = new ArrayList<>();
         for (ServerData serverData : partitionServerData) {
-            SaturationWorker partition = new SaturationWorker(
+            SaturationWorker<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> partition = new SaturationWorker<>(
                     serverData.getPortNumber(),
                     10,
-                    new DefaultClosure(),
+                    new DefaultClosure<>(),
                     SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
             );
             saturationWorkers.add(partition);
@@ -143,10 +145,12 @@ public class OWLELSaturationTest {
             e.printStackTrace();
         }
 
-        OWLELDistributedPartitionFactory partitionFactory = new OWLELDistributedPartitionFactory(elOntology, partitionServerData);
-        List<DistributedWorkerModel> partitionModels = partitionFactory.generateDistributedPartitions();
+        OWLELDistributedWorkerFactory partitionFactory = new OWLELDistributedWorkerFactory(elOntology, partitionServerData);
+        List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> partitionModels =
+                partitionFactory.generateDistributedWorkers();
         OWLELWorkloadDistributor workloadDistributor = new OWLELWorkloadDistributor(partitionModels);
-        DistributedSaturation distributedSaturation = new DistributedSaturation(partitionModels, workloadDistributor, elOntology.getInitialAxioms());
+        DistributedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> distributedSaturation = new DistributedSaturation<>(
+                partitionModels,workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>());
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override
@@ -161,10 +165,13 @@ public class OWLELSaturationTest {
         System.out.println();
         System.out.println("Closure: ");
 
-        Set<Object> distributedClosure = distributedSaturation.saturate();
-        Set<Object> singleThreadedClosure = getClosureOfSingleThreadedSaturator();
-        Set<Object> difference = new UnifiedSet<>(singleThreadedClosure);
-        difference.removeAll(distributedClosure);
+        Closure<ELConceptInclusion> distributedClosure = distributedSaturation.saturate();
+        Closure<ELConceptInclusion> singleThreadedClosure = getClosureOfSingleThreadedSaturator();
+
+        Set<ELConceptInclusion> difference = new UnifiedSet<>();
+        singleThreadedClosure.getClosureResults().forEach(difference::add);
+        distributedClosure.getClosureResults().forEach(difference::remove);
+
         System.out.println(difference);
         assertEquals(singleThreadedClosure, distributedClosure);
 

@@ -3,6 +3,7 @@ package reasoning.saturation.distributed.communication;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
+import data.Closure;
 import enums.SaturationStatusMessage;
 import networking.*;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -23,30 +24,30 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
-public class ControlNodeCommunicationChannel implements SaturationCommunicationChannel {
+public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable> implements SaturationCommunicationChannel {
 
     private final Logger log = ConsoleUtils.getLogger();
 
     protected NetworkingComponent networkingComponent;
-    protected List<DistributedWorkerModel> workers;
-    protected Map<Long, DistributedWorkerModel> workerIDToWorker;
+    protected List<DistributedWorkerModel<C, A>> workers;
+    protected Map<Long, DistributedWorkerModel<C, A>> workerIDToWorker;
     protected BiMap<Long, Long> socketIDToWorkerID;
     protected BiMap<Long, Long> workerIDToSocketID;
     protected long controlNodeID = 0L;
-    protected BlockingDeque<MessageModel> receivedMessages = new LinkedBlockingDeque<>();
+    protected BlockingDeque<MessageModel<C, A>> receivedMessages = new LinkedBlockingDeque<>();
     protected WorkloadDistributor workloadDistributor;
-    protected List<? extends Serializable> initialAxioms;
+    protected List<A> initialAxioms;
 
-    protected InitialAxiomsDistributor initialAxiomsDistributor;
+    protected InitialAxiomsDistributor<A> initialAxiomsDistributor;
     protected AcknowledgementEventManager acknowledgementEventManager;
 
     protected boolean allConnectionsEstablished = false;
     protected AtomicInteger initializedWorkers = new AtomicInteger(0);
 
 
-    public ControlNodeCommunicationChannel(List<DistributedWorkerModel> workers,
+    public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A>> workers,
                                            WorkloadDistributor workloadDistributor,
-                                           List<? extends Serializable> initialAxioms) {
+                                           List<A> initialAxioms) {
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
@@ -60,7 +61,7 @@ public class ControlNodeCommunicationChannel implements SaturationCommunicationC
         this.workerIDToWorker = new HashMap<>();
         workers.forEach(p -> workerIDToWorker.put(p.getID(), p));
 
-        initialAxiomsDistributor = new InitialAxiomsDistributor(initialAxioms, workloadDistributor);
+        initialAxiomsDistributor = new InitialAxiomsDistributor<>(initialAxioms, workloadDistributor);
 
         acknowledgementEventManager = new AcknowledgementEventManager();
 
@@ -111,12 +112,12 @@ public class ControlNodeCommunicationChannel implements SaturationCommunicationC
         send(receiverSocketID, stateInfoMessage);
     }
 
-    public void send(long receiverSocketID, MessageModel message, Runnable onAcknowledgement) {
+    public void send(long receiverSocketID, MessageModel<C, A> message, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(message.getMessageID(), onAcknowledgement);
         MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, message);
         networkingComponent.sendMessage(messageEnvelope);
     }
-    public void send(long receiverSocketID, MessageModel message) {
+    public void send(long receiverSocketID, MessageModel<C, A> message) {
         MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, message);
         networkingComponent.sendMessage(messageEnvelope);
     }
@@ -141,9 +142,9 @@ public class ControlNodeCommunicationChannel implements SaturationCommunicationC
     }
     private class WorkerServerConnector extends ServerConnector {
 
-        private final DistributedWorkerModel workerModel;
+        private final DistributedWorkerModel<C, A> workerModel;
 
-        public WorkerServerConnector(ServerData serverData, DistributedWorkerModel workerModel) {
+        public WorkerServerConnector(ServerData serverData, DistributedWorkerModel<C, A> workerModel) {
             super(serverData);
             this.workerModel = workerModel;
         }
@@ -157,7 +158,7 @@ public class ControlNodeCommunicationChannel implements SaturationCommunicationC
 
             // send message
             log.info("Sending initialization message to worker " + workerModel.getID() + ".");
-            InitializeWorkerMessage initializeWorkerMessage = new InitializeWorkerMessage(
+            InitializeWorkerMessage<C, A> initializeWorkerMessage = new InitializeWorkerMessage<>(
                     ControlNodeCommunicationChannel.this.controlNodeID,
                     workerModel.getID(),
                     ControlNodeCommunicationChannel.this.workers,

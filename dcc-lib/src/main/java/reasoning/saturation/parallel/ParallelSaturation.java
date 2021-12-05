@@ -6,6 +6,7 @@ import data.ParallelToDo;
 import enums.SaturationStatusMessage;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.rules.ParallelSaturationInferenceProcessor;
+import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
@@ -19,44 +20,45 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
-public class ParallelSaturation {
+public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
+
+    private SaturationInitializationFactory<C, A> factory;
 
     private final BlockingDeque<SaturationStatusMessage> statusMessages = new LinkedBlockingDeque<>();
-    private List<SaturationContext> partitions;
-    private Collection<WorkerModel> workerModels;
+    private List<SaturationContext<C, A>> contexts;
+    private Collection<WorkerModel<C, A>> workerModels;
     private volatile boolean allPartitionsConverged = false;
     private List<Thread> threadPool;
-    private List<? extends Serializable> initialAxioms;
+    private List<A> initialAxioms;
     private WorkloadDistributor workloadDistributor;
-    private InitialAxiomsDistributor initialAxiomsDistributor;
+    private InitialAxiomsDistributor<A> initialAxiomsDistributor;
 
     private int convergedPartitions = 0;
 
-    protected ParallelSaturation(List<? extends Serializable> initialAxioms,
-                                 Collection<WorkerModel> workerModels,
-                                 WorkloadDistributor workloadDistributor) {
-        this.initialAxioms = initialAxioms;
-        this.workerModels = workerModels;
-        this.workloadDistributor = workloadDistributor;
-        initPartitionThreads();
+    protected ParallelSaturation(SaturationInitializationFactory<C, A> factory) {
+        this.factory = factory;
+        this.initialAxioms = factory.getInitialAxioms();
+        this.workerModels = factory.getWorkerModels();
+        this.workloadDistributor = factory.getWorkloadDistributor();
+        initContexts();
     }
 
-    public void initPartitionThreads() {
+    public void initContexts() {
         initVariables();
         initAndStartThreads();
     }
 
-    protected SaturationContext generateSaturatorPartition(WorkerModel partition) {
-        Closure partitionClosure = new DefaultClosure();
-        partitionClosure.addAll(initialAxiomsDistributor.getInitialAxioms(partition.getID()));
+    protected SaturationContext<C, A> generateSaturationContext(WorkerModel<C, A> worker) {
+        C workerClosure = factory.getNewClosure();
+        workerClosure.addAll(initialAxiomsDistributor.getInitialAxioms(worker.getID()));
 
-        ParallelToDo partitionToDo = new ParallelToDo();
+        ParallelToDo<A> workerToDo = new ParallelToDo<>();
 
-        return new SaturationContext(
+        return new SaturationContext<>(
                 this,
-                partition.getRules(),
-                partitionClosure,
-                partitionToDo,
+                worker.getRules(),
+                workerClosure,
+                workerToDo,
                 new ParallelSaturationInferenceProcessor(workloadDistributor));
     }
 
@@ -64,13 +66,13 @@ public class ParallelSaturation {
         this.initialAxiomsDistributor = new InitialAxiomsDistributor(initialAxioms, workloadDistributor);
 
         // init partitions
-        this.partitions = new ArrayList<>();
+        this.contexts = new ArrayList<>();
         workerModels.forEach(p -> {
-            this.partitions.add(generateSaturatorPartition(p));
+            this.contexts.add(generateSaturationContext(p));
         });
     }
 
-    public Set<Object> saturate() {
+    public C saturate() {
         try {
             while (!allPartitionsConverged) {
                 SaturationStatusMessage message = statusMessages.poll(10, TimeUnit.MILLISECONDS);
@@ -86,7 +88,7 @@ public class ParallelSaturation {
                     }
                 }
 
-                if (!statusMessages.isEmpty() || convergedPartitions < partitions.size()) {
+                if (!statusMessages.isEmpty() || convergedPartitions < contexts.size()) {
                     // not all messages processed or not all partitions converged
                     continue;
                 }
@@ -110,17 +112,17 @@ public class ParallelSaturation {
             e.printStackTrace();
         }
 
-        Set<Object> closure = new UnifiedSet<>();
-        for (SaturationContext partition : partitions) {
-            closure.addAll(partition.getClosure());
+        C closure = factory.getNewClosure();
+        for (SaturationContext<C, A> context : contexts) {
+            context.getClosure().getClosureResults().forEach(closure::add);
         }
         return closure;
     }
 
     private void initAndStartThreads() {
         this.threadPool = new ArrayList<>();
-        for (SaturationContext partition : this.partitions) {
-            this.threadPool.add(new Thread(partition));
+        for (SaturationContext<C, A> worker : this.contexts) {
+            this.threadPool.add(new Thread(worker));
         }
         this.threadPool.forEach(Thread::start);
     }

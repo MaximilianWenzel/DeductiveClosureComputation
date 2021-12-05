@@ -1,5 +1,6 @@
 package reasoning.saturation.distributed.states.workernode;
 
+import data.Closure;
 import exceptions.MessageProtocolViolationException;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.messages.*;
@@ -8,17 +9,18 @@ import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
 import util.ConsoleUtils;
 
+import java.io.Serializable;
 import java.util.logging.Logger;
 
-public abstract class WorkerState implements MessageModelVisitor {
+public abstract class WorkerState<C extends Closure<A>, A extends Serializable> implements MessageModelVisitor<C, A> {
 
     protected final Logger log = ConsoleUtils.getLogger();
-    protected SaturationWorker worker;
-    protected WorkerNodeCommunicationChannel communicationChannel;
-    protected IncrementalReasoner incrementalReasoner;
+    protected SaturationWorker<C, A> worker;
+    protected WorkerNodeCommunicationChannel<C, A> communicationChannel;
+    protected IncrementalReasoner<C, A> incrementalReasoner;
     protected AcknowledgementEventManager acknowledgementEventManager;
 
-    public WorkerState(SaturationWorker worker) {
+    public WorkerState(SaturationWorker<C, A> worker) {
         this.worker = worker;
         this.communicationChannel = worker.getCommunicationChannel();
         this.incrementalReasoner = worker.getIncrementalReasoner();
@@ -28,7 +30,7 @@ public abstract class WorkerState implements MessageModelVisitor {
     public void mainPartitionLoop() throws InterruptedException {
         Object message = communicationChannel.read();
         if (message instanceof MessageModel) {
-            ((MessageModel)message).accept(this);
+            ((MessageModel<C, A>)message).accept(this);
         } else {
             throw new IllegalArgumentException("Axioms only allowed in state 'running'.");
         }
@@ -41,12 +43,12 @@ public abstract class WorkerState implements MessageModelVisitor {
     }
 
     @Override
-    public void visit(InitializeWorkerMessage message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage message) {
+    public void visit(SaturationAxiomsMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -54,14 +56,6 @@ public abstract class WorkerState implements MessageModelVisitor {
     public void visit(StateInfoMessage message) {
         throw new MessageProtocolViolationException();
     }
-
-    /*
-    @Override
-    public void visit(AcknowledgementMessage message) {
-        acknowledgementEventManager.messageAcknowledged(message.getMessageID());
-    }
-
-     */
 
     protected void messageProtocolViolation(StateInfoMessage message) {
         log.warning("State: " + this.getClass() + ", message type: " + message.getStatusMessage());

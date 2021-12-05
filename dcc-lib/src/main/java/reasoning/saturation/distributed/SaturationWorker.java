@@ -12,29 +12,30 @@ import reasoning.saturation.distributed.states.workernode.WorkerState;
 import reasoning.saturation.distributed.states.workernode.WorkerStateFinished;
 import reasoning.saturation.distributed.states.workernode.WorkerStateInitializing;
 
+import java.io.Serializable;
 import java.util.Collection;
 
-public class SaturationWorker implements Runnable {
+public class SaturationWorker<C extends Closure<A>, A extends Serializable> implements Runnable {
 
     private final IncrementalReasonerType incrementalReasonerType;
-    private final Closure closure;
-    private Collection<? extends Rule> rules;
-    private WorkerNodeCommunicationChannel communicationChannel;
-    private WorkerState state;
-    private IncrementalReasoner incrementalReasoner;
+    private final C closure;
+    private Collection<? extends Rule<C, A>> rules;
+    private WorkerNodeCommunicationChannel<C, A> communicationChannel;
+    private WorkerState<C, A> state;
+    private IncrementalReasoner<C, A> incrementalReasoner;
 
     public SaturationWorker(int portToListen,
                             int maxNumberOfAxiomsToBufferBeforeSending,
-                            Closure closure,
+                            C closure,
                             IncrementalReasonerType incrementalReasonerType) {
-        this.communicationChannel = new WorkerNodeCommunicationChannel(portToListen, maxNumberOfAxiomsToBufferBeforeSending);
-        this.state = new WorkerStateInitializing(this);
+        this.communicationChannel = new WorkerNodeCommunicationChannel<>(portToListen, maxNumberOfAxiomsToBufferBeforeSending);
+        this.state = new WorkerStateInitializing<>(this);
         this.closure = closure;
         this.incrementalReasonerType = incrementalReasonerType;
     }
 
 
-    public void setRules(Collection<? extends Rule> rules) {
+    public void setRules(Collection<? extends Rule<C, A>> rules) {
         this.rules = rules;
         initializeRules();
     }
@@ -48,7 +49,7 @@ public class SaturationWorker implements Runnable {
 
         switch (incrementalReasonerType) {
             case SINGLE_THREADED:
-                this.incrementalReasoner = new IncrementalReasonerImpl(rules, closure);
+                this.incrementalReasoner = new IncrementalReasonerImpl<>(rules, closure);
                 break;
             default:
                 throw new NotImplementedException();
@@ -67,24 +68,24 @@ public class SaturationWorker implements Runnable {
         }
     }
 
-    public Closure getClosure() {
+    public C getClosure() {
         return closure;
     }
 
-    public void switchState(WorkerState newState) {
+    public void switchState(WorkerState<C, A> newState) {
         this.state = newState;
     }
 
-    public WorkerNodeCommunicationChannel getCommunicationChannel() {
+    public WorkerNodeCommunicationChannel<C, A> getCommunicationChannel() {
         return communicationChannel;
     }
 
-    public IncrementalReasoner getIncrementalReasoner() {
+    public IncrementalReasoner<C, A> getIncrementalReasoner() {
         return incrementalReasoner;
     }
 
-    public void initializePartition(InitializeWorkerMessage message) {
-        this.communicationChannel.setWorkers(message.getPartitions());
+    public void initializePartition(InitializeWorkerMessage<C, A> message) {
+        this.communicationChannel.setWorkers(message.getWorkers());
         this.communicationChannel.setWorkerID(message.getWorkerID());
         this.communicationChannel.setWorkloadDistributor(message.getWorkloadDistributor());
         this.communicationChannel.setInitialAxioms(message.getInitialAxioms());

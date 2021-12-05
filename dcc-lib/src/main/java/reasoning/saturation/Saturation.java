@@ -2,7 +2,9 @@ package reasoning.saturation;
 
 import data.Closure;
 
-public interface Saturation {
+import java.io.Serializable;
 
-    Closure saturate();
+public interface Saturation<C extends Closure<A>, A extends Serializable> {
+
+    C saturate();
 }

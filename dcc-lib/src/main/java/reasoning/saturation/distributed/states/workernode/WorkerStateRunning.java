@@ -1,16 +1,18 @@
 package reasoning.saturation.distributed.states.workernode;
 
+import data.Closure;
 import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.*;
 import reasoning.saturation.distributed.SaturationWorker;
 
+import java.io.Serializable;
 import java.util.Collection;
 
-public class WorkerStateRunning extends WorkerState {
+public class WorkerStateRunning<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
 
-    public WorkerStateRunning(SaturationWorker partition) {
-        super(partition);
+    public WorkerStateRunning(SaturationWorker<C, A> worker) {
+        super(worker);
     }
 
     public void mainPartitionLoop() throws InterruptedException {
@@ -30,21 +32,21 @@ public class WorkerStateRunning extends WorkerState {
                         }
                     });
 
-            this.worker.switchState(new WorkerStateConverged(worker));
+            this.worker.switchState(new WorkerStateConverged<>(worker));
             return;
         }
 
         Object obj = communicationChannel.read();
         if (obj instanceof MessageModel) {
-            ((MessageModel)obj).accept(this);
+            ((MessageModel<C, A>)obj).accept(this);
         } else {
-            incrementalReasoner.processAxiom(obj);
+            incrementalReasoner.processAxiom((A) obj);
         }
     }
 
 
     @Override
-    public void visit(InitializeWorkerMessage message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -54,9 +56,9 @@ public class WorkerStateRunning extends WorkerState {
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage message) {
-        Collection<?> axioms = message.getAxioms();
-        for (Object axiom : axioms) {
+    public void visit(SaturationAxiomsMessage<C, A> message) {
+        Collection<A> axioms = message.getAxioms();
+        for (A axiom : axioms) {
             incrementalReasoner.processAxiom(axiom);
         }
         communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());

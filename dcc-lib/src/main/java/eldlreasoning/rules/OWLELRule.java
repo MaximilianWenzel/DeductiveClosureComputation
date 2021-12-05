@@ -1,19 +1,13 @@
 package eldlreasoning.rules;
 
+import data.DefaultClosure;
 import eldlsyntax.ELConceptInclusion;
 import reasoning.rules.Rule;
 
-public abstract class OWLELRule extends Rule {
+public abstract class OWLELRule extends Rule<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> {
 
     public OWLELRule() {
         super();
-    }
-
-    @Override
-    public void apply(Object axiom) {
-        if (axiom instanceof ELConceptInclusion) {
-            apply((ELConceptInclusion) axiom);
-        }
     }
 
     public abstract void apply(ELConceptInclusion axiom);

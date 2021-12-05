@@ -1,0 +1,101 @@
+package benchmark;
+
+import data.Closure;
+import org.roaringbitmap.IntConsumer;
+import org.roaringbitmap.RoaringBitmap;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class ReachabilityClosure implements Closure<Reachability> {
+
+    private final HashMap<Integer, RoaringBitmap> nodeToOutgoingConnectedNodesMap = new HashMap<>();
+    private final HashMap<Integer, RoaringBitmap> nodeToIncomingConnectedNodesMap = new HashMap<>();
+    private final HashMap<Integer, RoaringBitmap> toldNodeToOutgoingConnectedNodesMap = new HashMap<>();
+    private final RoaringBitmap emptyRoaringBitmap = new RoaringBitmap();
+
+    @Override
+    public boolean add(Reachability reachability) {
+        RoaringBitmap nodesReachableFromX;
+        if (reachability instanceof DerivedReachability) {
+            RoaringBitmap nodesWithConnectionToY = nodeToIncomingConnectedNodesMap.computeIfAbsent(reachability.getDestinationNode(), p -> new RoaringBitmap());
+            nodesWithConnectionToY.add(reachability.getSourceNode());
+
+            nodesReachableFromX = nodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(), p -> new RoaringBitmap());
+            boolean isNewValue = !nodesReachableFromX.contains(reachability.getDestinationNode());
+            nodesReachableFromX.add(reachability.getDestinationNode());
+            return isNewValue;
+        } else if (reachability instanceof ToldReachability) {
+            nodesReachableFromX = toldNodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(), p -> new RoaringBitmap());
+            boolean isNewValue = !nodesReachableFromX.contains(reachability.getDestinationNode());
+            nodesReachableFromX.add(reachability.getDestinationNode());
+            return isNewValue;
+        } else {
+            throw new IllegalArgumentException();
+        }
+    }
+
+    public void addDerivedReachability(ToldReachability toldReachability) {
+        RoaringBitmap connectedNodeIDs = nodeToOutgoingConnectedNodesMap.computeIfAbsent(toldReachability.getSourceNode(), p -> new RoaringBitmap());
+        connectedNodeIDs.add(toldReachability.getDestinationNode());
+    }
+
+    public RoaringBitmap getDerivedOutgoingConnectedNodes(int x) {
+        return this.nodeToOutgoingConnectedNodesMap.getOrDefault(x, emptyRoaringBitmap);
+    }
+
+    public RoaringBitmap getDerivedIncomingConnectedNodes(int y) {
+        return this.nodeToIncomingConnectedNodesMap.getOrDefault(y, emptyRoaringBitmap);
+    }
+
+    @Override
+    public boolean addAll(List<Reachability> axioms) {
+        int sizeBefore = nodeToOutgoingConnectedNodesMap.size();
+        for (Reachability r : axioms) {
+            this.add(r);
+        }
+        return sizeBefore != this.nodeToOutgoingConnectedNodesMap.size();
+    }
+
+    @Override
+    public boolean remove(Reachability reachability) {
+        RoaringBitmap connectedNodeIDs = nodeToOutgoingConnectedNodesMap.get(reachability.getSourceNode());
+        if (connectedNodeIDs != null) {
+            boolean containedValue = connectedNodeIDs.contains(reachability.getDestinationNode());
+            connectedNodeIDs.remove(reachability.getDestinationNode());
+            return containedValue;
+        }
+        return false;
+    }
+
+    @Override
+    public Iterable<Reachability> getClosureResults() {
+        List<Reachability> result = new ArrayList<>(nodeToOutgoingConnectedNodesMap.size());
+        HashMap<Integer, RoaringBitmap> adjacencyMap;
+
+        adjacencyMap = this.toldNodeToOutgoingConnectedNodesMap;
+        for (Map.Entry<Integer, RoaringBitmap> entry : adjacencyMap.entrySet()) {
+            RoaringBitmap connectedNodeIDs = entry.getValue();
+            connectedNodeIDs.forEach(new IntConsumer() {
+                @Override
+                public void accept(int i) {
+                    result.add(new ToldReachability(entry.getKey(), i));
+                }
+            });
+        }
+
+        adjacencyMap = this.nodeToOutgoingConnectedNodesMap;
+        for (Map.Entry<Integer, RoaringBitmap> entry : adjacencyMap.entrySet()) {
+            RoaringBitmap connectedNodeIDs = entry.getValue();
+            connectedNodeIDs.forEach(new IntConsumer() {
+                @Override
+                public void accept(int i) {
+                    result.add(new DerivedReachability(entry.getKey(), i));
+                }
+            });
+        }
+        return result;
+    }
+}
