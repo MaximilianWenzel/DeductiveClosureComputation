@@ -3,6 +3,7 @@ package data;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.List;
 
 public class DefaultClosure<A extends Serializable> extends UnifiedSet<A> implements Closure<A> {
@@ -19,7 +20,7 @@ public class DefaultClosure<A extends Serializable> extends UnifiedSet<A> implem
     }
 
     @Override
-    public Iterable<A> getClosureResults() {
+    public Collection<A> getClosureResults() {
         return this;
     }
 }

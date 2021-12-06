@@ -11,14 +11,14 @@ import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
 
-public class WorkerStateConverged<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
+public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
 
-    public WorkerStateConverged(SaturationWorker<C, A> worker) {
+    public WorkerStateConverged(SaturationWorker<C, A, T> worker) {
         super(worker);
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A> message) {
+    public void visit(InitializeWorkerMessage<C, A, T> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -37,10 +37,10 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable> 
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage<C, A> message) {
+    public void visit(SaturationAxiomsMessage<C, A, T> message) {
         long axiomSenderID = message.getSenderID();
 
-        WorkerStateRunning<C, A> runningState = new WorkerStateRunning<>(worker);
+        WorkerStateRunning<C, A, T> runningState = new WorkerStateRunning<>(worker);
         log.info("Axioms received. Continuing saturation...");
         worker.switchState(runningState);
         communicationChannel.sendToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_RUNNING, new Runnable() {

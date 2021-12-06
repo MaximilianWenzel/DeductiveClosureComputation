@@ -10,15 +10,15 @@ import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
 
-public class WorkerStateFinished<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
+public class WorkerStateFinished<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
 
-    public WorkerStateFinished(SaturationWorker<C, A> partition) {
-        super(partition);
+    public WorkerStateFinished(SaturationWorker<C, A, T> worker) {
+        super(worker);
     }
 
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A> message) {
+    public void visit(InitializeWorkerMessage<C, A, T> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -28,7 +28,7 @@ public class WorkerStateFinished<C extends Closure<A>, A extends Serializable> e
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage<C, A> message) {
+    public void visit(SaturationAxiomsMessage<C, A, T> message) {
         throw new MessageProtocolViolationException();
     }
 

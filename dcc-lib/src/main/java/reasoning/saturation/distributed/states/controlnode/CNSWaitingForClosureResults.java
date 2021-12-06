@@ -9,18 +9,18 @@ import reasoning.saturation.distributed.SaturationControlNode;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Serializable> extends ControlNodeState<C, A> {
+public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Serializable, T extends Serializable> extends ControlNodeState<C, A, T> {
 
     protected int numberOfWorkers;
     protected AtomicInteger receivedClosureResults = new AtomicInteger(0);
 
-    public CNSWaitingForClosureResults(SaturationControlNode<C, A> saturationControlNode) {
+    public CNSWaitingForClosureResults(SaturationControlNode<C, A, T> saturationControlNode) {
         super(saturationControlNode);
         this.numberOfWorkers = saturationControlNode.getWorkers().size();
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage<C, A> message) {
+    public void visit(SaturationAxiomsMessage<C, A, T> message) {
         saturationControlNode.addAxiomsToClosureResult(message.getAxioms());
         log.info("Worker " + message.getSenderID() + " sent closure results.");
 

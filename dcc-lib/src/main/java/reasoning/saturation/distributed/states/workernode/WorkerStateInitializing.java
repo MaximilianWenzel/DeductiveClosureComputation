@@ -11,23 +11,23 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WorkerStateInitializing<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
+public class WorkerStateInitializing<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
     private long allWorkersInitializedMessageID;
 
     /**
      * Received axiom messages from other workers while in state 'initialized'.
      */
-    private List<SaturationAxiomsMessage<C, A>> bufferedAxiomMessages = new ArrayList<>();
+    private List<SaturationAxiomsMessage<C, A, T>> bufferedAxiomMessages = new ArrayList<>();
 
-    public WorkerStateInitializing(SaturationWorker<C, A> partition) {
-        super(partition);
+    public WorkerStateInitializing(SaturationWorker<C, A, T> worker) {
+        super(worker);
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A> message) {
-        log.info("Partition initialization message received from control node. Initializing partition...");
-        this.worker.initializePartition(message);
-        log.info("Partition successfully initialized.");
+    public void visit(InitializeWorkerMessage<C, A, T> message) {
+        log.info("Worker initialization message received from control node. Initializing worker...");
+        this.worker.initializeWorker(message);
+        log.info("Worker successfully initialized.");
 
         this.communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
     }
@@ -50,7 +50,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage<C, A> message) {
+    public void visit(SaturationAxiomsMessage<C, A, T> message) {
         this.bufferedAxiomMessages.add(message);
     }
 

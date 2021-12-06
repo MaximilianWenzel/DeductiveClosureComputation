@@ -12,25 +12,25 @@ import util.ConsoleUtils;
 import java.io.Serializable;
 import java.util.logging.Logger;
 
-public abstract class WorkerState<C extends Closure<A>, A extends Serializable> implements MessageModelVisitor<C, A> {
+public abstract class WorkerState<C extends Closure<A>, A extends Serializable, T extends Serializable> implements MessageModelVisitor<C, A, T> {
 
     protected final Logger log = ConsoleUtils.getLogger();
-    protected SaturationWorker<C, A> worker;
-    protected WorkerNodeCommunicationChannel<C, A> communicationChannel;
+    protected SaturationWorker<C, A, T> worker;
+    protected WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
     protected IncrementalReasoner<C, A> incrementalReasoner;
     protected AcknowledgementEventManager acknowledgementEventManager;
 
-    public WorkerState(SaturationWorker<C, A> worker) {
+    public WorkerState(SaturationWorker<C, A, T> worker) {
         this.worker = worker;
         this.communicationChannel = worker.getCommunicationChannel();
         this.incrementalReasoner = worker.getIncrementalReasoner();
         this.acknowledgementEventManager = communicationChannel.getAcknowledgementEventManager();
     }
 
-    public void mainPartitionLoop() throws InterruptedException {
+    public void mainWorkerLoop() throws InterruptedException {
         Object message = communicationChannel.read();
         if (message instanceof MessageModel) {
-            ((MessageModel<C, A>)message).accept(this);
+            ((MessageModel<C, A, T>)message).accept(this);
         } else {
             throw new IllegalArgumentException("Axioms only allowed in state 'running'.");
         }
@@ -43,12 +43,12 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable> 
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A> message) {
+    public void visit(InitializeWorkerMessage<C, A, T> message) {
         throw new MessageProtocolViolationException();
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage<C, A> message) {
+    public void visit(SaturationAxiomsMessage<C, A, T> message) {
         throw new MessageProtocolViolationException();
     }
 

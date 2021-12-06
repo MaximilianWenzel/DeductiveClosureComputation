@@ -1,0 +1,53 @@
+package benchmark;
+
+import data.Closure;
+import networking.ServerData;
+import reasoning.saturation.distributed.SaturationWorker;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+
+public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Serializable, T extends Serializable> {
+
+    private int numberOfWorkers;
+    private List<ServerData> serverDataList;
+    private Callable<C> closureFactory;
+
+    public SaturationWorkerServerGenerator(int numberOfWorkers, Callable<C> closureFactory) {
+        this.numberOfWorkers = numberOfWorkers;
+        this.closureFactory = closureFactory;
+        init();
+    }
+
+    private void init() {
+        serverDataList = new ArrayList<>();
+        for (int i = 0; i < numberOfWorkers; i++) {
+            serverDataList.add(new ServerData("localhost", 50_000 + i));
+        }
+    }
+
+    public List<SaturationWorker<C, A, T>> generateWorkers() {
+        List<SaturationWorker<C, A, T>> saturationWorkers = new ArrayList<>();
+        for (ServerData serverData : serverDataList) {
+            try {
+                C closure = closureFactory.call();
+                SaturationWorker<C, A, T> worker = new SaturationWorker<>(
+                        serverData.getPortNumber(),
+                        10,
+                        closure,
+                        SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
+                );
+                saturationWorkers.add(worker);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return saturationWorkers;
+    }
+
+    public List<ServerData> getServerDataList() {
+        return serverDataList;
+    }
+}

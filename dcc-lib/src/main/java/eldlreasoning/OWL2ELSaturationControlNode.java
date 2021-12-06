@@ -15,19 +15,19 @@ public class OWL2ELSaturationControlNode extends SaturationControlNode {
 
 
     /*
-    private int numberOfPartitions;
+    private int numberOfWorkers;
     private IndexedELOntology elOntology;
 
-    public OWL2ELSaturationControlNode(IndexedELOntology elOntology, int numberOfPartitions) {
+    public OWL2ELSaturationControlNode(IndexedELOntology elOntology, int numberOfWorkers) {
         super(elOntology);
         this.elOntology = elOntology;
-        this.numberOfPartitions = numberOfPartitions;
+        this.numberOfWorkers = numberOfWorkers;
     }
 
-    protected Dataset getDatasetFragmentForPartition(Set<ELConcept> termPartition) {
+    protected Dataset getDatasetFragmentForWorker(Set<ELConcept> termWorker) {
         IndexedELOntology ontologyFragment = elOntology.getOntologyWithIndexedNegativeConcepts();
         for (ELConceptInclusion axiom : elOntology.getOntologyAxioms()) {
-            if (this.isRelevantAxiomToPartition(termPartition, axiom)) {
+            if (this.isRelevantAxiomToWorker(termWorker, axiom)) {
                 ontologyFragment.add(axiom);
             }
         }
@@ -35,53 +35,53 @@ public class OWL2ELSaturationControlNode extends SaturationControlNode {
     }
 
     @Override
-    protected List<PartitionModel> initializePartitions() {
+    protected List<WorkerModel> initializeWorkers() {
 
         Iterator<ELConcept> occurringConceptsInDataset = this.elOntology.getAllUsedConceptsInOntology().iterator();
 
-        // create concept partitions
-        List<Set<ELConcept>> conceptPartitions = new ArrayList<>(numberOfPartitions);
-        for (int i = 0; i < numberOfPartitions; i++) {
-            conceptPartitions.add(new UnifiedSet<>());
+        // create concept workers
+        List<Set<ELConcept>> conceptWorkers = new ArrayList<>(numberOfWorkers);
+        for (int i = 0; i < numberOfWorkers; i++) {
+            conceptWorkers.add(new UnifiedSet<>());
         }
         int counter = 0;
-        int partitionIndex;
+        int workerIndex;
 
         while (occurringConceptsInDataset.hasNext()) {
             ELConcept concept = occurringConceptsInDataset.next();
-            partitionIndex = counter % numberOfPartitions;
-            conceptPartitions.get(partitionIndex).add(concept);
+            workerIndex = counter % numberOfWorkers;
+            conceptWorkers.get(workerIndex).add(concept);
             counter++;
         }
 
-        List<PartitionModel> partitionModels = new ArrayList<>(numberOfPartitions);
+        List<WorkerModel> workerModels = new ArrayList<>(numberOfWorkers);
 
-        for (Set<ELConcept> conceptPartition : conceptPartitions) {
+        for (Set<ELConcept> conceptWorker : conceptWorkers) {
             Collection<OWLELRule> rules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
-            Dataset ontologyFragment = getDatasetFragmentForPartition(conceptPartition);
-            PartitionModel pm = new PartitionModel<>(
+            Dataset ontologyFragment = getDatasetFragmentForWorker(conceptWorker);
+            WorkerModel pm = new WorkerModel<>(
                     rules,
-                    conceptPartition,
+                    conceptWorker,
                     ontologyFragment
             );
-            partitionModels.add(pm);
+            workerModels.add(pm);
         }
-        return partitionModels;
+        return workerModels;
     }
 
     @Override
-    public boolean isRelevantAxiomToPartition(SaturationPartition<ELConceptInclusion, ELConcept> partition, ELConceptInclusion axiom) {
-        Set<ELConcept> conceptPartition = partition.getTermPartition();
-        return isRelevantAxiomToPartition(conceptPartition, axiom);
+    public boolean isRelevantAxiomToWorker(SaturationWorker<ELConceptInclusion, ELConcept> worker, ELConceptInclusion axiom) {
+        Set<ELConcept> conceptWorker = worker.getTermWorker();
+        return isRelevantAxiomToWorker(conceptWorker, axiom);
     }
 
-    private boolean isRelevantAxiomToPartition(Set<ELConcept> conceptPartition, ELConceptInclusion axiom) {
-        if (conceptPartition.contains(axiom.getSubConcept())
-                || conceptPartition.contains(axiom.getSuperConcept())) {
+    private boolean isRelevantAxiomToWorker(Set<ELConcept> conceptWorker, ELConceptInclusion axiom) {
+        if (conceptWorker.contains(axiom.getSubConcept())
+                || conceptWorker.contains(axiom.getSuperConcept())) {
             return true;
         } else if (axiom.getSuperConcept() instanceof ELConceptExistentialRestriction) {
             ELConceptExistentialRestriction exist = (ELConceptExistentialRestriction) axiom.getSuperConcept();
-            if (conceptPartition.contains(exist.getFiller())) {
+            if (conceptWorker.contains(exist.getFiller())) {
                 return true;
             }
         }
@@ -89,14 +89,14 @@ public class OWL2ELSaturationControlNode extends SaturationControlNode {
     }
 
     @Override
-    public boolean checkIfOtherPartitionsRequireAxiom(SaturationPartition<ELConceptInclusion, ELConcept> partition, ELConceptInclusion axiom) {
-        Set<ELConcept> conceptPartition = partition.getTermPartition();
-        if (!conceptPartition.contains(axiom.getSubConcept())
-                || !conceptPartition.contains(axiom.getSuperConcept())) {
+    public boolean checkIfOtherWorkersRequireAxiom(SaturationWorker<ELConceptInclusion, ELConcept> worker, ELConceptInclusion axiom) {
+        Set<ELConcept> conceptWorker = worker.getTermWorker();
+        if (!conceptWorker.contains(axiom.getSubConcept())
+                || !conceptWorker.contains(axiom.getSuperConcept())) {
             return true;
         } else if (axiom.getSuperConcept() instanceof ELConceptExistentialRestriction) {
             ELConceptExistentialRestriction exist = (ELConceptExistentialRestriction) axiom.getSuperConcept();
-            return !conceptPartition.contains(exist.getFiller());
+            return !conceptWorker.contains(exist.getFiller());
         }
         return false;
     }

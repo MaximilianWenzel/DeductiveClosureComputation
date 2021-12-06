@@ -2,8 +2,10 @@ package eldlreasoning;
 
 import data.DefaultClosure;
 import data.IndexedELOntology;
+import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptInclusion;
 import networking.ServerData;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.models.DistributedWorkerFactory;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.models.WorkerModel;
@@ -12,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class OWLELDistributedWorkerFactory implements DistributedWorkerFactory<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> {
+public class OWLELDistributedWorkerFactory implements DistributedWorkerFactory<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> {
 
     private final OWLELWorkerFactory workerFactory;
     private final List<ServerData> workerServerData;
@@ -23,21 +25,21 @@ public class OWLELDistributedWorkerFactory implements DistributedWorkerFactory<D
     }
 
     @Override
-    public List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> generateDistributedWorkers() {
-        List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> workerModels = workerFactory.generateWorkers();
+    public List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> generateDistributedWorkers() {
+        List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workerModels = workerFactory.generateWorkers();
 
-        List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> distributedPartitionModels = new ArrayList<>();
+        List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> distributedWorkerModels = new ArrayList<>();
 
         Iterator<ServerData> serverDataIt = workerServerData.iterator();
-        for (WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> workerModel : workerModels) {
-            DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> distributedPartitionModel = new DistributedWorkerModel<>(
+        for (WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerModel : workerModels) {
+            DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> distributedWorkerModel = new DistributedWorkerModel<>(
                     workerModel.getRules(),
                     workerModel.getWorkerTerms(),
                     serverDataIt.next());
-            distributedPartitionModels.add(distributedPartitionModel);
+            distributedWorkerModels.add(distributedWorkerModel);
         }
 
-        return distributedPartitionModels;
+        return distributedWorkerModels;
     }
 
 }

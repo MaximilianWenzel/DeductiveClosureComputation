@@ -1,5 +1,6 @@
 package elsyntax;
 
+import benchmark.SaturationWorkerServerGenerator;
 import data.Closure;
 import data.DefaultClosure;
 import data.IndexedELOntology;
@@ -17,10 +18,10 @@ import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.models.DistributedWorkerModel;
 import util.OWL2ELSaturationUtils;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -122,21 +123,16 @@ public class OWLELSaturationTest {
 
     @Test
     void testDistributedSaturation() {
-        List<ServerData> partitionServerData = new ArrayList<>();
-        for (int portNumber = 50000; portNumber < 50002; portNumber++) {
-            partitionServerData.add(new ServerData("localhost", portNumber));
-        }
+        SaturationWorkerServerGenerator<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerFactory;
+        workerFactory = new SaturationWorkerServerGenerator<>(2, new Callable<DefaultClosure<ELConceptInclusion>>() {
+            @Override
+            public DefaultClosure<ELConceptInclusion> call() throws Exception {
+                return new DefaultClosure<>();
+            }
+        });
 
-        List<SaturationWorker<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> saturationWorkers = new ArrayList<>();
-        for (ServerData serverData : partitionServerData) {
-            SaturationWorker<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> partition = new SaturationWorker<>(
-                    serverData.getPortNumber(),
-                    10,
-                    new DefaultClosure<>(),
-                    SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
-            );
-            saturationWorkers.add(partition);
-        }
+        List<SaturationWorker<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> saturationWorkers;
+        saturationWorkers = workerFactory.generateWorkers();
         saturationWorkers.forEach(p -> new Thread(p).start());
 
         try {
@@ -145,12 +141,13 @@ public class OWLELSaturationTest {
             e.printStackTrace();
         }
 
-        OWLELDistributedWorkerFactory partitionFactory = new OWLELDistributedWorkerFactory(elOntology, partitionServerData);
-        List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> partitionModels =
-                partitionFactory.generateDistributedWorkers();
-        OWLELWorkloadDistributor workloadDistributor = new OWLELWorkloadDistributor(partitionModels);
-        DistributedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> distributedSaturation = new DistributedSaturation<>(
-                partitionModels,workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>());
+        List<ServerData> workerServerData = workerFactory.getServerDataList();
+        OWLELDistributedWorkerFactory owlWorkerFactory = new OWLELDistributedWorkerFactory(elOntology, workerServerData);
+        List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workerModels =
+                owlWorkerFactory.generateDistributedWorkers();
+        OWLELWorkloadDistributor workloadDistributor = new OWLELWorkloadDistributor(workerModels);
+        DistributedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> distributedSaturation = new DistributedSaturation<>(
+                workerModels,workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>());
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override

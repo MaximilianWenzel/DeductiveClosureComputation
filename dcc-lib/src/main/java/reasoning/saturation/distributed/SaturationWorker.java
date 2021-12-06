@@ -15,13 +15,13 @@ import reasoning.saturation.distributed.states.workernode.WorkerStateInitializin
 import java.io.Serializable;
 import java.util.Collection;
 
-public class SaturationWorker<C extends Closure<A>, A extends Serializable> implements Runnable {
+public class SaturationWorker<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Runnable {
 
     private final IncrementalReasonerType incrementalReasonerType;
     private final C closure;
     private Collection<? extends Rule<C, A>> rules;
-    private WorkerNodeCommunicationChannel<C, A> communicationChannel;
-    private WorkerState<C, A> state;
+    private WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
+    private WorkerState<C, A, T> state;
     private IncrementalReasoner<C, A> incrementalReasoner;
 
     public SaturationWorker(int portToListen,
@@ -60,9 +60,8 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> impl
     public void run() {
         try {
             while (!(state instanceof WorkerStateFinished)) {
-                state.mainPartitionLoop();
+                state.mainWorkerLoop();
             }
-
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -72,11 +71,11 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> impl
         return closure;
     }
 
-    public void switchState(WorkerState<C, A> newState) {
+    public void switchState(WorkerState<C, A, T> newState) {
         this.state = newState;
     }
 
-    public WorkerNodeCommunicationChannel<C, A> getCommunicationChannel() {
+    public WorkerNodeCommunicationChannel<C, A, T> getCommunicationChannel() {
         return communicationChannel;
     }
 
@@ -84,7 +83,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> impl
         return incrementalReasoner;
     }
 
-    public void initializePartition(InitializeWorkerMessage<C, A> message) {
+    public void initializeWorker(InitializeWorkerMessage<C, A, T> message) {
         this.communicationChannel.setWorkers(message.getWorkers());
         this.communicationChannel.setWorkerID(message.getWorkerID());
         this.communicationChannel.setWorkloadDistributor(message.getWorkloadDistributor());
@@ -97,4 +96,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> impl
         PARALLEL
     }
 
+    public void terminate() {
+        communicationChannel.terminate();
+    }
 }

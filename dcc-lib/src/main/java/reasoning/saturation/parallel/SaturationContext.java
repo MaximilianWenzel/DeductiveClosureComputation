@@ -13,23 +13,23 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SaturationContext<C extends Closure<A>, A extends Serializable> implements Runnable {
+public class SaturationContext<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Runnable {
 
-    private static final AtomicLong partitionIDCounter = new AtomicLong(1L);
+    private static final AtomicLong workerIDCounter = new AtomicLong(1L);
 
-    private final long id = partitionIDCounter.getAndIncrement();
+    private final long id = workerIDCounter.getAndIncrement();
     private final Collection<? extends Rule<C, A>> rules;
     private final C closure;
     private final ParallelToDo<A> toDo;
-    private final ParallelSaturation<C, A> controlNode;
+    private final ParallelSaturation<C, A ,T> controlNode;
     private final IncrementalReasonerImpl<C, A> incrementalReasoner;
 
     private boolean saturationConverged = false;
 
-    public SaturationContext(ParallelSaturation<C, A> controlNode, Collection<? extends Rule<C, A>> rules,
+    public SaturationContext(ParallelSaturation<C, A, T> controlNode, Collection<? extends Rule<C, A>> rules,
                              C closure,
-                             ParallelToDo toDo,
-                             InferenceProcessor inferenceProcessor) {
+                             ParallelToDo<A> toDo,
+                             InferenceProcessor<A> inferenceProcessor) {
         this.controlNode = controlNode;
         this.closure = closure;
         this.toDo = toDo;
@@ -44,7 +44,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable> imp
     @Override
     public void run() {
         try {
-            while (!controlNode.allPartitionsConverged()) {
+            while (!controlNode.allWorkersConverged()) {
                 if (toDo.isEmpty()) {
                     sendStatusToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_CONVERGED);
                     saturationConverged = true;
@@ -78,7 +78,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable> imp
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SaturationContext that = (SaturationContext) o;
+        SaturationContext<C, A, T> that = (SaturationContext<C, A, T>) o;
         return id == that.id;
     }
 

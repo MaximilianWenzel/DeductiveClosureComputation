@@ -8,11 +8,11 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Set;
 
-public class DistributedWorkerModel<C extends Closure<A>, A extends Serializable> extends WorkerModel<C, A> {
+public class DistributedWorkerModel<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerModel<C, A, T> {
     protected ServerData serverData;
 
-    public DistributedWorkerModel(Collection<? extends Rule<C, A>> rules, Set<? extends Serializable> partitionTerms, ServerData serverData) {
-        super(rules, partitionTerms);
+    public DistributedWorkerModel(Collection<? extends Rule<C, A>> rules, T workerTerms, ServerData serverData) {
+        super(rules, workerTerms);
         this.serverData = serverData;
     }
 

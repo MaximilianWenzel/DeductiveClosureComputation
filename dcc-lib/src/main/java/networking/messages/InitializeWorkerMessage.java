@@ -9,18 +9,18 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializable> extends MessageModel<C, A> {
+public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializable, T extends Serializable> extends MessageModel<C, A, T> {
 
     private long workerID;
-    private List<DistributedWorkerModel<C, A>> workers;
-    private WorkloadDistributor workloadDistributor;
+    private List<DistributedWorkerModel<C, A, T>> workers;
+    private WorkloadDistributor<C, A, T> workloadDistributor;
     private Collection<? extends Rule<C, A>> rules;
     private Collection<A> initialAxioms;
 
     public InitializeWorkerMessage(long senderID,
                                    long workerID,
-                                   List<DistributedWorkerModel<C, A>> workers,
-                                   WorkloadDistributor workloadDistributor,
+                                   List<DistributedWorkerModel<C, A, T>> workers,
+                                   WorkloadDistributor<C, A, T> workloadDistributor,
                                    Collection<? extends Rule<C, A>> rules,
                                    Collection<A> initialAxioms) {
         super(senderID);
@@ -32,7 +32,7 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
     }
 
     @Override
-    public void accept(MessageModelVisitor<C, A> visitor) {
+    public void accept(MessageModelVisitor<C, A, T> visitor) {
         visitor.visit(this);
     }
 
@@ -40,11 +40,11 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
         return workerID;
     }
 
-    public List<DistributedWorkerModel<C, A>> getWorkers() {
+    public List<DistributedWorkerModel<C, A, T>> getWorkers() {
         return workers;
     }
 
-    public WorkloadDistributor getWorkloadDistributor() {
+    public WorkloadDistributor<C, A, T> getWorkloadDistributor() {
         return workloadDistributor;
     }
 

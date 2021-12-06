@@ -8,10 +8,10 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public abstract class SaturationInitializationFactory<C extends Closure<A>, A extends Serializable> {
+public abstract class SaturationInitializationFactory<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
-    public abstract Collection<WorkerModel<C, A>> getWorkerModels();
+    public abstract Collection<WorkerModel<C, A, T>> getWorkerModels();
     public abstract List<A> getInitialAxioms();
     public abstract C getNewClosure();
-    public abstract WorkloadDistributor getWorkloadDistributor();
+    public abstract WorkloadDistributor<C, A, T> getWorkloadDistributor();
 }

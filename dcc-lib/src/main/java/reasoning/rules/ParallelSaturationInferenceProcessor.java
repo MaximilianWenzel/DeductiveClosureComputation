@@ -14,6 +14,6 @@ public class ParallelSaturationInferenceProcessor implements InferenceProcessor 
 
     @Override
     public void processInference(Serializable axiom) {
-        distributor.getRelevantPartitionIDsForAxiom(axiom);
+        distributor.getRelevantWorkerIDsForAxiom(axiom);
     }
 }

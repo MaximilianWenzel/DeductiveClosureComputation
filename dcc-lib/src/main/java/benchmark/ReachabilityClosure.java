@@ -4,10 +4,7 @@ import data.Closure;
 import org.roaringbitmap.IntConsumer;
 import org.roaringbitmap.RoaringBitmap;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ReachabilityClosure implements Closure<Reachability> {
 
@@ -71,7 +68,7 @@ public class ReachabilityClosure implements Closure<Reachability> {
     }
 
     @Override
-    public Iterable<Reachability> getClosureResults() {
+    public Collection<Reachability> getClosureResults() {
         List<Reachability> result = new ArrayList<>(nodeToOutgoingConnectedNodesMap.size());
         HashMap<Integer, RoaringBitmap> adjacencyMap;
 

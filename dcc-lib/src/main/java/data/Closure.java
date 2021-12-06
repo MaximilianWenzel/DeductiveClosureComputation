@@ -1,9 +1,8 @@
 package data;
 
 import java.io.Serializable;
-import java.util.Iterator;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 public interface Closure<A extends Serializable> {
 
@@ -12,5 +11,5 @@ public interface Closure<A extends Serializable> {
 
     boolean remove(A o);
 
-    Iterable<A> getClosureResults();
+    Collection<A> getClosureResults();
 }

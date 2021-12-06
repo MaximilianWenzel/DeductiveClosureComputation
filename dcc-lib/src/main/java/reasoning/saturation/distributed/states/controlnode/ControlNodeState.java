@@ -11,27 +11,27 @@ import util.ConsoleUtils;
 import java.io.Serializable;
 import java.util.logging.Logger;
 
-public abstract class ControlNodeState<C extends Closure<A>, A extends Serializable> implements MessageModelVisitor<C, A> {
+public abstract class ControlNodeState<C extends Closure<A>, A extends Serializable, T extends Serializable> implements MessageModelVisitor<C, A, T> {
 
     protected final Logger log = ConsoleUtils.getLogger();
 
-    protected ControlNodeCommunicationChannel<C, A> communicationChannel;
-    protected SaturationControlNode<C, A> saturationControlNode;
+    protected ControlNodeCommunicationChannel<C, A, T> communicationChannel;
+    protected SaturationControlNode<C, A, T> saturationControlNode;
     protected AcknowledgementEventManager acknowledgementEventManager;
 
-    public ControlNodeState(SaturationControlNode<C, A> saturationControlNode) {
+    public ControlNodeState(SaturationControlNode<C, A, T> saturationControlNode) {
         this.saturationControlNode = saturationControlNode;
         this.communicationChannel = saturationControlNode.getCommunicationChannel();
         this.acknowledgementEventManager = communicationChannel.getAcknowledgementEventManager();
     }
 
     public void mainControlNodeLoop() throws InterruptedException {
-        MessageModel<C, A> message = (MessageModel<C, A>) communicationChannel.read();
+        MessageModel<C, A, T> message = (MessageModel<C, A, T>) communicationChannel.read();
         message.accept(this);
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A> message) {
+    public void visit(InitializeWorkerMessage<C, A, T> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -41,7 +41,7 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage<C, A> message) {
+    public void visit(SaturationAxiomsMessage<C, A, T> message) {
         // only allowed if closure has been requested by control node
         throw new MessageProtocolViolationException();
     }

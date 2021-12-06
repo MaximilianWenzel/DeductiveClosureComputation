@@ -12,16 +12,16 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public class SaturationControlNode<C extends Closure<A>, A extends Serializable> {
+public class SaturationControlNode<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
-    private final ControlNodeCommunicationChannel<C, A> communicationChannel;
-    private final List<DistributedWorkerModel<C, A>> workers;
+    private final ControlNodeCommunicationChannel<C, A, T> communicationChannel;
+    private final List<DistributedWorkerModel<C, A, T>> workers;
     private C resultingClosure;
-    private ControlNodeState<C, A> state;
+    private ControlNodeState<C, A, T> state;
 
-    protected SaturationControlNode(List<DistributedWorkerModel<C, A>> workers,
-                                    WorkloadDistributor workloadDistributor,
-                                    List<A> initialAxioms,
+    protected SaturationControlNode(List<DistributedWorkerModel<C, A, T>> workers,
+                                    WorkloadDistributor<C, A, T> workloadDistributor,
+                                    List<? extends A> initialAxioms,
                                     C resultingClosure) {
         this.communicationChannel = new ControlNodeCommunicationChannel<>(workers, workloadDistributor, initialAxioms);
         this.workers = workers;
@@ -38,6 +38,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable>
             while (!(state instanceof CNSFinished)) {
                 state.mainControlNodeLoop();
             }
+            communicationChannel.terminate();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -45,15 +46,15 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable>
         return resultingClosure;
     }
 
-    public Collection<DistributedWorkerModel<C, A>> getWorkers() {
+    public Collection<DistributedWorkerModel<C, A, T>> getWorkers() {
         return workers;
     }
 
-    public void switchState(ControlNodeState<C, A> state) {
+    public void switchState(ControlNodeState<C, A, T> state) {
         this.state = state;
     }
 
-    public ControlNodeCommunicationChannel<C, A> getCommunicationChannel() {
+    public ControlNodeCommunicationChannel<C, A, T> getCommunicationChannel() {
         return communicationChannel;
     }
 

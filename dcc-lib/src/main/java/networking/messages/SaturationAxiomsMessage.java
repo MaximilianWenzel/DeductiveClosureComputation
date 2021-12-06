@@ -6,7 +6,7 @@ import org.checkerframework.checker.units.qual.C;
 import java.io.Serializable;
 import java.util.Collection;
 
-public class SaturationAxiomsMessage<C extends Closure<A>, A extends Serializable> extends MessageModel<C, A> {
+public class SaturationAxiomsMessage<C extends Closure<A>, A extends Serializable, T extends Serializable> extends MessageModel<C, A, T> {
 
     private final Collection<A> axioms;
 
@@ -20,7 +20,7 @@ public class SaturationAxiomsMessage<C extends Closure<A>, A extends Serializabl
     }
 
     @Override
-    public void accept(MessageModelVisitor<C, A> visitor) {
+    public void accept(MessageModelVisitor<C, A, T> visitor) {
         visitor.visit(this);
     }
 }

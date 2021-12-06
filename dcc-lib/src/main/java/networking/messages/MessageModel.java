@@ -5,7 +5,7 @@ import data.Closure;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class MessageModel<C extends Closure<A>, A extends Serializable> implements Serializable {
+public abstract class MessageModel<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Serializable {
 
     private static final AtomicLong messageIDCounter = new AtomicLong(1);
     protected long senderID;
@@ -19,7 +19,7 @@ public abstract class MessageModel<C extends Closure<A>, A extends Serializable>
         return senderID;
     }
 
-    public abstract void accept(MessageModelVisitor<C, A> visitor);
+    public abstract void accept(MessageModelVisitor<C, A, T> visitor);
 
     public long getMessageID() {
         return messageID;

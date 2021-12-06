@@ -26,7 +26,7 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
         this.rules = Collections.emptyList();
     }
 
-    public SingleThreadedSaturation(Iterator<A> initialAxioms, Collection<? extends Rule<C, A>> rules, C closure) {
+    public SingleThreadedSaturation(Iterator<? extends A> initialAxioms, Collection<? extends Rule<C, A>> rules, C closure) {
         this.rules = rules;
         this.closure = closure;
         initializeRules();
@@ -38,11 +38,11 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
     private void initializeRules() {
         this.rules.forEach(r -> {
             r.setClosure(this.closure);
-            r.setInferenceProcessor(new SingleThreadedSaturationInferenceProcessor(this.toDo));
+            r.setInferenceProcessor(new SingleThreadedSaturationInferenceProcessor<>(this.toDo));
         });
     }
 
-    private void initializeToDoQueue(Iterator<A> initialAxioms) {
+    private void initializeToDoQueue(Iterator<? extends A> initialAxioms) {
         initialAxioms.forEachRemaining(toDo::add);
     }
 

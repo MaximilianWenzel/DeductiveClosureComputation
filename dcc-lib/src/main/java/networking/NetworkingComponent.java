@@ -82,15 +82,47 @@ public class NetworkingComponent implements Runnable {
             }
 
             while (running) {
-                mainNIOSelectorLoop();
+                try {
+                    mainNIOSelectorLoop();
+                } catch(ClosedSelectorException e) {
+                    // terminated
+                } catch (CancelledKeyException e) {
+                    // connection has been closed
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            // close all channels
+            for (ServerSocketChannel serverSocketChannel : serverSocketChannels) {
+                SelectionKey key = serverSocketChannel.keyFor(selector);
+                if (key != null) {
+                    key.cancel();
+                    key.channel().close();
+                }
+                serverSocketChannel.close();
+            }
+
+            for (SocketManager socketManager : this.socketIDToMessageManager.values()) {
+                SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
+                if (key != null) {
+                    key.cancel();
+                    key.channel().close();
+                }
+                socketManager.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+
     }
 
     private void mainNIOSelectorLoop() throws IOException {
         selector.select();
+        if (!selector.isOpen()) {
+            return;
+        }
         Set<SelectionKey> keys = selector.selectedKeys();
 
         for (SelectionKey key : keys) {
@@ -207,18 +239,11 @@ public class NetworkingComponent implements Runnable {
     }
 
     public void terminate() {
-        // TODO close all connections
         this.running = false;
         try {
-            for (ServerSocketChannel serverSocketChannel : serverSocketChannels) {
-                serverSocketChannel.close();
-            }
-
-            for (SocketManager socketManager : this.socketIDToMessageManager.values()) {
-                socketManager.close();
-            }
-
-        } catch (IOException e) {
+            selector.close();
+            this.nioThread.join();
+        } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
     }

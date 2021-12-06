@@ -25,13 +25,13 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Serializable> implements SaturationCommunicationChannel {
+public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable> implements SaturationCommunicationChannel {
 
     private final Logger log = ConsoleUtils.getLogger();
 
     private final int portToListen;
     private long workerID = -1L;
-    private List<DistributedWorkerModel<C, A>> workers;
+    private List<DistributedWorkerModel<C, A, T>> workers;
     private NetworkingComponent networkingComponent;
     private WorkloadDistributor workloadDistributor;
 
@@ -52,7 +52,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final AtomicLong establishedConnections = new AtomicLong(0);
 
 
-    private SaturationAxiomsMessage<C, A> initialAxioms;
+    private SaturationAxiomsMessage<C, A, T> initialAxioms;
 
     public WorkerNodeCommunicationChannel(int portToListen,
                                           int maxNumAxiomsToBufferBeforeSending) {
@@ -68,19 +68,19 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
         networkingComponent = new NetworkingComponent(
                 new MessageProcessorImpl(),
-                Collections.singletonList(new PartitionServerPortListener(portToListen)),
+                Collections.singletonList(new WorkerServerPortListener(portToListen)),
                 Collections.emptyList());
         networkingComponent.startNIOThread();
     }
 
 
     public void connectToWorkerServers() {
-        // connect to all partition nodes with a higher partition ID
+        // connect to all worker nodes with a higher worker ID
         for (DistributedWorkerModel workerModel : this.workers) {
             if (workerModel.getID() > this.workerID) {
                 try {
-                    PartitionServerConnector partitionServerConnector = new PartitionServerConnector(workerModel.getServerData());
-                    networkingComponent.connectToServer(partitionServerConnector);
+                    WorkerServerConnector workerServerConnector = new WorkerServerConnector(workerModel.getServerData());
+                    networkingComponent.connectToServer(workerServerConnector);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -98,12 +98,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         send(0, status, onAcknowledgement);
     }
 
-    public void sendToControlNode(Closure<? extends Serializable> closure) {
+    public void sendToControlNode(C closure) {
         // generate closure
-        Set<Serializable> closureResult = new UnifiedSet<>();
-        closure.getClosureResults().forEach(closureResult::add);
-
-        SaturationAxiomsMessage saturationAxiomsMessage = new SaturationAxiomsMessage(workerID, closureResult);
+        SaturationAxiomsMessage<C, A, T> saturationAxiomsMessage = new SaturationAxiomsMessage<>(workerID, closure.getClosureResults());
         MessageEnvelope messageEnvelope = new MessageEnvelope(controlNodeSocketID, saturationAxiomsMessage);
         networkingComponent.sendMessage(messageEnvelope);
     }
@@ -137,21 +134,26 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 || networkingComponent.socketsCurrentlyReadMessages();
     }
 
-    public void distributeAxiom(Serializable axiom) {
-        List<Long> partitionIDs = workloadDistributor.getRelevantPartitionIDsForAxiom(axiom);
+    @Override
+    public void terminate() {
+        this.networkingComponent.terminate();
+    }
 
-        for (Long receiverPartitionID : partitionIDs) {
-            if (receiverPartitionID != this.workerID) {
+    public void distributeAxiom(Serializable axiom) {
+        List<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
+
+        for (Long receiverWorkerID : workerIDs) {
+            if (receiverWorkerID != this.workerID) {
                 /*
-                List<Serializable> bufferedAxioms = this.workerIDToBufferedAxioms.computeIfAbsent(receiverPartitionID, p -> new ArrayList<>());
+                List<Serializable> bufferedAxioms = this.workerIDToBufferedAxioms.computeIfAbsent(receiverWorkerID, p -> new ArrayList<>());
                 bufferedAxioms.add(axiom);
                 if (bufferedAxioms.size() == maxNumAxiomsToBufferBeforeSending) {
-                    sendAxioms(receiverPartitionID, bufferedAxioms);
-                    this.workerIDToBufferedAxioms.remove(receiverPartitionID);
+                    sendAxioms(receiverWorkerID, bufferedAxioms);
+                    this.workerIDToBufferedAxioms.remove(receiverWorkerID);
                 }
 
                  */
-                sendAxioms(receiverPartitionID, Collections.singletonList(axiom));
+                sendAxioms(receiverWorkerID, Collections.singletonList(axiom));
             } else {
                 // add axioms from this worker directly to the queue
                 toDo.add(axiom);
@@ -165,8 +167,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     /*
     public boolean sendAllBufferedAxioms() {
         boolean axiomTransmitted = false;
-        for (Map.Entry<Long, List<Serializable>> partitionIDToBufferedAxioms : this.workerIDToBufferedAxioms.entrySet()) {
-            sendAxioms(partitionIDToBufferedAxioms.getKey(), partitionIDToBufferedAxioms.getValue());
+        for (Map.Entry<Long, List<Serializable>> workerIDToBufferedAxioms : this.workerIDToBufferedAxioms.entrySet()) {
+            sendAxioms(workerIDToBufferedAxioms.getKey(), workerIDToBufferedAxioms.getValue());
             axiomTransmitted = true;
         }
         this.workerIDToBufferedAxioms.clear();
@@ -175,15 +177,15 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
      */
 
-    private void sendAxioms(long receiverPartitionID, List<? extends Serializable> axioms) {
+    private void sendAxioms(long receiverWorkerID, List<? extends Serializable> axioms) {
         if (axioms.isEmpty()) {
             return;
         }
         SaturationAxiomsMessage saturationAxiomsMessage = new SaturationAxiomsMessage(workerID, axioms);
-        Long socketID = this.workerIDToSocketID.get(receiverPartitionID);
+        Long socketID = this.workerIDToSocketID.get(receiverWorkerID);
 
         if (socketID == null) {
-            log.warning("Worker " + receiverPartitionID + " has for worker " + this.workerID + " no socket ID assigned.");
+            log.warning("Worker " + receiverWorkerID + " has for worker " + this.workerID + " no socket ID assigned.");
         }
 
         distributedAxiomMessages.getAndIncrement();
@@ -195,11 +197,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         });
     }
 
-    public List<DistributedWorkerModel<C, A>> getWorkers() {
+    public List<DistributedWorkerModel<C, A, T>> getWorkers() {
         return this.workers;
     }
 
-    public void setWorkers(List<DistributedWorkerModel<C, A>> workers) {
+    public void setWorkers(List<DistributedWorkerModel<C, A, T>> workers) {
         this.workers = workers;
     }
 
@@ -222,7 +224,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.initialAxioms = new SaturationAxiomsMessage<>(controlNodeSocketID, initialAxioms);
     }
 
-    public void addAxiomsToQueue(List<SaturationAxiomsMessage<C, A>> saturationAxiomsMessages) {
+    public void addAxiomsToQueue(List<SaturationAxiomsMessage<C, A, T>> saturationAxiomsMessages) {
         this.toDo.addAll(saturationAxiomsMessages);
     }
 
@@ -247,10 +249,10 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
             MessageModel messageModel = (MessageModel) messageEnvelope.getMessage();
 
             if (!allConnectionsEstablished) {
-                // get partition ID / control node ID to socket ID mapping
+                // get worker ID / control node ID to socket ID mapping
                 socketIDToWorkerID.put(messageEnvelope.getSocketID(), messageModel.getSenderID());
                 if (workers != null && workers.size() == socketIDToWorkerID.size()) {
-                    //  if all connections (i.e., # partitions - 1 + single control node) are established
+                    //  if all connections (i.e., # workers - 1 + single control node) are established
                     allConnectionsEstablished = true;
                 }
 
@@ -265,16 +267,16 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         }
     }
 
-    private class PartitionServerConnector extends ServerConnector {
+    private class WorkerServerConnector extends ServerConnector {
 
-        public PartitionServerConnector(ServerData serverData) {
+        public WorkerServerConnector(ServerData serverData) {
             super(serverData);
         }
 
         @Override
         public void onConnectionEstablished(SocketManager socketManager) {
             try {
-                log.info("Connection to partition server established: " + socketManager.getSocketChannel().getRemoteAddress());
+                log.info("Connection to worker server established: " + socketManager.getSocketChannel().getRemoteAddress());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -294,9 +296,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         }
     }
 
-    private class PartitionServerPortListener extends PortListener {
+    private class WorkerServerPortListener extends PortListener {
 
-        public PartitionServerPortListener(int port) {
+        public WorkerServerPortListener(int port) {
             super(port);
         }
 

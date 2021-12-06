@@ -8,13 +8,13 @@ import reasoning.saturation.distributed.SaturationControlNode;
 
 import java.io.Serializable;
 
-public class CNSInitializing<C extends Closure<A>, A extends Serializable> extends ControlNodeState<C, A> {
+public class CNSInitializing<C extends Closure<A>, A extends Serializable, T extends Serializable> extends ControlNodeState<C, A, T> {
 
-    protected int numberOfPartitions;
+    protected int numberOfWorkers;
 
-    public CNSInitializing(SaturationControlNode<C, A> saturationControlNode) {
+    public CNSInitializing(SaturationControlNode<C, A, T> saturationControlNode) {
         super(saturationControlNode);
-        this.numberOfPartitions = saturationControlNode.getWorkers().size();
+        this.numberOfWorkers = saturationControlNode.getWorkers().size();
         this.communicationChannel.initializeConnectionToWorkerServers();
     }
 
@@ -42,7 +42,7 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable> exten
                             // do nothing when message acknowledged
                         }
                     });
-            // all partitions initialized
+            // all workers initialized
             saturationControlNode.switchState(new CNSWaitingForWorkersToConverge<>(saturationControlNode));
         }
     }

@@ -9,29 +9,29 @@ import java.util.*;
 public class InitialAxiomsDistributor<A extends Serializable> {
 
     private Map<Long, RoaringBitmap> workerIDToInitialAxiomsIndex;
-    private List<A> initialAxioms;
-    private WorkloadDistributor workloadDistributor;
+    private List<? extends A> initialAxioms;
+    private WorkloadDistributor<?, A, ?> workloadDistributor;
 
-    public InitialAxiomsDistributor(List<A> initialAxioms, WorkloadDistributor workloadDistributor) {
+    public InitialAxiomsDistributor(List<? extends A> initialAxioms, WorkloadDistributor<?, A, ?> workloadDistributor) {
         this.initialAxioms = initialAxioms;
         this.workloadDistributor = workloadDistributor;
         init();
     }
 
     private void init() {
-        // distribute initial axioms across partitions
+        // distribute initial axioms across workers
         this.workerIDToInitialAxiomsIndex = new HashMap<>();
         for (int i = 0; i < initialAxioms.size(); i++) {
-            List<Long> relevantPartitions = workloadDistributor.getRelevantPartitionIDsForAxiom(initialAxioms.get(i));
-            for (Long partitionID : relevantPartitions) {
-                RoaringBitmap relevantAxiomsForPartition = workerIDToInitialAxiomsIndex.computeIfAbsent(partitionID, pID -> new RoaringBitmap());
-                relevantAxiomsForPartition.add(i);
+            List<Long> relevantWorkers = workloadDistributor.getRelevantWorkerIDsForAxiom(initialAxioms.get(i));
+            for (Long workerID : relevantWorkers) {
+                RoaringBitmap relevantAxiomsForWorker = workerIDToInitialAxiomsIndex.computeIfAbsent(workerID, pID -> new RoaringBitmap());
+                relevantAxiomsForWorker.add(i);
             }
         }
     }
 
-    public List<A> getInitialAxioms(Long partitionID) {
-        RoaringBitmap initialAxiomsPos = workerIDToInitialAxiomsIndex.get(partitionID);
+    public List<A> getInitialAxioms(Long workerID) {
+        RoaringBitmap initialAxiomsPos = workerIDToInitialAxiomsIndex.get(workerID);
         List<A> workerAxioms = null;
         if (initialAxiomsPos == null) {
             workerAxioms = Collections.emptyList();

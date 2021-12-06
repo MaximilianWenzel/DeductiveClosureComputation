@@ -1,21 +1,21 @@
 package reasoning.saturation.workload;
 
-import eldlsyntax.ELConceptInclusion;
+import data.Closure;
 import reasoning.saturation.models.WorkerModel;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public abstract class WorkloadDistributor implements Serializable {
+public abstract class WorkloadDistributor<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Serializable {
 
-    protected Collection<? extends WorkerModel> workerModels;
+    protected Collection<? extends WorkerModel<C, A, T>> workerModels;
 
-    public WorkloadDistributor(Collection<? extends WorkerModel> workerModels) {
+    public WorkloadDistributor(List<? extends WorkerModel<C, A, T>> workerModels) {
         this.workerModels = workerModels;
     }
 
-    public abstract List<Long> getRelevantPartitionIDsForAxiom(Object axiom);
+    public abstract List<Long> getRelevantWorkerIDsForAxiom(A axiom);
 
-    public abstract boolean isRelevantAxiomToPartition(WorkerModel worker, ELConceptInclusion axiom);
+    public abstract boolean isRelevantAxiomToWorker(WorkerModel<C, A, T> worker, A axiom);
 }

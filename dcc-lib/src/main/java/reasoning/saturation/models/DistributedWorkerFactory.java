@@ -3,9 +3,9 @@ package reasoning.saturation.models;
 import data.Closure;
 
 import java.io.Serializable;
-import java.util.Collection;
+import java.util.List;
 
-public interface DistributedWorkerFactory<C extends Closure<A>, A extends Serializable> {
+public interface DistributedWorkerFactory<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
-    Collection<DistributedWorkerModel<C, A>> generateDistributedWorkers();
+    List<DistributedWorkerModel<C, A, T>> generateDistributedWorkers();
 }

@@ -20,22 +20,22 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
-public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
+public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
-    private SaturationInitializationFactory<C, A> factory;
+    private SaturationInitializationFactory<C, A, T> factory;
 
     private final BlockingDeque<SaturationStatusMessage> statusMessages = new LinkedBlockingDeque<>();
-    private List<SaturationContext<C, A>> contexts;
-    private Collection<WorkerModel<C, A>> workerModels;
-    private volatile boolean allPartitionsConverged = false;
+    private List<SaturationContext<C, A, T>> contexts;
+    private Collection<WorkerModel<C, A, T>> workerModels;
+    private volatile boolean allWorkersConverged = false;
     private List<Thread> threadPool;
     private List<A> initialAxioms;
-    private WorkloadDistributor workloadDistributor;
+    private WorkloadDistributor<C, A, T> workloadDistributor;
     private InitialAxiomsDistributor<A> initialAxiomsDistributor;
 
-    private int convergedPartitions = 0;
+    private int convergedWorkers = 0;
 
-    protected ParallelSaturation(SaturationInitializationFactory<C, A> factory) {
+    protected ParallelSaturation(SaturationInitializationFactory<C, A, T> factory) {
         this.factory = factory;
         this.initialAxioms = factory.getInitialAxioms();
         this.workerModels = factory.getWorkerModels();
@@ -48,7 +48,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
         initAndStartThreads();
     }
 
-    protected SaturationContext<C, A> generateSaturationContext(WorkerModel<C, A> worker) {
+    protected SaturationContext<C, A, T> generateSaturationContext(WorkerModel<C, A, T> worker) {
         C workerClosure = factory.getNewClosure();
         workerClosure.addAll(initialAxiomsDistributor.getInitialAxioms(worker.getID()));
 
@@ -65,7 +65,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
     private void initVariables() {
         this.initialAxiomsDistributor = new InitialAxiomsDistributor(initialAxioms, workloadDistributor);
 
-        // init partitions
+        // init workers
         this.contexts = new ArrayList<>();
         workerModels.forEach(p -> {
             this.contexts.add(generateSaturationContext(p));
@@ -74,26 +74,26 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
 
     public C saturate() {
         try {
-            while (!allPartitionsConverged) {
+            while (!allWorkersConverged) {
                 SaturationStatusMessage message = statusMessages.poll(10, TimeUnit.MILLISECONDS);
 
                 if (message != null) {
                     switch (message) {
                         case WORKER_INFO_SATURATION_CONVERGED:
-                            convergedPartitions++;
+                            convergedWorkers++;
                             break;
                         case WORKER_INFO_SATURATION_RUNNING:
-                            convergedPartitions--;
+                            convergedWorkers--;
                             break;
                     }
                 }
 
-                if (!statusMessages.isEmpty() || convergedPartitions < contexts.size()) {
-                    // not all messages processed or not all partitions converged
+                if (!statusMessages.isEmpty() || convergedWorkers < contexts.size()) {
+                    // not all messages processed or not all workers converged
                     continue;
                 }
 
-                // check if all partitions do not process any axioms
+                // check if all workers do not process any axioms
                 boolean nothingToDo = true;
                 for (Thread t : threadPool) {
                     if (t.getState().equals(Thread.State.RUNNABLE)) {
@@ -101,10 +101,10 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
                         break;
                     }
                 }
-                allPartitionsConverged = nothingToDo;
+                allWorkersConverged = nothingToDo;
             }
 
-            // all partitions converged
+            // all workers converged
             for (Thread t : threadPool) {
                 t.interrupt();
             }
@@ -113,7 +113,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
         }
 
         C closure = factory.getNewClosure();
-        for (SaturationContext<C, A> context : contexts) {
+        for (SaturationContext<C, A, T> context : contexts) {
             context.getClosure().getClosureResults().forEach(closure::add);
         }
         return closure;
@@ -121,14 +121,14 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
 
     private void initAndStartThreads() {
         this.threadPool = new ArrayList<>();
-        for (SaturationContext<C, A> worker : this.contexts) {
+        for (SaturationContext<C, A, T> worker : this.contexts) {
             this.threadPool.add(new Thread(worker));
         }
         this.threadPool.forEach(Thread::start);
     }
 
-    public boolean allPartitionsConverged() {
-        return allPartitionsConverged;
+    public boolean allWorkersConverged() {
+        return allWorkersConverged;
     }
 
     public BlockingDeque<SaturationStatusMessage> getStatusMessages() {

@@ -5,18 +5,17 @@ import reasoning.rules.Rule;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class WorkerModel<C extends Closure<A>, A extends Serializable> implements Serializable {
+public class WorkerModel<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Serializable {
 
     private static final AtomicLong workerIDCounter = new AtomicLong(1L);
 
     protected long id = workerIDCounter.getAndIncrement();
     protected Collection<? extends Rule<C, A>> rules;
-    protected Set<? extends Serializable> workerTerms;
+    protected T workerTerms;
 
-    public WorkerModel(Collection<? extends Rule<C, A>> rules, Set<? extends Serializable> workerTerms) {
+    public WorkerModel(Collection<? extends Rule<C, A>> rules, T workerTerms) {
         this.rules = rules;
         this.workerTerms = workerTerms;
     }
@@ -30,7 +29,7 @@ public class WorkerModel<C extends Closure<A>, A extends Serializable> implement
         return id;
     }
 
-    public Set<? extends Serializable> getWorkerTerms() {
+    public T getWorkerTerms() {
         return workerTerms;
     }
 }

@@ -8,15 +8,15 @@ import reasoning.saturation.workload.WorkloadDistributor;
 import java.io.Serializable;
 import java.util.List;
 
-public class DistributedSaturation<C extends Closure<A>, A extends Serializable> implements Saturation<C, A> {
+public class DistributedSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Saturation<C, A> {
 
-    protected WorkloadDistributor workloadDistributor;
-    protected List<DistributedWorkerModel<C, A>> workers;
-    protected SaturationControlNode<C, A> controlNode;
+    protected WorkloadDistributor<C, A, T> workloadDistributor;
+    protected List<DistributedWorkerModel<C, A, T>> workers;
+    protected SaturationControlNode<C, A, T> controlNode;
 
-    public DistributedSaturation(List<DistributedWorkerModel<C, A>> workers,
-                                 WorkloadDistributor workloadDistributor,
-                                 List<A> initialAxioms,
+    public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
+                                 WorkloadDistributor<C, A, T> workloadDistributor,
+                                 List<? extends A> initialAxioms,
                                  C resultingClosure) {
         this.workloadDistributor = workloadDistributor;
         this.workers = workers;

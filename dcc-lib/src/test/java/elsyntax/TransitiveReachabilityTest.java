@@ -1,14 +1,28 @@
 package elsyntax;
 
 import benchmark.*;
+import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
+import data.DefaultClosure;
+import eldlsyntax.ELConcept;
+import eldlsyntax.ELConceptInclusion;
+import networking.ServerData;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.roaringbitmap.RoaringBitmap;
+import reasoning.saturation.Saturation;
 import reasoning.saturation.SingleThreadedSaturation;
+import reasoning.saturation.distributed.DistributedSaturation;
+import reasoning.saturation.distributed.SaturationWorker;
+import reasoning.saturation.models.DistributedWorkerModel;
+import reasoning.saturation.models.WorkerModel;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -51,6 +65,10 @@ public class TransitiveReachabilityTest {
 
     @Test
     void testSingleThreadedComputation() {
+        assertEquals(expectedResults, singleThreadedClosureComputation(initialAxioms).getClosureResults());
+    }
+
+    ReachabilityClosure singleThreadedClosureComputation(List<? extends Reachability> initialAxioms) {
         SingleThreadedSaturation<ReachabilityClosure, Reachability> saturation = new SingleThreadedSaturation<>(
                 initialAxioms.iterator(),
                 ReachabilityWorkerFactory.getReachabilityRules(),
@@ -64,6 +82,75 @@ public class TransitiveReachabilityTest {
         System.out.println("Closure: ");
         closure.getClosureResults().forEach(System.out::println);
 
-        assertEquals(expectedResults, result);
+        return closure;
+    }
+
+
+    void distributedClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
+        SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
+        workerServerFactory = new SaturationWorkerServerGenerator<>(numberOfWorkers, new Callable<>() {
+            @Override
+            public ReachabilityClosure call() throws Exception {
+                return new ReachabilityClosure();
+            }
+        });
+
+        List<SaturationWorker<ReachabilityClosure, Reachability, RoaringBitmap>> saturationWorkers;
+        saturationWorkers = workerServerFactory.generateWorkers();
+        List<Thread> threads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
+        threads.forEach(Thread::start);
+
+        List<ServerData> serverDataList = workerServerFactory.getServerDataList();
+        ReachabilityWorkerFactory workerFactory = new ReachabilityWorkerFactory(
+                initialAxioms,
+                serverDataList
+        );
+
+        List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = workerFactory.generateDistributedWorkers();
+        DistributedSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new DistributedSaturation<>(
+                workers,
+                new ReachabilityWorkloadDistributor(workers),
+                initialAxioms,
+                new ReachabilityClosure()
+        );
+
+        ReachabilityClosure closure = saturation.saturate();
+        Set<Reachability> distributedResults = new UnifiedSet<>();
+        distributedResults.addAll(closure.getClosureResults());
+
+        System.out.println("Closure: ");
+        closure.getClosureResults().forEach(System.out::println);
+
+        Set<Reachability> singleThreadedResults = new UnifiedSet<>(singleThreadedClosureComputation(initialAxioms).getClosureResults());
+        assertEquals(singleThreadedResults, distributedResults);
+
+        saturationWorkers.forEach(SaturationWorker::terminate);
+    }
+
+     @Test
+    void testDistributedClosureComputation() {
+        distributedClosureComputation(initialAxioms, 4);
+
+        ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
+        distributedClosureComputation(generator.generateGraph(), 4);
+    }
+
+    @Test
+    void testBinaryTreeGeneration() {
+        ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(3);
+        System.out.println("Depth: " + 3);
+        List<ToldReachability> edges = generator.generateGraph();
+        edges.forEach(System.out::println);
+
+        System.out.println();
+        System.out.println("Depth: " + 4);
+        generator = new ReachabilityBinaryTreeGenerator(4);
+        edges = generator.generateGraph();
+        edges.forEach(System.out::println);
+        assertEquals(14, generator.getNumberOfEdgesOriginalGraph());
+        assertEquals(14, edges.size());
+        assertEquals(20, generator.getNumberOfEdgesInTransitiveClosure());
+        assertEquals(34, generator.getTotalNumberOfEdges());
+        assertEquals(4, generator.getDiameter());
     }
 }
