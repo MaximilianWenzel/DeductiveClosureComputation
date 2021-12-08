@@ -5,14 +5,15 @@ import com.google.common.collect.HashBiMap;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
-import networking.*;
+import networking.NetworkingComponent;
+import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
+import networking.io.SocketManagerFactory;
 import networking.messages.*;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
@@ -30,28 +31,23 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final Logger log = ConsoleUtils.getLogger();
 
     private final int portToListen;
-    private long workerID = -1L;
-    private List<DistributedWorkerModel<C, A, T>> workers;
-    private NetworkingComponent networkingComponent;
-    private WorkloadDistributor workloadDistributor;
-
-    private BiMap<Long, Long> socketIDToWorkerID;
-    private BiMap<Long, Long> workerIDToSocketID;
-    private BlockingDeque<Object> toDo = new LinkedBlockingDeque<>();
-
     private final int maxNumAxiomsToBufferBeforeSending;
     private final Map<Long, List<Serializable>> workerIDToBufferedAxioms = new HashMap<>();
-
-    private long controlNodeSocketID = -1L;
-    private boolean allConnectionsEstablished = false;
-
-    private AcknowledgementEventManager acknowledgementEventManager;
-    private long initializationMessageID = -1;
     private final AtomicLong distributedAxiomMessages = new AtomicLong(0);
     private final AtomicLong acknowledgedAxiomMessages = new AtomicLong(0);
     private final AtomicLong establishedConnections = new AtomicLong(0);
-
-
+    private long workerID = -1L;
+    private List<DistributedWorkerModel<C, A, T>> workers;
+    private NetworkingComponent networkingComponent;
+    private WorkloadDistributor<C, A, T> workloadDistributor;
+    private BiMap<Long, Long> socketIDToWorkerID;
+    private BiMap<Long, Long> workerIDToSocketID;
+    private BlockingDeque<Object> toDo = new LinkedBlockingDeque<>();
+    private BenchmarkConfiguration benchmarkConfiguration;
+    private long controlNodeSocketID = -1L;
+    private boolean allConnectionsEstablished = false;
+    private AcknowledgementEventManager acknowledgementEventManager;
+    private long initializationMessageID = -1;
     private SaturationAxiomsMessage<C, A, T> initialAxioms;
 
     public WorkerNodeCommunicationChannel(int portToListen,
@@ -61,15 +57,34 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         init();
     }
 
+    public WorkerNodeCommunicationChannel(BenchmarkConfiguration benchmarkConfiguration,
+                                          int portToListen,
+                                          int maxNumAxiomsToBufferBeforeSending) {
+        this.benchmarkConfiguration = benchmarkConfiguration;
+        this.portToListen = portToListen;
+        this.maxNumAxiomsToBufferBeforeSending = maxNumAxiomsToBufferBeforeSending;
+        init();
+    }
+
+
     private void init() {
         this.socketIDToWorkerID = HashBiMap.create();
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
+
+        SocketManagerFactory socketManagerFactory;
+        if (benchmarkConfiguration != null) {
+            socketManagerFactory = benchmarkConfiguration.getSocketManagerFactory();
+        } else {
+            socketManagerFactory = new SocketManagerFactory();
+        }
         networkingComponent = new NetworkingComponent(
-                new MessageProcessorImpl(),
+                socketManagerFactory,
+                new WorkerNodeCommunicationChannel<C, A, T>.MessageProcessorImpl(),
                 Collections.singletonList(new WorkerServerPortListener(portToListen)),
-                Collections.emptyList());
+                Collections.emptyList()
+        );
         networkingComponent.startNIOThread();
     }
 
@@ -134,12 +149,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 || networkingComponent.socketsCurrentlyReadMessages();
     }
 
-    @Override
-    public void terminate() {
-        this.networkingComponent.terminate();
-    }
-
-    public void distributeAxiom(Serializable axiom) {
+    public void distributeAxiom(A axiom) {
         List<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
 
         for (Long receiverWorkerID : workerIDs) {
@@ -161,6 +171,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         }
     }
 
+    @Override
+    public void terminate() {
+        this.networkingComponent.terminate();
+    }
+
+
     /**
      * Indicates if at least one axiom has been transmitted.
      */
@@ -176,8 +192,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
      */
-
     private void sendAxioms(long receiverWorkerID, List<? extends Serializable> axioms) {
+        distributedAxiomMessages.getAndIncrement();
+
         if (axioms.isEmpty()) {
             return;
         }
@@ -188,7 +205,6 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
             log.warning("Worker " + receiverWorkerID + " has for worker " + this.workerID + " no socket ID assigned.");
         }
 
-        distributedAxiomMessages.getAndIncrement();
         send(socketID, saturationAxiomsMessage, new Runnable() {
             @Override
             public void run() {
@@ -238,6 +254,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     public long getControlNodeID() {
         return 0;
+    }
+
+    public boolean allConnectionsEstablished() {
+        // # of all other workers
+        return this.establishedConnections.get() == this.workers.size() - 1;
     }
 
     private class MessageProcessorImpl implements MessageProcessor {
@@ -322,10 +343,5 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                         }
                     });
         }
-    }
-
-    public boolean allConnectionsEstablished() {
-        // # of all other workers
-        return this.establishedConnections.get() == this.workers.size() - 1;
     }
 }

@@ -1,6 +1,7 @@
 package reasoning.saturation.distributed;
 
 import data.Closure;
+import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 import reasoning.saturation.distributed.states.controlnode.CNSFinished;
 import reasoning.saturation.distributed.states.controlnode.CNSInitializing;
@@ -24,6 +25,17 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
                                     List<? extends A> initialAxioms,
                                     C resultingClosure) {
         this.communicationChannel = new ControlNodeCommunicationChannel<>(workers, workloadDistributor, initialAxioms);
+        this.workers = workers;
+        this.resultingClosure = resultingClosure;
+        init();
+    }
+
+    protected SaturationControlNode(BenchmarkConfiguration benchmarkConfiguration,
+                                    List<DistributedWorkerModel<C, A, T>> workers,
+                                    WorkloadDistributor<C, A, T> workloadDistributor,
+                                    List<? extends A> initialAxioms,
+                                    C resultingClosure) {
+        this.communicationChannel = new ControlNodeCommunicationChannel<>(benchmarkConfiguration, workers, workloadDistributor, initialAxioms);
         this.workers = workers;
         this.resultingClosure = resultingClosure;
         init();

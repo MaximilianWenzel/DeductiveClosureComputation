@@ -11,47 +11,51 @@ import java.util.Queue;
 public class MessageReader {
 
     // TODO probably change queue implementation
-    private final Queue<Object> completedMessages = new ArrayDeque<>();
+    protected final Queue<Object> completedMessages = new ArrayDeque<>();
 
-    private SocketChannel socketChannel;
+    protected SocketChannel socketChannel;
 
-    private int messageSizeInBytes;
-    private final ByteBuffer messageSizeBuffer = ByteBuffer.wrap(new byte[4]);
+    protected int messageSizeInBytes;
+    protected final ByteBuffer messageSizeBuffer = ByteBuffer.wrap(new byte[4]);
 
-    private ByteBuffer messageBuffer;
+    protected ByteBuffer messageBuffer;
 
-    private boolean newMessageStarts = true;
-    private boolean endOfStreamReached = false;
+    protected boolean newMessageStarts = true;
+    protected boolean endOfStreamReached = false;
 
     public MessageReader(SocketChannel socketChannel) {
         this.socketChannel = socketChannel;
     }
 
-    public void read() throws IOException {
+    public void read() throws IOException, ClassNotFoundException {
         if (newMessageStarts) {
             // first read message size in bytes
             read(messageSizeBuffer);
 
             if (messageSizeBuffer.remaining() == 0) {
-                newMessageStarts = false;
-                messageSizeInBytes = messageSizeBuffer.getInt(0);
-                messageSizeBuffer.clear();
-
-                // TODO probably reuse previous byte buffer array
-                messageBuffer = ByteBuffer.wrap(new byte[messageSizeInBytes]);
+                onNewMessageSizeHasBeenRead();
             }
         }
         if (messageSizeInBytes != -1) {
             // if message size is known
             read(messageBuffer);
             if (messageBuffer.remaining() == 0) {
-                try {
-                    this.completedMessages.add(getCompletedMessage());
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
+                onCompleteMessageHasBeenRead();
             }
         }
+    }
+
+    protected void onNewMessageSizeHasBeenRead() {
+        newMessageStarts = false;
+        messageSizeInBytes = messageSizeBuffer.getInt(0);
+        messageSizeBuffer.clear();
+
+        // TODO probably reuse previous byte buffer array
+        messageBuffer = ByteBuffer.wrap(new byte[messageSizeInBytes]);
+    }
+
+    protected void onCompleteMessageHasBeenRead() throws IOException, ClassNotFoundException {
+        this.completedMessages.add(getCompletedMessageAndClearBuffer());
     }
 
     protected int read(ByteBuffer byteBuffer) throws IOException {
@@ -70,7 +74,7 @@ public class MessageReader {
         return totalBytesRead;
     }
 
-    private Object getCompletedMessage() throws IOException, ClassNotFoundException {
+    protected Object getCompletedMessageAndClearBuffer() throws IOException, ClassNotFoundException {
         if (messageBuffer.remaining() == 0) {
             byte[] bytes = messageBuffer.array();
             ByteArrayInputStream byteArrayIS = new ByteArrayInputStream(bytes);
@@ -83,7 +87,7 @@ public class MessageReader {
         }
     }
 
-    private void clear() {
+    protected void clear() {
         this.messageBuffer.clear();
         this.messageSizeBuffer.clear();
         this.messageSizeInBytes = -1;

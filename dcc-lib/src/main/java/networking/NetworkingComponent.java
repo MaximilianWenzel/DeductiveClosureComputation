@@ -4,6 +4,7 @@ import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
+import networking.io.SocketManagerFactory;
 import networking.messages.MessageEnvelope;
 import util.ConsoleUtils;
 
@@ -29,15 +30,19 @@ public class NetworkingComponent implements Runnable {
     protected Map<Long, SocketManager> socketIDToMessageManager = new HashMap<>();
 
     protected MessageProcessor messageProcessor;
+    protected SocketManagerFactory socketManagerFactory;
+
+    final Object serverConnectorLock = new Object();
 
     protected boolean running = true;
 
-    public NetworkingComponent(MessageProcessor messageProcessor,
+    public NetworkingComponent(SocketManagerFactory socketManagerFactory,
+                                MessageProcessor messageProcessor,
                                List<PortListener> portNumbersToListen,
                                List<ServerConnector> serversToConnectTo) {
+        this.socketManagerFactory = socketManagerFactory;
         this.portNumbersToListen = portNumbersToListen;
         this.serversToConnectTo = serversToConnectTo;
-
         this.messageProcessor = messageProcessor;
         init();
     }
@@ -118,7 +123,7 @@ public class NetworkingComponent implements Runnable {
 
     }
 
-    private void mainNIOSelectorLoop() throws IOException {
+    private void mainNIOSelectorLoop() throws IOException, ClassNotFoundException {
         selector.select();
         if (!selector.isOpen()) {
             return;
@@ -147,20 +152,27 @@ public class NetworkingComponent implements Runnable {
         if (!socketChannel.finishConnect()) {
             throw new IllegalStateException("Could not connect to server: " + socketChannel.getRemoteAddress());
         }
-        SocketManager socketManager = new SocketManager(socketChannel);
-        ServerConnector serverConnector = (ServerConnector) key.attachment();
+        SocketManager socketManager = socketManagerFactory.createNewSocketManager(socketChannel);
 
-        initNewConnectedSocket(socketManager);
-        serverConnector.onConnectionEstablished(socketManager);
+        synchronized (serverConnectorLock) {
+            ServerConnector serverConnector = (ServerConnector) key.attachment();
+            initNewConnectedSocket(socketManager);
+            serverConnector.onConnectionEstablished(socketManager);
+        }
+
     }
+
 
     public void connectToServer(ServerConnector serverConnector) throws IOException {
         SocketChannel socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
-        SelectionKey key = socketChannel.register(selector, SelectionKey.OP_CONNECT);
-        key.attach(serverConnector);
-        ServerData serverData = serverConnector.getServerData();
-        socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
+
+        synchronized (serverConnectorLock) {
+            SelectionKey key = socketChannel.register(selector, SelectionKey.OP_CONNECT);
+            key.attach(serverConnector);
+            ServerData serverData = serverConnector.getServerData();
+            socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
+        }
 
         // finish connection establishment by NIO thread
         selector.wakeup();
@@ -175,7 +187,7 @@ public class NetworkingComponent implements Runnable {
         key.attach(socketManager);
     }
 
-    private void readFromSocket(SelectionKey key) throws IOException {
+    private void readFromSocket(SelectionKey key) throws IOException, ClassNotFoundException {
         SocketManager socketManager = (SocketManager) key.attachment();
         Queue<Object> receivedMessages = socketManager.readMessages();
         while (!receivedMessages.isEmpty()) {
@@ -227,7 +239,7 @@ public class NetworkingComponent implements Runnable {
 
         SocketChannel socketChannel = serverSocketChannel.accept();
         while (socketChannel != null) {
-            SocketManager socketManager = new SocketManager(socketChannel);
+            SocketManager socketManager = socketManagerFactory.createNewSocketManager(socketChannel);
             initNewConnectedSocket(socketManager);
             log.info("Client connected: " + socketChannel.socket().getRemoteSocketAddress());
 

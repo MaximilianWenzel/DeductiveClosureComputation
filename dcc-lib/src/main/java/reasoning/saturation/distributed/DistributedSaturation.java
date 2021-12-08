@@ -2,6 +2,7 @@ package reasoning.saturation.distributed;
 
 import data.Closure;
 import reasoning.saturation.Saturation;
+import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
@@ -21,6 +22,16 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
         this.workloadDistributor = workloadDistributor;
         this.workers = workers;
         this.controlNode = new SaturationControlNode<>(workers, workloadDistributor, initialAxioms, resultingClosure);
+    }
+
+    public DistributedSaturation(BenchmarkConfiguration benchmarkConfiguration,
+                                 List<DistributedWorkerModel<C, A, T>> workers,
+                                 WorkloadDistributor<C, A, T> workloadDistributor,
+                                 List<? extends A> initialAxioms,
+                                 C resultingClosure) {
+        this.workloadDistributor = workloadDistributor;
+        this.workers = workers;
+        this.controlNode = new SaturationControlNode<>(benchmarkConfiguration, workers, workloadDistributor, initialAxioms, resultingClosure);
     }
 
     @Override

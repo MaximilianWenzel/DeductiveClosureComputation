@@ -10,6 +10,7 @@ import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
+import networking.io.SocketManagerFactory;
 import networking.messages.*;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
@@ -28,6 +29,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     private final Logger log = ConsoleUtils.getLogger();
 
+    protected BenchmarkConfiguration benchmarkConfiguration;
     protected NetworkingComponent networkingComponent;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
@@ -54,6 +56,17 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         init();
     }
 
+    public ControlNodeCommunicationChannel(BenchmarkConfiguration benchmarkConfiguration,
+                                           List<DistributedWorkerModel<C, A, T>> workers,
+                                           WorkloadDistributor<C, A, T> workloadDistributor,
+                                           List<? extends A> initialAxioms) {
+        this.workers = workers;
+        this.workloadDistributor = workloadDistributor;
+        this.initialAxioms = initialAxioms;
+        this.benchmarkConfiguration = benchmarkConfiguration;
+        init();
+    }
+
     private void init() {
         this.socketIDToWorkerID = Maps.synchronizedBiMap(HashBiMap.create());
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
@@ -65,11 +78,19 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         acknowledgementEventManager = new AcknowledgementEventManager();
 
+        SocketManagerFactory socketManagerFactory;
+        if (benchmarkConfiguration != null) {
+            socketManagerFactory = benchmarkConfiguration.getSocketManagerFactory();
+        } else {
+            socketManagerFactory = new SocketManagerFactory();
+        }
         networkingComponent = new NetworkingComponent(
+                socketManagerFactory,
                 new MessageProcessorImpl(),
                 Collections.emptyList(),
                 Collections.emptyList()
         );
+
         networkingComponent.startNIOThread();
     }
 

@@ -7,6 +7,7 @@ public abstract class GraphGenerator<E> {
     protected int numberOfEdgesOriginalGraph;
     protected int numberOfEdgesInTransitiveClosure;
     protected int totalNumberOfEdges;
+    protected int numberOfNodes;
 
 
     /**
@@ -32,5 +33,9 @@ public abstract class GraphGenerator<E> {
 
     public int getDiameter() {
         return diameter;
+    }
+
+    public int getNumberOfNodes() {
+        return numberOfNodes;
     }
 }

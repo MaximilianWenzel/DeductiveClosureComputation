@@ -23,4 +23,8 @@ public class ConsoleUtils {
     public static Logger getLogger() {
         return log;
     }
+
+    public static String getSeparator() {
+        return "-------------------------------------------------------------------------";
+    }
 }

@@ -3,6 +3,7 @@ package benchmark;
 import data.Closure;
 import networking.ServerData;
 import reasoning.saturation.distributed.SaturationWorker;
+import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -14,10 +15,12 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
     private Callable<C> closureFactory;
+    private BenchmarkConfiguration benchmarkConfiguration;
 
-    public SaturationWorkerServerGenerator(int numberOfWorkers, Callable<C> closureFactory) {
+    public SaturationWorkerServerGenerator(BenchmarkConfiguration benchmarkConfiguration, int numberOfWorkers, Callable<C> closureFactory) {
         this.numberOfWorkers = numberOfWorkers;
         this.closureFactory = closureFactory;
+        this.benchmarkConfiguration = benchmarkConfiguration;
         init();
     }
 
@@ -34,6 +37,7 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
             try {
                 C closure = closureFactory.call();
                 SaturationWorker<C, A, T> worker = new SaturationWorker<>(
+                        benchmarkConfiguration,
                         serverData.getPortNumber(),
                         10,
                         closure,

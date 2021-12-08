@@ -1,27 +1,17 @@
 package networking.io;
 
 import java.io.IOException;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SocketManager {
+public abstract class SocketManager {
 
     public static final AtomicLong socketIDCounter = new AtomicLong(1);
-
-    private final long socketID;
-    private final SocketChannel socketChannel;
-
-    private final MessageReader messageReader;
-    private final MessageWriter messageWriter;
-
-    public SocketManager(SocketChannel socketChannel) {
-        this.socketChannel = socketChannel;
-        this.socketID = socketIDCounter.getAndIncrement();
-        this.messageWriter = new MessageWriter(socketChannel);
-        this.messageReader = new MessageReader(socketChannel);
-    }
+    protected long socketID;
+    protected SocketChannel socketChannel;
+    protected MessageReader messageReader;
+    protected MessageWriter messageWriter;
 
     public long getSocketID() {
         return socketID;
@@ -39,7 +29,7 @@ public class SocketManager {
         }
     }
 
-    public Queue<Object> readMessages() throws IOException {
+    public Queue<Object> readMessages() throws IOException, ClassNotFoundException {
         messageReader.read();
         return this.messageReader.getReceivedMessages();
     }
@@ -67,4 +57,5 @@ public class SocketManager {
     public boolean hasMessagesToRead() {
         return this.messageReader.hasMessagesOrReadsCurrentlyMessage();
     }
+
 }

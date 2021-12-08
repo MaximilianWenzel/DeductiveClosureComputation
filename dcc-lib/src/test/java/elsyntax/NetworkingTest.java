@@ -5,6 +5,7 @@ import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
+import networking.io.SocketManagerFactory;
 import networking.messages.MessageEnvelope;
 import org.junit.jupiter.api.Test;
 
@@ -60,6 +61,7 @@ public class NetworkingTest {
 
 
         NetworkingComponent networkingComponent = new NetworkingComponent(
+                new SocketManagerFactory(),
                 messageProcessor,
                 Collections.singletonList(portListener),
                 serverConnectors);

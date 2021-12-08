@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.SaturationWorker;
+import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import util.OWL2ELSaturationUtils;
 
@@ -121,10 +122,11 @@ public class OWLELSaturationTest {
 
      */
 
-    @Test
+
     void testDistributedSaturation() {
+        BenchmarkConfiguration benchmarkConfiguration = new BenchmarkConfiguration(10);
         SaturationWorkerServerGenerator<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerFactory;
-        workerFactory = new SaturationWorkerServerGenerator<>(2, new Callable<DefaultClosure<ELConceptInclusion>>() {
+        workerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, 3, new Callable<DefaultClosure<ELConceptInclusion>>() {
             @Override
             public DefaultClosure<ELConceptInclusion> call() throws Exception {
                 return new DefaultClosure<>();
@@ -147,7 +149,7 @@ public class OWLELSaturationTest {
                 owlWorkerFactory.generateDistributedWorkers();
         OWLELWorkloadDistributor workloadDistributor = new OWLELWorkloadDistributor(workerModels);
         DistributedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> distributedSaturation = new DistributedSaturation<>(
-                workerModels,workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>());
+                benchmarkConfiguration, workerModels,workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>());
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override

@@ -2,23 +2,18 @@ package elsyntax;
 
 import benchmark.*;
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
-import data.DefaultClosure;
-import eldlsyntax.ELConcept;
-import eldlsyntax.ELConceptInclusion;
 import networking.ServerData;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.roaringbitmap.RoaringBitmap;
-import reasoning.saturation.Saturation;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.SaturationWorker;
+import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
-import reasoning.saturation.models.WorkerModel;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -65,10 +60,10 @@ public class TransitiveReachabilityTest {
 
     @Test
     void testSingleThreadedComputation() {
-        assertEquals(expectedResults, singleThreadedClosureComputation(initialAxioms).getClosureResults());
+        assertEquals(expectedResults, singleThreadedClosureComputation(initialAxioms));
     }
 
-    ReachabilityClosure singleThreadedClosureComputation(List<? extends Reachability> initialAxioms) {
+    Set<Reachability> singleThreadedClosureComputation(List<? extends Reachability> initialAxioms) {
         SingleThreadedSaturation<ReachabilityClosure, Reachability> saturation = new SingleThreadedSaturation<>(
                 initialAxioms.iterator(),
                 ReachabilityWorkerFactory.getReachabilityRules(),
@@ -82,13 +77,16 @@ public class TransitiveReachabilityTest {
         System.out.println("Closure: ");
         closure.getClosureResults().forEach(System.out::println);
 
-        return closure;
+        return result;
     }
 
 
     void distributedClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
+        BenchmarkConfiguration benchmarkConfiguration = new BenchmarkConfiguration(10);
+
+
         SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
-        workerServerFactory = new SaturationWorkerServerGenerator<>(numberOfWorkers, new Callable<>() {
+        workerServerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, numberOfWorkers, new Callable<>() {
             @Override
             public ReachabilityClosure call() throws Exception {
                 return new ReachabilityClosure();
@@ -108,6 +106,7 @@ public class TransitiveReachabilityTest {
 
         List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = workerFactory.generateDistributedWorkers();
         DistributedSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new DistributedSaturation<>(
+                benchmarkConfiguration,
                 workers,
                 new ReachabilityWorkloadDistributor(workers),
                 initialAxioms,
@@ -121,18 +120,21 @@ public class TransitiveReachabilityTest {
         System.out.println("Closure: ");
         closure.getClosureResults().forEach(System.out::println);
 
-        Set<Reachability> singleThreadedResults = new UnifiedSet<>(singleThreadedClosureComputation(initialAxioms).getClosureResults());
+        Set<Reachability> singleThreadedResults = singleThreadedClosureComputation(initialAxioms);
         assertEquals(singleThreadedResults, distributedResults);
 
         saturationWorkers.forEach(SaturationWorker::terminate);
     }
 
-     @Test
+    @Test
     void testDistributedClosureComputation() {
         distributedClosureComputation(initialAxioms, 4);
 
         ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
         distributedClosureComputation(generator.generateGraph(), 4);
+
+        generator = new ReachabilityBinaryTreeGenerator(8);
+        distributedClosureComputation(generator.generateGraph(), 20);
     }
 
     @Test

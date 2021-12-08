@@ -9,4 +9,5 @@ public class ToldReachability extends Reachability {
     public String toString() {
         return "told(" + sourceNode + ", " + destinationNode + ")";
     }
+
 }

@@ -10,4 +10,5 @@ public class DerivedReachability extends Reachability {
     public String toString() {
         return "derived(" + sourceNode + ", " + destinationNode + ")";
     }
+
 }
