@@ -12,6 +12,7 @@ import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
+import reasoning.saturation.parallel.ParallelSaturation;
 import util.ConsoleUtils;
 
 import java.io.File;
@@ -41,22 +42,34 @@ public class ReachabilityBenchmark {
     {
         binaryTreeDepth = new ArrayList<>();
         binaryTreeDepth.add(5);
+        binaryTreeDepth.add(8);
         binaryTreeDepth.add(10);
-        binaryTreeDepth.add(15);
-        binaryTreeDepth.add(20);
+        binaryTreeDepth.add(11);
+        binaryTreeDepth.add(12);
+
+        //binaryTreeDepth.add(5);
+        //binaryTreeDepth.add(10);
+        //binaryTreeDepth.add(15);
+        //binaryTreeDepth.add(20);
+
+        numberOfWorkers = new ArrayList<>();
+        //numberOfWorkers.add(1);
+        numberOfWorkers.add(2);
+        numberOfWorkers.add(4);
 
         // BWUniCluster has maximum of 40 threads - 2 threads per worker, thus, 20 threads at max.
-        numberOfWorkers = new ArrayList<>();
-        numberOfWorkers.add(1);
-        numberOfWorkers.add(5);
-        numberOfWorkers.add(10);
-        //numberOfWorkers.add(15);
+        //numberOfWorkers.add(1);
+        //numberOfWorkers.add(4);
+        //numberOfWorkers.add(8);
+        //numberOfWorkers.add(10);
+        // numberOfWorkers.add(15);
         //numberOfWorkers.add(20);
 
         mbitsPerSecondNetworkBandwidth = new ArrayList<>();
-        mbitsPerSecondNetworkBandwidth.add(10d);
-        mbitsPerSecondNetworkBandwidth.add(100d);
-        mbitsPerSecondNetworkBandwidth.add(200d);
+        //mbitsPerSecondNetworkBandwidth.add(Double.MAX_VALUE);
+        //mbitsPerSecondNetworkBandwidth.add(10d);
+        //mbitsPerSecondNetworkBandwidth.add(100d);
+        //mbitsPerSecondNetworkBandwidth.add(200d);
         mbitsPerSecondNetworkBandwidth.add(2000d);
     }
 
@@ -103,7 +116,8 @@ public class ReachabilityBenchmark {
                         if (numWorkers == 1) {
                             singleThreadedClosureComputation(initialAxioms);
                         } else {
-                            distributedClosureComputation(initialAxioms, numWorkers, mbits);
+                            //distributedClosureComputation(initialAxioms, numWorkers, mbits);
+                            parallelClosureComputation(initialAxioms, numWorkers);
                         }
                     }
                     DescriptiveStatistics runtimeInMSStats = new DescriptiveStatistics(this.runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
@@ -142,6 +156,7 @@ public class ReachabilityBenchmark {
 
         // initialize workers
         SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
+
         workerServerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, numWorkers, new Callable<>() {
             @Override
             public ReachabilityClosure call() throws Exception {
@@ -153,6 +168,12 @@ public class ReachabilityBenchmark {
         saturationWorkers = workerServerFactory.generateWorkers();
         List<Thread> threads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
         threads.forEach(Thread::start);
+
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
 
         // initialize control node
@@ -204,6 +225,19 @@ public class ReachabilityBenchmark {
         this.runtimeInMSPerRound.add((double) runtime.toMillis());
 
         assert closure.getClosureResults().size() > 0;
+    }
+
+    private void parallelClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
+        ParallelSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new ParallelSaturation<>(
+                new ReachabilitySaturationInitializationFactory(initialAxioms, numberOfWorkers)
+        );
+
+        // run saturation
+        this.stopwatch = Stopwatch.createStarted();
+        ReachabilityClosure closure = saturation.saturate();
+        Duration runtime = this.stopwatch.elapsed();
+        assert closure.getClosureResults().size() > 0;
+        this.runtimeInMSPerRound.add((double) runtime.toMillis());
     }
 
 

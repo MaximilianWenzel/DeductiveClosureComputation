@@ -33,8 +33,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final int portToListen;
     private final int maxNumAxiomsToBufferBeforeSending;
     private final Map<Long, List<Serializable>> workerIDToBufferedAxioms = new HashMap<>();
-    private final AtomicLong distributedAxiomMessages = new AtomicLong(0);
-    private final AtomicLong acknowledgedAxiomMessages = new AtomicLong(0);
+    private final AtomicLong distributedMessages = new AtomicLong(0);
+    private final AtomicLong acknowledgedMessages = new AtomicLong(0);
     private final AtomicLong establishedConnections = new AtomicLong(0);
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A, T>> workers;
@@ -145,7 +145,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     @Override
     public boolean hasMoreMessagesToReadWriteOrToBeAcknowledged() {
         return !this.toDo.isEmpty()
-                || distributedAxiomMessages.get() != acknowledgedAxiomMessages.get()
+                || distributedMessages.get() != acknowledgedMessages.get()
                 || networkingComponent.socketsCurrentlyReadMessages();
     }
 
@@ -193,7 +193,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
      */
     private void sendAxioms(long receiverWorkerID, List<? extends Serializable> axioms) {
-        distributedAxiomMessages.getAndIncrement();
+        distributedMessages.getAndIncrement();
 
         if (axioms.isEmpty()) {
             return;
@@ -208,7 +208,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         send(socketID, saturationAxiomsMessage, new Runnable() {
             @Override
             public void run() {
-                acknowledgedAxiomMessages.getAndIncrement();
+                acknowledgedMessages.getAndIncrement();
             }
         });
     }
@@ -343,5 +343,13 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                         }
                     });
         }
+    }
+
+    public AtomicLong getDistributedMessages() {
+        return distributedMessages;
+    }
+
+    public AtomicLong getAcknowledgedMessages() {
+        return acknowledgedMessages;
     }
 }

@@ -13,6 +13,7 @@ import java.util.List;
 
 public class WorkerStateInitializing<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
     private long allWorkersInitializedMessageID;
+    private boolean allWorkersInitialized = false;
 
     /**
      * Received axiom messages from other workers while in state 'initialized'.
@@ -39,6 +40,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
                 log.info("Establishing connections to other workers...");
                 allWorkersInitializedMessageID = message.getMessageID();
                 communicationChannel.connectToWorkerServers();
+                allWorkersInitialized = true;
                 break;
             case WORKER_SERVER_HELLO:
             case WORKER_CLIENT_HELLO:
@@ -47,6 +49,8 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
             default:
                 messageProtocolViolation(message);
         }
+
+        checkIfAllConnectionsEstablished();
     }
 
     @Override
@@ -57,8 +61,11 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
     @Override
     public void visit(AcknowledgementMessage message) {
         acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
+        checkIfAllConnectionsEstablished();
+    }
 
-        if (communicationChannel.allConnectionsEstablished()) {
+    private void checkIfAllConnectionsEstablished() {
+        if (communicationChannel.allConnectionsEstablished() && allWorkersInitialized) {
             log.info("All connections to other workers successfully initialized.");
             this.communicationChannel.addInitialAxiomsToQueue();
             this.communicationChannel.addAxiomsToQueue(bufferedAxiomMessages);

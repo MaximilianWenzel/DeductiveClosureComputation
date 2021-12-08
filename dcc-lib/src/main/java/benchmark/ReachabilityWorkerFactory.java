@@ -28,6 +28,12 @@ public class ReachabilityWorkerFactory implements DistributedWorkerFactory<Reach
         init();
     }
 
+    public ReachabilityWorkerFactory(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
+        this.initialAxioms = initialAxioms;
+        this.numberOfWorkers = numberOfWorkers;
+        init();
+    }
+
     public static Collection<Rule<ReachabilityClosure, Reachability>> getReachabilityRules() {
         List<Rule<ReachabilityClosure, Reachability>> reachabilityRules = new ArrayList<>();
         reachabilityRules.add(new InitRule());

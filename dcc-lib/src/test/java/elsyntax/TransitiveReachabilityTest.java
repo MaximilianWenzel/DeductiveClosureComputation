@@ -12,6 +12,7 @@ import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
+import reasoning.saturation.parallel.ParallelSaturation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,9 +74,21 @@ public class TransitiveReachabilityTest {
         ReachabilityClosure closure = saturation.saturate();
         Set<Reachability> result = new UnifiedSet<>();
         closure.getClosureResults().forEach(result::add);
-
         System.out.println("Closure: ");
-        closure.getClosureResults().forEach(System.out::println);
+        result.forEach(System.out::println);
+        return result;
+    }
+
+    Set<Reachability> parallelClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
+        ParallelSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new ParallelSaturation<>(
+                new ReachabilitySaturationInitializationFactory(initialAxioms, numberOfWorkers)
+        );
+
+        ReachabilityClosure closure = saturation.saturate();
+        Set<Reachability> result = new UnifiedSet<>();
+        closure.getClosureResults().forEach(result::add);
+
+        assertEquals(singleThreadedClosureComputation(initialAxioms), result);
 
         return result;
     }
@@ -135,6 +148,23 @@ public class TransitiveReachabilityTest {
 
         generator = new ReachabilityBinaryTreeGenerator(8);
         distributedClosureComputation(generator.generateGraph(), 20);
+    }
+
+    @Test
+    void testParallelClosureComputation() {
+        parallelClosureComputation(initialAxioms, 4);
+
+        ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
+        parallelClosureComputation(generator.generateGraph(), 4);
+
+        generator = new ReachabilityBinaryTreeGenerator(8);
+        parallelClosureComputation(generator.generateGraph(), 20);
+
+        generator = new ReachabilityBinaryTreeGenerator(10);
+        parallelClosureComputation(generator.generateGraph(), 20);
+
+        generator = new ReachabilityBinaryTreeGenerator(12);
+        parallelClosureComputation(generator.generateGraph(), 20);
     }
 
     @Test

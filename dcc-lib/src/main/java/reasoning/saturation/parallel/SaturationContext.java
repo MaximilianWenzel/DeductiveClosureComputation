@@ -5,6 +5,7 @@ import data.ParallelToDo;
 import enums.SaturationStatusMessage;
 import reasoning.reasoner.IncrementalReasonerImpl;
 import reasoning.rules.InferenceProcessor;
+import reasoning.rules.ParallelSaturationInferenceProcessor;
 import reasoning.rules.Rule;
 
 import java.io.Serializable;
@@ -28,16 +29,12 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
 
     public SaturationContext(ParallelSaturation<C, A, T> controlNode, Collection<? extends Rule<C, A>> rules,
                              C closure,
-                             ParallelToDo<A> toDo,
-                             InferenceProcessor<A> inferenceProcessor) {
+                             ParallelToDo<A> toDo) {
         this.controlNode = controlNode;
         this.closure = closure;
         this.toDo = toDo;
         this.rules = rules;
-        this.rules.forEach(r -> {
-            r.setInferenceProcessor(inferenceProcessor);
-            r.setClosure(closure);
-        });
+
         this.incrementalReasoner = new IncrementalReasonerImpl<>(rules, closure);
     }
 
@@ -45,18 +42,15 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     public void run() {
         try {
             while (!controlNode.allWorkersConverged()) {
-                if (toDo.isEmpty()) {
-                    sendStatusToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_CONVERGED);
-                    saturationConverged = true;
+                synchronized (toDo) {
+                    if (toDo.isEmpty()) {
+                        sendStatusToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_CONVERGED);
+                        saturationConverged = true;
+                    }
                 }
+
 
                 A axiom = toDo.take();
-
-                if (saturationConverged) {
-                    saturationConverged = false;
-                    sendStatusToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_RUNNING);
-                }
-
                 incrementalReasoner.processAxiom(axiom);
             }
 
@@ -84,5 +78,24 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
 
     public void sendStatusToControlNode(SaturationStatusMessage statusMessage) {
         controlNode.getStatusMessages().add(statusMessage);
+    }
+
+    public void setInferenceProcessor(ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor) {
+        this.rules.forEach(r -> {
+            r.setInferenceProcessor(inferenceProcessor);
+            r.setClosure(closure);
+        });
+    }
+
+    public ParallelToDo<A> getToDo() {
+        return toDo;
+    }
+
+    public boolean isSaturationConverged() {
+        return saturationConverged;
+    }
+
+    public void setSaturationConverged(boolean saturationConverged) {
+        this.saturationConverged = saturationConverged;
     }
 }

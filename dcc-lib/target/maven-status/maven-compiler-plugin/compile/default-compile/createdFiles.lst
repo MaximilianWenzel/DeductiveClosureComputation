@@ -33,6 +33,7 @@ benchmark\graphgeneration\ReachabilityBinaryTreeGenerator.class
 benchmark\DeriveReachabilityRule.class
 enums\SaturationStatusMessage.class
 eldlsyntax\ELConceptTop.class
+benchmark\ReachabilitySaturationInitializationFactory.class
 eldlsyntax\ELEntity.class
 reasoning\saturation\distributed\SaturationWorker$IncrementalReasonerType.class
 benchmark\ToldReachability.class

@@ -3,6 +3,7 @@ package reasoning.saturation.parallel;
 import data.Closure;
 import data.DefaultClosure;
 import data.ParallelToDo;
+import data.ToDoQueue;
 import enums.SaturationStatusMessage;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.rules.ParallelSaturationInferenceProcessor;
@@ -12,10 +13,7 @@ import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -29,13 +27,14 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
     private Collection<WorkerModel<C, A, T>> workerModels;
     private volatile boolean allWorkersConverged = false;
     private List<Thread> threadPool;
-    private List<A> initialAxioms;
+    private List<? extends A> initialAxioms;
     private WorkloadDistributor<C, A, T> workloadDistributor;
     private InitialAxiomsDistributor<A> initialAxiomsDistributor;
+    private Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext = new HashMap<>();
 
     private int convergedWorkers = 0;
 
-    protected ParallelSaturation(SaturationInitializationFactory<C, A, T> factory) {
+    public ParallelSaturation(SaturationInitializationFactory<C, A, T> factory) {
         this.factory = factory;
         this.initialAxioms = factory.getInitialAxioms();
         this.workerModels = factory.getWorkerModels();
@@ -43,65 +42,66 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         initContexts();
     }
 
-    public void initContexts() {
+    private void initContexts() {
         initVariables();
-        initAndStartThreads();
     }
 
     protected SaturationContext<C, A, T> generateSaturationContext(WorkerModel<C, A, T> worker) {
         C workerClosure = factory.getNewClosure();
-        workerClosure.addAll(initialAxiomsDistributor.getInitialAxioms(worker.getID()));
-
         ParallelToDo<A> workerToDo = new ParallelToDo<>();
-
-        return new SaturationContext<>(
+        SaturationContext<C, A, T> saturationContext = new SaturationContext<>(
                 this,
                 worker.getRules(),
                 workerClosure,
-                workerToDo,
-                new ParallelSaturationInferenceProcessor(workloadDistributor));
+                workerToDo);
+
+        this.workerIDToSaturationContext.put(worker.getID(), saturationContext);
+        return saturationContext;
     }
 
     private void initVariables() {
-        this.initialAxiomsDistributor = new InitialAxiomsDistributor(initialAxioms, workloadDistributor);
+        this.initialAxiomsDistributor = new InitialAxiomsDistributor<>(initialAxioms, workloadDistributor);
 
         // init workers
         this.contexts = new ArrayList<>();
         workerModels.forEach(p -> {
             this.contexts.add(generateSaturationContext(p));
         });
+
+        ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor = new ParallelSaturationInferenceProcessor<>(
+                workloadDistributor, workerIDToSaturationContext);
+        for (SaturationContext<C, A, T> context : this.contexts) {
+            context.setInferenceProcessor(inferenceProcessor);
+        }
+
+        // distribute initial axioms
+        for (A axiom : initialAxioms) {
+            List<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
+            for (Long workerID : workerIDs) {
+                this.workerIDToSaturationContext.get(workerID).getToDo().add(axiom);
+            }
+        }
     }
 
     public C saturate() {
+        initAndStartThreads();
+
         try {
             while (!allWorkersConverged) {
-                SaturationStatusMessage message = statusMessages.poll(10, TimeUnit.MILLISECONDS);
+                SaturationStatusMessage message = statusMessages.take();
 
-                if (message != null) {
-                    switch (message) {
-                        case WORKER_INFO_SATURATION_CONVERGED:
-                            convergedWorkers++;
-                            break;
-                        case WORKER_INFO_SATURATION_RUNNING:
-                            convergedWorkers--;
-                            break;
-                    }
-                }
-
-                if (!statusMessages.isEmpty() || convergedWorkers < contexts.size()) {
-                    // not all messages processed or not all workers converged
-                    continue;
-                }
-
-                // check if all workers do not process any axioms
-                boolean nothingToDo = true;
-                for (Thread t : threadPool) {
-                    if (t.getState().equals(Thread.State.RUNNABLE)) {
-                        nothingToDo = false;
+                switch (message) {
+                    case WORKER_INFO_SATURATION_CONVERGED:
+                        convergedWorkers++;
                         break;
-                    }
+                    case WORKER_INFO_SATURATION_RUNNING:
+                        convergedWorkers--;
+                        break;
                 }
-                allWorkersConverged = nothingToDo;
+
+                if (convergedWorkers == contexts.size()) {
+                    allWorkersConverged = true;
+                }
             }
 
             // all workers converged

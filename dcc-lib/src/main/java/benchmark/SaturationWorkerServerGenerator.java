@@ -5,7 +5,9 @@ import networking.ServerData;
 import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -27,8 +29,17 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
     private void init() {
         serverDataList = new ArrayList<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            serverDataList.add(new ServerData("localhost", 50_000 + i));
+            serverDataList.add(new ServerData("localhost", getFreePort()));
         }
+    }
+
+    private int getFreePort() {
+        try (ServerSocket serverSocket = new ServerSocket(0)) {
+            return serverSocket.getLocalPort();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        throw new IllegalStateException();
     }
 
     public List<SaturationWorker<C, A, T>> generateWorkers() {
