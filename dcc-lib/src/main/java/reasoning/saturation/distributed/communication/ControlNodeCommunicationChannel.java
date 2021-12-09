@@ -140,12 +140,10 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     public void send(long receiverSocketID, MessageModel<C, A, T> message, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(message.getMessageID(), onAcknowledgement);
-        MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, message);
-        networkingComponent.sendMessage(messageEnvelope);
+        networkingComponent.sendMessage(receiverSocketID, message);
     }
     public void send(long receiverSocketID, MessageModel<C, A, T> message) {
-        MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, message);
-        networkingComponent.sendMessage(messageEnvelope);
+        networkingComponent.sendMessage(receiverSocketID, message);
     }
 
     public AcknowledgementEventManager getAcknowledgementEventManager() {

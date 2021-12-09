@@ -15,12 +15,14 @@ import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.parallel.ParallelSaturation;
 import util.ConsoleUtils;
 
+import java.io.Console;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -32,7 +34,7 @@ public class ReachabilityBenchmark {
     private List<Integer> binaryTreeDepth;
     private List<Integer> numberOfWorkers;
     private List<Double> mbitsPerSecondNetworkBandwidth;
-    private int numberOfExperimentRepetitions = 3;
+    private int numberOfExperimentRepetitions = 1;
     private ArrayList<Double> runtimeInMSPerRound = new ArrayList<>();
     private String[] csvHeader = {"depth", "nodes", "#nonTransitiveEdges", "#transitiveEdges", "#totalEdges", "#workers", "bandwidthMbits", "minRuntimeMS", "maxRuntimeMS", "averageRuntimeMS"};
     private List<List<String>> statistics = new ArrayList<>();
@@ -41,11 +43,11 @@ public class ReachabilityBenchmark {
 
     {
         binaryTreeDepth = new ArrayList<>();
-        binaryTreeDepth.add(5);
-        binaryTreeDepth.add(8);
+        //binaryTreeDepth.add(5);
+        //binaryTreeDepth.add(8);
         binaryTreeDepth.add(10);
-        binaryTreeDepth.add(11);
-        binaryTreeDepth.add(12);
+        //binaryTreeDepth.add(11);
+        //binaryTreeDepth.add(12);
 
         //binaryTreeDepth.add(5);
         //binaryTreeDepth.add(10);
@@ -54,7 +56,7 @@ public class ReachabilityBenchmark {
 
         numberOfWorkers = new ArrayList<>();
         //numberOfWorkers.add(1);
-        numberOfWorkers.add(2);
+        //numberOfWorkers.add(2);
         numberOfWorkers.add(4);
 
         // BWUniCluster has maximum of 40 threads - 2 threads per worker, thus, 20 threads at max.
@@ -79,6 +81,9 @@ public class ReachabilityBenchmark {
     }
 
     public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Press ENTER to start benchmark...");
+        scanner.next();
         File outputDirectory;
         if (args.length > 0) {
             outputDirectory = new File(args[0]);
@@ -157,7 +162,7 @@ public class ReachabilityBenchmark {
         // initialize workers
         SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
 
-        workerServerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, numWorkers, new Callable<>() {
+        workerServerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, numWorkers, new Callable() {
             @Override
             public ReachabilityClosure call() throws Exception {
                 return new ReachabilityClosure();

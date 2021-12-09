@@ -1,6 +1,8 @@
 package networking.messages;
 
-public class MessageEnvelope {
+import java.io.Serializable;
+
+public class MessageEnvelope implements Serializable {
     private final long socketID;
     private final Object message;
 

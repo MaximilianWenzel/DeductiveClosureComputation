@@ -1,8 +1,8 @@
 package networking.io;
 
-import java.io.ByteArrayInputStream;
+import util.SerializationUtils;
+
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
@@ -16,9 +16,9 @@ public class MessageReader {
     protected SocketChannel socketChannel;
 
     protected int messageSizeInBytes;
-    protected final ByteBuffer messageSizeBuffer = ByteBuffer.wrap(new byte[4]);
 
-    protected ByteBuffer messageBuffer;
+    // TODO user defined buffer size
+    protected ByteBuffer messageBuffer = ByteBuffer.allocate(((int)Math.pow(2, 20) * 2));
 
     protected boolean newMessageStarts = true;
     protected boolean endOfStreamReached = false;
@@ -30,16 +30,19 @@ public class MessageReader {
     public void read() throws IOException, ClassNotFoundException {
         if (newMessageStarts) {
             // first read message size in bytes
-            read(messageSizeBuffer);
+            //read(messageSizeBuffer);
 
+            /*
             if (messageSizeBuffer.remaining() == 0) {
                 onNewMessageSizeHasBeenRead();
             }
+
+             */
         }
         if (messageSizeInBytes != -1) {
             // if message size is known
             read(messageBuffer);
-            if (messageBuffer.remaining() == 0) {
+            if (fullMessageHasBeenRead()) {
                 onCompleteMessageHasBeenRead();
             }
         }
@@ -47,11 +50,9 @@ public class MessageReader {
 
     protected void onNewMessageSizeHasBeenRead() {
         newMessageStarts = false;
-        messageSizeInBytes = messageSizeBuffer.getInt(0);
-        messageSizeBuffer.clear();
-
-        // TODO probably reuse previous byte buffer array
-        messageBuffer = ByteBuffer.wrap(new byte[messageSizeInBytes]);
+        //messageSizeInBytes = messageSizeBuffer.getInt(0);
+        //messageSizeBuffer.clear();
+        messageBuffer.clear();
     }
 
     protected void onCompleteMessageHasBeenRead() throws IOException, ClassNotFoundException {
@@ -74,24 +75,26 @@ public class MessageReader {
         return totalBytesRead;
     }
 
-    protected Object getCompletedMessageAndClearBuffer() throws IOException, ClassNotFoundException {
-        if (messageBuffer.remaining() == 0) {
-            byte[] bytes = messageBuffer.array();
-            ByteArrayInputStream byteArrayIS = new ByteArrayInputStream(bytes);
-            ObjectInputStream ois = new ObjectInputStream(byteArrayIS);
-            Object obj = ois.readObject();
-            clear();
+    protected Object getCompletedMessageAndClearBuffer() {
+        if (fullMessageHasBeenRead()) {
+            messageBuffer.flip();
+            Object obj = SerializationUtils.kryoDeserializeFromByteBuffer(messageBuffer, 0, messageSizeInBytes);
+            initBufferForNewMessage();
             return obj;
         } else {
             throw new IllegalStateException("Message has not read completely yet. Remaining bytes: " + messageBuffer.remaining());
         }
     }
 
-    protected void clear() {
-        this.messageBuffer.clear();
-        this.messageSizeBuffer.clear();
-        this.messageSizeInBytes = -1;
-        this.newMessageStarts = true;
+    protected void initBufferForNewMessage() {
+        messageBuffer.compact();
+        if (messageBuffer.hasRemaining()) {
+            this.messageSizeInBytes = this.messageBuffer.getInt();
+            this.messageBuffer.clear();
+            //this.messageSizeBuffer.clear();
+            this.messageSizeInBytes = -1;
+            this.newMessageStarts = true;
+        }
     }
 
     public boolean hasMessagesOrReadsCurrentlyMessage() {
@@ -104,5 +107,9 @@ public class MessageReader {
 
     public boolean isEndOfStreamReached() {
         return endOfStreamReached;
+    }
+
+    protected boolean fullMessageHasBeenRead() {
+        return messageBuffer.remaining() < this.messageBuffer.capacity() - messageSizeInBytes;
     }
 }

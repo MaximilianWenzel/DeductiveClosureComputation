@@ -1,4 +1,4 @@
-package elsyntax;
+package transitiveclosure;
 
 import benchmark.*;
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
@@ -99,7 +99,7 @@ public class TransitiveReachabilityTest {
 
 
         SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
-        workerServerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, numberOfWorkers, new Callable<>() {
+        workerServerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, numberOfWorkers, new Callable() {
             @Override
             public ReachabilityClosure call() throws Exception {
                 return new ReachabilityClosure();

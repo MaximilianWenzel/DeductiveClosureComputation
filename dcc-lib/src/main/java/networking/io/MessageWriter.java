@@ -15,7 +15,9 @@ public class MessageWriter {
     private final SocketChannel socketChannel;
 
     private final ByteBuffer messageSizeBuffer = ByteBuffer.wrap(new byte[4]);
-    private ByteBuffer messageBuffer;
+
+    // TODO user defined buffer size
+    private ByteBuffer messageBuffer = ByteBuffer.allocate(((int) Math.pow(2, 20) * 2));
 
     private Object currentMessage;
 
@@ -33,18 +35,15 @@ public class MessageWriter {
         if (newMessageStarts) {
             currentMessage = messagesToSend.poll();
             if (currentMessage == null) {
-                //todo unregister socket from selector
                 return;
             }
-
-            // TODO use Kryo framework for stepwise (stream) serialization
-            byte[] messageBytes = SerializationUtils.serialize(currentMessage);
-            messageBuffer = ByteBuffer.wrap(messageBytes);
+            messageBuffer.clear();
+            SerializationUtils.kryoSerializeToByteBuffer(currentMessage, messageBuffer);
+            messageBuffer.flip();
 
             messageSizeBuffer.clear();
-            messageSizeBuffer.putInt(0, messageBytes.length);
+            messageSizeBuffer.putInt(0, messageBuffer.remaining());
             newMessageStarts = false;
-
         }
 
         if (messageSizeBuffer.hasRemaining()) {

@@ -9,14 +9,13 @@ import networking.messages.MessageEnvelope;
 import util.ConsoleUtils;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.logging.Logger;
 
 public class NetworkingComponent implements Runnable {
-
-    protected Logger log = ConsoleUtils.getLogger();
 
     protected Thread nioThread;
 
@@ -65,14 +64,14 @@ public class NetworkingComponent implements Runnable {
         key.attach(portListener);
         serverSocketChannel.bind(new InetSocketAddress(portListener.getPort()));
         this.serverSocketChannels.add(serverSocketChannel);
-        log.info("Listening on port " + portListener.getPort() + "...");
     }
 
-    public void startNIOThread() {
+    public Thread startNIOThread() {
         if (nioThread == null) {
             nioThread = new Thread(this);
             nioThread.start();
         }
+        return nioThread;
     }
 
     @Override
@@ -207,26 +206,30 @@ public class NetworkingComponent implements Runnable {
     private void writeToSocket(SelectionKey key) {
         SocketManager socketManager = (SocketManager) key.attachment();
 
-        if (socketManager.hasMessagesToSend()) {
-            socketManager.sendMessages();
-        } else {
-            // remove write selector
-            key.interestOpsAnd(~SelectionKey.OP_WRITE);
+        synchronized (socketManager) {
+            if (socketManager.hasMessagesToSend()) {
+                socketManager.sendMessages();
+            } else {
+                // remove write selector
+                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+            }
         }
     }
 
-    public void sendMessage(MessageEnvelope messageEnvelope) {
-        SocketManager socketManager = this.socketIDToMessageManager.get(messageEnvelope.getSocketID());
+    public void sendMessage(long socketID, Serializable message) {
+        SocketManager socketManager = this.socketIDToMessageManager.get(socketID);
         try {
             if (socketManager != null) {
-                socketManager.enqueueMessageToSend(messageEnvelope.getMessage());
+                socketManager.enqueueMessageToSend(message);
 
                 // add write selector
-                SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
-                key.interestOpsOr(SelectionKey.OP_WRITE);
-                selector.wakeup();
+                synchronized (socketManager) {
+                    SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
+                    key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+                    selector.wakeup();
+                }
             } else {
-                throw new IllegalArgumentException("Socket with ID " + messageEnvelope.getSocketID() + " does not exist.");
+                throw new IllegalArgumentException("Socket with ID " + socketID + " does not exist.");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -241,7 +244,6 @@ public class NetworkingComponent implements Runnable {
         while (socketChannel != null) {
             SocketManager socketManager = socketManagerFactory.createNewSocketManager(socketChannel);
             initNewConnectedSocket(socketManager);
-            log.info("Client connected: " + socketChannel.socket().getRemoteSocketAddress());
 
             PortListener portListener = (PortListener) key.attachment();
             portListener.onConnectionEstablished(socketManager);

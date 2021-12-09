@@ -9,7 +9,7 @@ public abstract class BinaryTreeGenerator<E> extends GraphGenerator<E> {
 
     /*
     d: depth
-    # nodes: 2^(d + 1) - 1
+    # nodes: 2^d - 1
     # edges: 2^d - 2
     # transitive edges: (d - 3) * 2^d + 4
      */
@@ -64,7 +64,7 @@ public abstract class BinaryTreeGenerator<E> extends GraphGenerator<E> {
     }
 
     private int getNumberOfNodes(int depth) {
-        return (int) (Math.pow(2, depth + 1) - 1);
+        return (int) (Math.pow(2, depth) - 1);
     }
 
 }

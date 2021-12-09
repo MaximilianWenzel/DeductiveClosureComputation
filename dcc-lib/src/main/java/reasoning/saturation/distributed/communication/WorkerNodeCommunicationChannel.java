@@ -116,8 +116,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     public void sendToControlNode(C closure) {
         // generate closure
         SaturationAxiomsMessage<C, A, T> saturationAxiomsMessage = new SaturationAxiomsMessage<>(workerID, closure.getClosureResults());
-        MessageEnvelope messageEnvelope = new MessageEnvelope(controlNodeSocketID, saturationAxiomsMessage);
-        networkingComponent.sendMessage(messageEnvelope);
+        networkingComponent.sendMessage(controlNodeSocketID, saturationAxiomsMessage);
     }
 
     public void send(long workerID, SaturationStatusMessage status, Runnable onAcknowledgement) {
@@ -128,13 +127,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     private void send(long receiverSocketID, MessageModel messageModel, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(messageModel.getMessageID(), onAcknowledgement);
-        MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, messageModel);
-        networkingComponent.sendMessage(messageEnvelope);
+        networkingComponent.sendMessage(receiverSocketID, messageModel);
     }
 
     private void send(long receiverSocketID, MessageModel messageModel) {
-        MessageEnvelope messageEnvelope = new MessageEnvelope(receiverSocketID, messageModel);
-        networkingComponent.sendMessage(messageEnvelope);
+        networkingComponent.sendMessage(receiverSocketID, messageModel);
     }
 
     @Override

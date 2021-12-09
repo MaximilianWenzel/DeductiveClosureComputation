@@ -1,6 +1,5 @@
-package elsyntax;
+package networking;
 
-import networking.*;
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
@@ -14,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Scanner;
 
 public class NetworkingTest {
 
@@ -77,8 +77,7 @@ public class NetworkingTest {
 
         for (long id : socketIDs) {
             for (int i = 0; i < 2; i++) {
-                MessageEnvelope envelope = new MessageEnvelope(id, "Hello socket " + id + "! - " + LocalDateTime.now());
-                networkingComponent.sendMessage(envelope);
+                networkingComponent.sendMessage(id, "Hello socket " + id + "! - " + LocalDateTime.now());
             }
         }
 
@@ -86,7 +85,7 @@ public class NetworkingTest {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Connection established!");
-                networkingComponent.sendMessage(new MessageEnvelope(socketIDs.iterator().next(), "Message from new connection!"));
+                networkingComponent.sendMessage(socketIDs.iterator().next(), "Message from new connection!");
             }
         };
         try {
@@ -97,6 +96,8 @@ public class NetworkingTest {
 
         try {
             Thread.sleep(2000);
+            Scanner s = new Scanner(System.in);
+            s.next();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

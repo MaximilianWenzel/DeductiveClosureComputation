@@ -27,16 +27,19 @@ public class MessageReaderForBenchmark extends MessageReader {
     public void read() throws IOException, ClassNotFoundException {
         if (newMessageStarts) {
             // first read message size in bytes
-            read(messageSizeBuffer);
+            //read(messageSizeBuffer);
 
+            /*
             if (messageSizeBuffer.remaining() == 0) {
                 onNewMessageSizeHasBeenRead();
             }
+
+             */
         }
         if (messageSizeInBytes != -1 && stopwatch.elapsed().compareTo(requiredElapsedTimeForLatencySimulation) >= 0) {
             // if message size is known and simulated latency has elapsed
             read(messageBuffer);
-            if (messageBuffer.remaining() == 0) {
+            if (fullMessageHasBeenRead()) {
                 onCompleteMessageHasBeenRead();
             }
         }

@@ -1,4 +1,4 @@
-package elsyntax;
+package owl;
 
 import benchmark.SaturationWorkerServerGenerator;
 import data.Closure;
