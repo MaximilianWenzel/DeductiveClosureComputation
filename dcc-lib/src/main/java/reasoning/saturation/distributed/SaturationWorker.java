@@ -36,11 +36,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         this.incrementalReasonerType = incrementalReasonerType;
     }
 
-    public SaturationWorker(BenchmarkConfiguration benchmarkConfiguration,
-                            int portToListen,
-                            int maxNumberOfAxiomsToBufferBeforeSending,
-                            C closure,
-                            IncrementalReasonerType incrementalReasonerType) {
+    public SaturationWorker(int portToListen, int maxNumberOfAxiomsToBufferBeforeSending, C closure, IncrementalReasonerType incrementalReasonerType, BenchmarkConfiguration benchmarkConfiguration) {
         this.benchmarkConfiguration = benchmarkConfiguration;
         this.communicationChannel = new WorkerNodeCommunicationChannel<>(benchmarkConfiguration, portToListen, maxNumberOfAxiomsToBufferBeforeSending);
         this.state = new WorkerStateInitializing<>(this);

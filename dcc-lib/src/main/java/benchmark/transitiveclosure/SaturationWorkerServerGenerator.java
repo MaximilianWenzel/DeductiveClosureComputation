@@ -1,4 +1,4 @@
-package benchmark;
+package benchmark.transitiveclosure;
 
 import data.Closure;
 import networking.ServerData;
@@ -6,9 +6,7 @@ import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import util.NetworkingUtils;
 
-import java.io.IOException;
 import java.io.Serializable;
-import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -19,11 +17,13 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
     private List<ServerData> serverDataList;
     private Callable<C> closureFactory;
     private BenchmarkConfiguration benchmarkConfiguration;
+    private int numberOfAxiomsToBuffer;
 
-    public SaturationWorkerServerGenerator(BenchmarkConfiguration benchmarkConfiguration, int numberOfWorkers, Callable<C> closureFactory) {
+    public SaturationWorkerServerGenerator(BenchmarkConfiguration benchmarkConfiguration, int numberOfWorkers, int numberOfAxiomsToBuffer, Callable<C> closureFactory) {
         this.numberOfWorkers = numberOfWorkers;
         this.closureFactory = closureFactory;
         this.benchmarkConfiguration = benchmarkConfiguration;
+        this.numberOfAxiomsToBuffer = numberOfAxiomsToBuffer;
         init();
     }
 
@@ -35,18 +35,17 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
     }
 
 
-
     public List<SaturationWorker<C, A, T>> generateWorkers() {
         List<SaturationWorker<C, A, T>> saturationWorkers = new ArrayList<>();
         for (ServerData serverData : serverDataList) {
             try {
                 C closure = closureFactory.call();
                 SaturationWorker<C, A, T> worker = new SaturationWorker<>(
-                        benchmarkConfiguration,
                         serverData.getPortNumber(),
                         10,
                         closure,
-                        SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
+                        SaturationWorker.IncrementalReasonerType.SINGLE_THREADED,
+                        benchmarkConfiguration
                 );
                 saturationWorkers.add(worker);
             } catch (Exception e) {

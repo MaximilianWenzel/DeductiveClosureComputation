@@ -15,7 +15,7 @@ public class SocketManagerFactory {
 
     public SocketManager createNewSocketManager(SocketChannel channel) {
         if (simulatedNetworkSpeedInMbps != -1) {
-            return new SocketManagerForBenchmark(channel, simulatedNetworkSpeedInMbps);
+            return new SocketManagerForBenchmark(channel);
         } else {
             return new DefaultSocketManager(channel);
         }

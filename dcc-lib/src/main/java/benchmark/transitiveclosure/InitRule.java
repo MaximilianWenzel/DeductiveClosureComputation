@@ -1,4 +1,4 @@
-package benchmark;
+package benchmark.transitiveclosure;
 
 import reasoning.rules.Rule;
 

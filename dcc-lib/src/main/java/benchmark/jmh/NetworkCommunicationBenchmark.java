@@ -1,34 +1,19 @@
 package benchmark.jmh;
 
-import com.esotericsoftware.kryo.Kryo;
-import networking.NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.PortListener;
-import networking.connectors.ServerConnector;
-import networking.io.MessageProcessor;
-import networking.io.SocketManager;
-import networking.io.SocketManagerFactory;
 import networking.messages.MessageEnvelope;
-import networking.messages.MessageModel;
 import networking.messages.SaturationAxiomsMessage;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-import util.NetworkingUtils;
-import util.SerializationUtils;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -40,24 +25,14 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @Measurement(iterations = 3, time = 2000, timeUnit = MILLISECONDS)
 public class NetworkCommunicationBenchmark {
 
-    private NetworkingComponent sendingNetworkingComponent;
-    private int serverPort;
-    private NetworkingComponent receivingNetworkingComponent;
+    private SenderStub senderStub;
+    private ReceiverStub receiverStub;
 
-    private SocketManager destinationSocket;
-
-    private LinkedBlockingQueue<Object> linkedBlockingQueue;
-    private ArrayBlockingQueue<Object> arrayBlockingQueue;
     private BlockingQueue<Object> queue;
 
-    private ArrayList axioms = new ArrayList(Arrays.asList(new Object[1]));
+    private ArrayList objects = new ArrayList(Arrays.asList(new Object[1]));
 
     public static void main(String[] args) throws RunnerException {
-        SerializationUtils.kryo.register(TestObject.class);
-        SerializationUtils.kryo.register(SaturationAxiomsMessage.class);
-        SerializationUtils.kryo.register(MessageEnvelope.class);
-
-
         Options opt = new OptionsBuilder()
                 .include(NetworkCommunicationBenchmark.class.getSimpleName())
                 .forks(1)
@@ -66,135 +41,67 @@ public class NetworkCommunicationBenchmark {
         new Runner(opt).run();
     }
 
-    @Setup(Level.Iteration)
+    @Setup(Level.Trial)
     public void setUp() {
-        linkedBlockingQueue = new LinkedBlockingQueue<>();
-        arrayBlockingQueue = new ArrayBlockingQueue<>(1000);
-        initializeReceivingNetworkingComponent(arrayBlockingQueue);
+        queue = new LinkedBlockingQueue<>();
+        receiverStub = new ReceiverStub(queue);
+        senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()));
+    }
 
-        queue = arrayBlockingQueue;
-        initializeSendingNetworkingComponent();
+    @TearDown(Level.Trial)
+    public void tearDown() {
+        System.out.println("Terminating networking components...");
+        senderStub.terminate();
+        receiverStub.terminate();
     }
 
     @Benchmark
+    public void sendString() throws InterruptedException {
+        senderStub.sendMessage("Hello world!");
+        Object o = queue.take();
+        assert o.getClass() != null;
+    }
+
+
+    /*
+    @Benchmark
     public void sendingMessageModel() throws InterruptedException {
-        this.axioms.set(0, new TestObject());
-        SaturationAxiomsMessage axioms = new SaturationAxiomsMessage((long) (Math.random() * Long.MAX_VALUE), this.axioms);
-        sendingNetworkingComponent.sendMessage(destinationSocket.getSocketID(), axioms);
+        this.objects.set(0, new TestObject());
+        SaturationAxiomsMessage<?, ?, ?> axioms = new SaturationAxiomsMessage<>((long) (Math.random() * Long.MAX_VALUE), this.objects);
+        senderStub.sendMessage(axioms);
         Object o = queue.take();
         assert o.getClass() != null;
     }
 
     @Benchmark
     public void sendingMessageModelInMessageEnvelop() throws InterruptedException {
-        this.axioms.set(0, new TestObject());
-        SaturationAxiomsMessage axioms = new SaturationAxiomsMessage((long) (Math.random() * Long.MAX_VALUE), this.axioms);
+        this.objects.set(0, new TestObject());
+        SaturationAxiomsMessage<?,?,?> axioms = new SaturationAxiomsMessage<>((long) (Math.random() * Long.MAX_VALUE), this.objects);
         MessageEnvelope envelope = new MessageEnvelope(0, axioms);
-        sendingNetworkingComponent.sendMessage(destinationSocket.getSocketID(), envelope);
+        senderStub.sendMessage(envelope);
         Object o = queue.take();
         assert o.getClass() != null;
     }
 
     @Benchmark
     public void sendingMessageAsSingleInteger() throws InterruptedException {
-        sendingNetworkingComponent.sendMessage(destinationSocket.getSocketID(), (long) (Math.random() * Long.MAX_VALUE));
+        senderStub.sendMessage((long) (Math.random() * Long.MAX_VALUE));
         Object o = queue.take();
         assert o.getClass() != null;
     }
 
     @Benchmark
     public void sendingUnpackedAxiomAndMetaInfoEncodedAsIntegerIn2Messages() throws InterruptedException {
-        sendingNetworkingComponent.sendMessage(destinationSocket.getSocketID(), new TestObject());
-        sendingNetworkingComponent.sendMessage(destinationSocket.getSocketID(), (long) (Math.random() * Long.MAX_VALUE));
+        senderStub.sendMessage(new TestObject());
+        senderStub.sendMessage((long) (Math.random() * Long.MAX_VALUE));
         Object o = queue.take();
         Object o2 = queue.take();
         assert o.getClass() != null;
         assert o2.getClass() != null;
     }
 
+     */
 
-    @TearDown(Level.Iteration)
-    public void tearDown() {
-        System.out.println("Terminating networking components...");
-        sendingNetworkingComponent.terminate();
-        receivingNetworkingComponent.terminate();
-    }
-
-    private void initializeReceivingNetworkingComponent(Queue<Object> queue) {
-        System.out.println("\n");
-        this.serverPort = NetworkingUtils.getFreePort();
-        PortListener portListener = new PortListener(serverPort) {
-            @Override
-            public void onConnectionEstablished(SocketManager socketManager) {
-                System.out.println("Client connected.");
-            }
-        };
-        receivingNetworkingComponent = new NetworkingComponent(
-                new SocketManagerFactory(),
-                new MessageProcessor() {
-                    @Override
-                    public void process(MessageEnvelope message) {
-                        assert message != null;
-                        queue.add(message);
-                    }
-                },
-                Collections.singletonList(portListener),
-                Collections.emptyList()
-        );
-        receivingNetworkingComponent.startNIOThread();
-
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void initializeSendingNetworkingComponent() {
-        sendingNetworkingComponent = new NetworkingComponent(
-                new SocketManagerFactory(),
-                new MessageProcessor() {
-                    @Override
-                    public void process(MessageEnvelope message) {
-                    }
-                },
-                Collections.emptyList(),
-                Collections.emptyList()
-        );
-        sendingNetworkingComponent.startNIOThread();
-
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        AtomicInteger connectionEstablished = new AtomicInteger(0);
-        ServerData serverData = new ServerData("localhost", serverPort);
-        ServerConnector serverConnector = new ServerConnector(serverData) {
-            @Override
-            public void onConnectionEstablished(SocketManager socketManager) {
-                destinationSocket = socketManager;
-                connectionEstablished.getAndIncrement();
-                System.out.println("Connection to server established.");
-            }
-        };
-        try {
-            System.out.println("Connecting to server...");
-            sendingNetworkingComponent.connectToServer(serverConnector);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // wait until connection established
-        while (connectionEstablished.get() == 0) {
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
 
 }

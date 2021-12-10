@@ -1,4 +1,4 @@
-package benchmark;
+package benchmark.transitiveclosure;
 
 import data.Closure;
 import org.roaringbitmap.IntConsumer;
@@ -19,19 +19,16 @@ public class ReachabilityClosure implements Closure<Reachability> {
         if (reachability instanceof DerivedReachability) {
             RoaringBitmap nodesWithConnectionToY = nodeToIncomingConnectedNodesMap.computeIfAbsent(reachability.getDestinationNode(), p -> new RoaringBitmap());
             nodesWithConnectionToY.add(reachability.getSourceNode());
-
             nodesReachableFromX = nodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(), p -> new RoaringBitmap());
-            boolean isNewValue = !nodesReachableFromX.contains(reachability.getDestinationNode());
-            nodesReachableFromX.add(reachability.getDestinationNode());
-            return isNewValue;
+
         } else if (reachability instanceof ToldReachability) {
             nodesReachableFromX = toldNodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(), p -> new RoaringBitmap());
-            boolean isNewValue = !nodesReachableFromX.contains(reachability.getDestinationNode());
-            nodesReachableFromX.add(reachability.getDestinationNode());
-            return isNewValue;
         } else {
             throw new IllegalArgumentException();
         }
+        boolean isNewValue = !nodesReachableFromX.contains(reachability.getDestinationNode());
+        nodesReachableFromX.add(reachability.getDestinationNode());
+        return isNewValue;
     }
 
     public void addDerivedReachability(ToldReachability toldReachability) {
@@ -45,6 +42,10 @@ public class ReachabilityClosure implements Closure<Reachability> {
 
     public RoaringBitmap getDerivedIncomingConnectedNodes(int y) {
         return this.nodeToIncomingConnectedNodesMap.getOrDefault(y, emptyRoaringBitmap);
+    }
+
+    public RoaringBitmap getToldOutgoingConnectedNodes(int y) {
+        return this.toldNodeToOutgoingConnectedNodesMap.getOrDefault(y, emptyRoaringBitmap);
     }
 
     @Override

@@ -71,25 +71,6 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
             NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G = _jmh_tryInit_f_networkcommunicationbenchmark0_G(control);
 
             control.preSetup();
-            if (NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
-                try {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (!l_networkcommunicationbenchmark0_G.readyIteration) {
-                        l_networkcommunicationbenchmark0_G.setUp();
-                        l_networkcommunicationbenchmark0_G.readyIteration = true;
-                    }
-                } catch (Throwable t) {
-                    control.isFailing = true;
-                    throw t;
-                } finally {
-                    NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
-                }
-            } else {
-                while (NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (Thread.interrupted()) throw new InterruptedException();
-                }
-            }
 
 
             control.announceWarmupReady();
@@ -111,27 +92,30 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
                 if (!(e instanceof InterruptedException)) throw e;
             }
             control.preTearDown();
-            if (NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
-                try {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (l_networkcommunicationbenchmark0_G.readyIteration) {
-                        l_networkcommunicationbenchmark0_G.tearDown();
-                        l_networkcommunicationbenchmark0_G.readyIteration = false;
-                    }
-                } catch (Throwable t) {
-                    control.isFailing = true;
-                    throw t;
-                } finally {
-                    NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
-                }
-            } else {
-                while (NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (Thread.interrupted()) throw new InterruptedException();
-                }
-            }
 
             if (control.isLastIteration()) {
+                if (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
+                    try {
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (l_networkcommunicationbenchmark0_G.readyTrial) {
+                            l_networkcommunicationbenchmark0_G.tearDown();
+                            l_networkcommunicationbenchmark0_G.readyTrial = false;
+                        }
+                    } catch (Throwable t) {
+                        control.isFailing = true;
+                        throw t;
+                    } finally {
+                        NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
+                    }
+                } else {
+                    long l_networkcommunicationbenchmark0_G_backoff = 1;
+                    while (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_networkcommunicationbenchmark0_G_backoff);
+                        l_networkcommunicationbenchmark0_G_backoff = Math.max(1024, l_networkcommunicationbenchmark0_G_backoff * 2);
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (Thread.interrupted()) throw new InterruptedException();
+                    }
+                }
                 synchronized(this.getClass()) {
                     f_networkcommunicationbenchmark0_G = null;
                 }
@@ -178,25 +162,6 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
             NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G = _jmh_tryInit_f_networkcommunicationbenchmark0_G(control);
 
             control.preSetup();
-            if (NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
-                try {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (!l_networkcommunicationbenchmark0_G.readyIteration) {
-                        l_networkcommunicationbenchmark0_G.setUp();
-                        l_networkcommunicationbenchmark0_G.readyIteration = true;
-                    }
-                } catch (Throwable t) {
-                    control.isFailing = true;
-                    throw t;
-                } finally {
-                    NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
-                }
-            } else {
-                while (NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (Thread.interrupted()) throw new InterruptedException();
-                }
-            }
 
 
             control.announceWarmupReady();
@@ -218,27 +183,30 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
                 if (!(e instanceof InterruptedException)) throw e;
             }
             control.preTearDown();
-            if (NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
-                try {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (l_networkcommunicationbenchmark0_G.readyIteration) {
-                        l_networkcommunicationbenchmark0_G.tearDown();
-                        l_networkcommunicationbenchmark0_G.readyIteration = false;
-                    }
-                } catch (Throwable t) {
-                    control.isFailing = true;
-                    throw t;
-                } finally {
-                    NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
-                }
-            } else {
-                while (NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (Thread.interrupted()) throw new InterruptedException();
-                }
-            }
 
             if (control.isLastIteration()) {
+                if (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
+                    try {
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (l_networkcommunicationbenchmark0_G.readyTrial) {
+                            l_networkcommunicationbenchmark0_G.tearDown();
+                            l_networkcommunicationbenchmark0_G.readyTrial = false;
+                        }
+                    } catch (Throwable t) {
+                        control.isFailing = true;
+                        throw t;
+                    } finally {
+                        NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
+                    }
+                } else {
+                    long l_networkcommunicationbenchmark0_G_backoff = 1;
+                    while (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_networkcommunicationbenchmark0_G_backoff);
+                        l_networkcommunicationbenchmark0_G_backoff = Math.max(1024, l_networkcommunicationbenchmark0_G_backoff * 2);
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (Thread.interrupted()) throw new InterruptedException();
+                    }
+                }
                 synchronized(this.getClass()) {
                     f_networkcommunicationbenchmark0_G = null;
                 }
@@ -285,25 +253,6 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
             NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G = _jmh_tryInit_f_networkcommunicationbenchmark0_G(control);
 
             control.preSetup();
-            if (NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
-                try {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (!l_networkcommunicationbenchmark0_G.readyIteration) {
-                        l_networkcommunicationbenchmark0_G.setUp();
-                        l_networkcommunicationbenchmark0_G.readyIteration = true;
-                    }
-                } catch (Throwable t) {
-                    control.isFailing = true;
-                    throw t;
-                } finally {
-                    NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
-                }
-            } else {
-                while (NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (Thread.interrupted()) throw new InterruptedException();
-                }
-            }
 
 
             control.announceWarmupReady();
@@ -329,27 +278,30 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
                 if (!(e instanceof InterruptedException)) throw e;
             }
             control.preTearDown();
-            if (NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
-                try {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (l_networkcommunicationbenchmark0_G.readyIteration) {
-                        l_networkcommunicationbenchmark0_G.tearDown();
-                        l_networkcommunicationbenchmark0_G.readyIteration = false;
-                    }
-                } catch (Throwable t) {
-                    control.isFailing = true;
-                    throw t;
-                } finally {
-                    NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
-                }
-            } else {
-                while (NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (Thread.interrupted()) throw new InterruptedException();
-                }
-            }
 
             if (control.isLastIteration()) {
+                if (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
+                    try {
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (l_networkcommunicationbenchmark0_G.readyTrial) {
+                            l_networkcommunicationbenchmark0_G.tearDown();
+                            l_networkcommunicationbenchmark0_G.readyTrial = false;
+                        }
+                    } catch (Throwable t) {
+                        control.isFailing = true;
+                        throw t;
+                    } finally {
+                        NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
+                    }
+                } else {
+                    long l_networkcommunicationbenchmark0_G_backoff = 1;
+                    while (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_networkcommunicationbenchmark0_G_backoff);
+                        l_networkcommunicationbenchmark0_G_backoff = Math.max(1024, l_networkcommunicationbenchmark0_G_backoff * 2);
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (Thread.interrupted()) throw new InterruptedException();
+                    }
+                }
                 synchronized(this.getClass()) {
                     f_networkcommunicationbenchmark0_G = null;
                 }
@@ -411,25 +363,6 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
             NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G = _jmh_tryInit_f_networkcommunicationbenchmark0_G(control);
 
             control.preSetup();
-            if (NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
-                try {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (!l_networkcommunicationbenchmark0_G.readyIteration) {
-                        l_networkcommunicationbenchmark0_G.setUp();
-                        l_networkcommunicationbenchmark0_G.readyIteration = true;
-                    }
-                } catch (Throwable t) {
-                    control.isFailing = true;
-                    throw t;
-                } finally {
-                    NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
-                }
-            } else {
-                while (NetworkCommunicationBenchmark_jmhType.setupIterationMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (Thread.interrupted()) throw new InterruptedException();
-                }
-            }
 
 
             notifyControl.startMeasurement = true;
@@ -437,27 +370,30 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
             int batchSize = iterationParams.getBatchSize();
             sendingMessageModel_ss_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, batchSize, l_networkcommunicationbenchmark0_G);
             control.preTearDown();
-            if (NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
-                try {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (l_networkcommunicationbenchmark0_G.readyIteration) {
-                        l_networkcommunicationbenchmark0_G.tearDown();
-                        l_networkcommunicationbenchmark0_G.readyIteration = false;
-                    }
-                } catch (Throwable t) {
-                    control.isFailing = true;
-                    throw t;
-                } finally {
-                    NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
-                }
-            } else {
-                while (NetworkCommunicationBenchmark_jmhType.tearIterationMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                    if (control.isFailing) throw new FailureAssistException();
-                    if (Thread.interrupted()) throw new InterruptedException();
-                }
-            }
 
             if (control.isLastIteration()) {
+                if (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
+                    try {
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (l_networkcommunicationbenchmark0_G.readyTrial) {
+                            l_networkcommunicationbenchmark0_G.tearDown();
+                            l_networkcommunicationbenchmark0_G.readyTrial = false;
+                        }
+                    } catch (Throwable t) {
+                        control.isFailing = true;
+                        throw t;
+                    } finally {
+                        NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
+                    }
+                } else {
+                    long l_networkcommunicationbenchmark0_G_backoff = 1;
+                    while (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_networkcommunicationbenchmark0_G_backoff);
+                        l_networkcommunicationbenchmark0_G_backoff = Math.max(1024, l_networkcommunicationbenchmark0_G_backoff * 2);
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (Thread.interrupted()) throw new InterruptedException();
+                    }
+                }
                 synchronized(this.getClass()) {
                     f_networkcommunicationbenchmark0_G = null;
                 }
@@ -499,6 +435,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModel_jmhTest {
                 return val;
             }
             val = new NetworkCommunicationBenchmark_jmhType();
+            val.setUp();
             val.readyTrial = true;
             f_networkcommunicationbenchmark0_G = val;
             } catch (Throwable t) {

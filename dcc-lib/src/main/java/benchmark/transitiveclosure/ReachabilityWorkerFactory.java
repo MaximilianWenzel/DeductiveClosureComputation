@@ -1,4 +1,4 @@
-package benchmark;
+package benchmark.transitiveclosure;
 
 import networking.ServerData;
 import org.roaringbitmap.RoaringBitmap;
@@ -34,7 +34,7 @@ public class ReachabilityWorkerFactory implements DistributedWorkerFactory<Reach
         init();
     }
 
-    public static Collection<Rule<ReachabilityClosure, Reachability>> getReachabilityRules() {
+    public static List<Rule<ReachabilityClosure, Reachability>> getReachabilityRules() {
         List<Rule<ReachabilityClosure, Reachability>> reachabilityRules = new ArrayList<>();
         reachabilityRules.add(new InitRule());
         reachabilityRules.add(new DeriveReachabilityRule());

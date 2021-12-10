@@ -1,4 +1,4 @@
-package benchmark;
+package benchmark.transitiveclosure;
 
 import org.roaringbitmap.RoaringBitmap;
 import reasoning.saturation.models.WorkerModel;

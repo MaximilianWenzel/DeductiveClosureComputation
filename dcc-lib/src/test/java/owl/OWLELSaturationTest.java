@@ -1,10 +1,11 @@
 package owl;
 
-import benchmark.SaturationWorkerServerGenerator;
+import benchmark.transitiveclosure.SaturationWorkerServerGenerator;
 import data.Closure;
 import data.DefaultClosure;
 import data.IndexedELOntology;
 import eldlreasoning.OWLELDistributedWorkerFactory;
+import eldlreasoning.OWLELWorkerFactory;
 import eldlreasoning.OWLELWorkloadDistributor;
 import eldlreasoning.rules.OWLELRule;
 import eldlsyntax.*;
@@ -17,12 +18,10 @@ import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
-import util.OWL2ELSaturationUtils;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -83,7 +82,7 @@ public class OWLELSaturationTest {
     }
 
     public DefaultClosure<ELConceptInclusion> getClosureOfSingleThreadedSaturator() {
-        Collection<OWLELRule> owlelRules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
+        Collection<OWLELRule> owlelRules = OWLELWorkerFactory.getOWL2ELRules(elOntology);
         DefaultClosure<ELConceptInclusion> closure = new DefaultClosure<>();
         SingleThreadedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> saturation =
                 new SingleThreadedSaturation<>(elOntology.getInitialAxioms().iterator(), owlelRules, closure);
@@ -126,12 +125,10 @@ public class OWLELSaturationTest {
     void testDistributedSaturation() {
         BenchmarkConfiguration benchmarkConfiguration = new BenchmarkConfiguration(10);
         SaturationWorkerServerGenerator<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerFactory;
-        workerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, 3, new Callable<DefaultClosure<ELConceptInclusion>>() {
-            @Override
-            public DefaultClosure<ELConceptInclusion> call() throws Exception {
-                return new DefaultClosure<>();
-            }
-        });
+        workerFactory = new SaturationWorkerServerGenerator<>(
+                benchmarkConfiguration, 3, 10,
+                DefaultClosure::new
+        );
 
         List<SaturationWorker<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> saturationWorkers;
         saturationWorkers = workerFactory.generateWorkers();
@@ -149,7 +146,7 @@ public class OWLELSaturationTest {
                 owlWorkerFactory.generateDistributedWorkers();
         OWLELWorkloadDistributor workloadDistributor = new OWLELWorkloadDistributor(workerModels);
         DistributedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> distributedSaturation = new DistributedSaturation<>(
-                benchmarkConfiguration, workerModels,workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>());
+                benchmarkConfiguration, workerModels, workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>(), 10);
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override

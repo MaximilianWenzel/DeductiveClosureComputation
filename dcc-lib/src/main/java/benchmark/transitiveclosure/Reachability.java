@@ -1,10 +1,11 @@
-package benchmark;
+package benchmark.transitiveclosure;
 
 import java.io.Serializable;
 import java.util.Objects;
 
 public abstract class Reachability implements Serializable {
     int sourceNode, destinationNode;
+
 
     public Reachability(int sourceNode, int destinationNode) {
         this.sourceNode = sourceNode;

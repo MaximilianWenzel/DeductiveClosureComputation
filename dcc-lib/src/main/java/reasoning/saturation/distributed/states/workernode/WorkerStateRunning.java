@@ -17,12 +17,11 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     public void mainWorkerLoop() throws InterruptedException {
         if (!communicationChannel.hasMoreMessagesToReadWriteOrToBeAcknowledged()) {
-            //boolean axiomsTransmitted = this.communicationChannel.sendAllBufferedAxioms();
-            /*
-            if (!axiomsTransmitted) {
+            boolean axiomsTransmitted = this.communicationChannel.sendAllBufferedAxioms();
+            if (axiomsTransmitted) {
+                return;
             }
 
-             */
             communicationChannel.send(communicationChannel.getControlNodeID(),
                     SaturationStatusMessage.WORKER_INFO_SATURATION_CONVERGED,
                     new Runnable() {

@@ -32,8 +32,8 @@ import org.openjdk.jmh.results.ScalarResult;
 import org.openjdk.jmh.results.AggregationPolicy;
 import org.openjdk.jmh.runner.FailureAssistException;
 
-import benchmark.jmh.jmh_generated.NetworkCommunicationBenchmark_jmhType;
-public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnvelop_jmhTest {
+import benchmark.jmh.jmh_generated.KryoNetBenchmark_jmhType;
+public final class KryoNetBenchmark_sendingMessageModelInMessageEnvelop_jmhTest {
 
     byte p000, p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     byte p016, p017, p018, p019, p020, p021, p022, p023, p024, p025, p026, p027, p028, p029, p030, p031;
@@ -68,24 +68,24 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
         }
         if (threadParams.getSubgroupIndex() == 0) {
             RawResults res = new RawResults();
-            NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G = _jmh_tryInit_f_networkcommunicationbenchmark0_G(control);
+            KryoNetBenchmark_jmhType l_kryonetbenchmark0_G = _jmh_tryInit_f_kryonetbenchmark0_G(control);
 
             control.preSetup();
 
 
             control.announceWarmupReady();
             while (control.warmupShouldWait) {
-                l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
                 res.allOps++;
             }
 
             notifyControl.startMeasurement = true;
-            sendingMessageModelInMessageEnvelop_thrpt_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, l_networkcommunicationbenchmark0_G);
+            sendingMessageModelInMessageEnvelop_thrpt_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, l_kryonetbenchmark0_G);
             notifyControl.stopMeasurement = true;
             control.announceWarmdownReady();
             try {
                 while (control.warmdownShouldWait) {
-                    l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                    l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
                     res.allOps++;
                 }
             } catch (Throwable e) {
@@ -94,30 +94,30 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             control.preTearDown();
 
             if (control.isLastIteration()) {
-                if (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
+                if (KryoNetBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_kryonetbenchmark0_G, 0, 1)) {
                     try {
                         if (control.isFailing) throw new FailureAssistException();
-                        if (l_networkcommunicationbenchmark0_G.readyTrial) {
-                            l_networkcommunicationbenchmark0_G.tearDown();
-                            l_networkcommunicationbenchmark0_G.readyTrial = false;
+                        if (l_kryonetbenchmark0_G.readyTrial) {
+                            l_kryonetbenchmark0_G.tearDown();
+                            l_kryonetbenchmark0_G.readyTrial = false;
                         }
                     } catch (Throwable t) {
                         control.isFailing = true;
                         throw t;
                     } finally {
-                        NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
+                        KryoNetBenchmark_jmhType.tearTrialMutexUpdater.set(l_kryonetbenchmark0_G, 0);
                     }
                 } else {
-                    long l_networkcommunicationbenchmark0_G_backoff = 1;
-                    while (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                        TimeUnit.MILLISECONDS.sleep(l_networkcommunicationbenchmark0_G_backoff);
-                        l_networkcommunicationbenchmark0_G_backoff = Math.max(1024, l_networkcommunicationbenchmark0_G_backoff * 2);
+                    long l_kryonetbenchmark0_G_backoff = 1;
+                    while (KryoNetBenchmark_jmhType.tearTrialMutexUpdater.get(l_kryonetbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_kryonetbenchmark0_G_backoff);
+                        l_kryonetbenchmark0_G_backoff = Math.max(1024, l_kryonetbenchmark0_G_backoff * 2);
                         if (control.isFailing) throw new FailureAssistException();
                         if (Thread.interrupted()) throw new InterruptedException();
                     }
                 }
                 synchronized(this.getClass()) {
-                    f_networkcommunicationbenchmark0_G = null;
+                    f_kryonetbenchmark0_G = null;
                 }
             }
             res.allOps += res.measuredOps;
@@ -135,12 +135,12 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             throw new IllegalStateException("Harness failed to distribute threads among groups properly");
     }
 
-    public static void sendingMessageModelInMessageEnvelop_thrpt_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
+    public static void sendingMessageModelInMessageEnvelop_thrpt_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, KryoNetBenchmark_jmhType l_kryonetbenchmark0_G) throws Throwable {
         long operations = 0;
         long realTime = 0;
         result.startTime = System.nanoTime();
         do {
-            l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+            l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
             operations++;
         } while(!control.isDone);
         result.stopTime = System.nanoTime();
@@ -159,24 +159,24 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
         }
         if (threadParams.getSubgroupIndex() == 0) {
             RawResults res = new RawResults();
-            NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G = _jmh_tryInit_f_networkcommunicationbenchmark0_G(control);
+            KryoNetBenchmark_jmhType l_kryonetbenchmark0_G = _jmh_tryInit_f_kryonetbenchmark0_G(control);
 
             control.preSetup();
 
 
             control.announceWarmupReady();
             while (control.warmupShouldWait) {
-                l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
                 res.allOps++;
             }
 
             notifyControl.startMeasurement = true;
-            sendingMessageModelInMessageEnvelop_avgt_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, l_networkcommunicationbenchmark0_G);
+            sendingMessageModelInMessageEnvelop_avgt_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, l_kryonetbenchmark0_G);
             notifyControl.stopMeasurement = true;
             control.announceWarmdownReady();
             try {
                 while (control.warmdownShouldWait) {
-                    l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                    l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
                     res.allOps++;
                 }
             } catch (Throwable e) {
@@ -185,30 +185,30 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             control.preTearDown();
 
             if (control.isLastIteration()) {
-                if (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
+                if (KryoNetBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_kryonetbenchmark0_G, 0, 1)) {
                     try {
                         if (control.isFailing) throw new FailureAssistException();
-                        if (l_networkcommunicationbenchmark0_G.readyTrial) {
-                            l_networkcommunicationbenchmark0_G.tearDown();
-                            l_networkcommunicationbenchmark0_G.readyTrial = false;
+                        if (l_kryonetbenchmark0_G.readyTrial) {
+                            l_kryonetbenchmark0_G.tearDown();
+                            l_kryonetbenchmark0_G.readyTrial = false;
                         }
                     } catch (Throwable t) {
                         control.isFailing = true;
                         throw t;
                     } finally {
-                        NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
+                        KryoNetBenchmark_jmhType.tearTrialMutexUpdater.set(l_kryonetbenchmark0_G, 0);
                     }
                 } else {
-                    long l_networkcommunicationbenchmark0_G_backoff = 1;
-                    while (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                        TimeUnit.MILLISECONDS.sleep(l_networkcommunicationbenchmark0_G_backoff);
-                        l_networkcommunicationbenchmark0_G_backoff = Math.max(1024, l_networkcommunicationbenchmark0_G_backoff * 2);
+                    long l_kryonetbenchmark0_G_backoff = 1;
+                    while (KryoNetBenchmark_jmhType.tearTrialMutexUpdater.get(l_kryonetbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_kryonetbenchmark0_G_backoff);
+                        l_kryonetbenchmark0_G_backoff = Math.max(1024, l_kryonetbenchmark0_G_backoff * 2);
                         if (control.isFailing) throw new FailureAssistException();
                         if (Thread.interrupted()) throw new InterruptedException();
                     }
                 }
                 synchronized(this.getClass()) {
-                    f_networkcommunicationbenchmark0_G = null;
+                    f_kryonetbenchmark0_G = null;
                 }
             }
             res.allOps += res.measuredOps;
@@ -226,12 +226,12 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             throw new IllegalStateException("Harness failed to distribute threads among groups properly");
     }
 
-    public static void sendingMessageModelInMessageEnvelop_avgt_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
+    public static void sendingMessageModelInMessageEnvelop_avgt_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, KryoNetBenchmark_jmhType l_kryonetbenchmark0_G) throws Throwable {
         long operations = 0;
         long realTime = 0;
         result.startTime = System.nanoTime();
         do {
-            l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+            l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
             operations++;
         } while(!control.isDone);
         result.stopTime = System.nanoTime();
@@ -250,14 +250,14 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
         }
         if (threadParams.getSubgroupIndex() == 0) {
             RawResults res = new RawResults();
-            NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G = _jmh_tryInit_f_networkcommunicationbenchmark0_G(control);
+            KryoNetBenchmark_jmhType l_kryonetbenchmark0_G = _jmh_tryInit_f_kryonetbenchmark0_G(control);
 
             control.preSetup();
 
 
             control.announceWarmupReady();
             while (control.warmupShouldWait) {
-                l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
                 res.allOps++;
             }
 
@@ -266,12 +266,12 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             int batchSize = iterationParams.getBatchSize();
             int opsPerInv = benchmarkParams.getOpsPerInvocation();
             SampleBuffer buffer = new SampleBuffer();
-            sendingMessageModelInMessageEnvelop_sample_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, buffer, targetSamples, opsPerInv, batchSize, l_networkcommunicationbenchmark0_G);
+            sendingMessageModelInMessageEnvelop_sample_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, buffer, targetSamples, opsPerInv, batchSize, l_kryonetbenchmark0_G);
             notifyControl.stopMeasurement = true;
             control.announceWarmdownReady();
             try {
                 while (control.warmdownShouldWait) {
-                    l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                    l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
                     res.allOps++;
                 }
             } catch (Throwable e) {
@@ -280,30 +280,30 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             control.preTearDown();
 
             if (control.isLastIteration()) {
-                if (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
+                if (KryoNetBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_kryonetbenchmark0_G, 0, 1)) {
                     try {
                         if (control.isFailing) throw new FailureAssistException();
-                        if (l_networkcommunicationbenchmark0_G.readyTrial) {
-                            l_networkcommunicationbenchmark0_G.tearDown();
-                            l_networkcommunicationbenchmark0_G.readyTrial = false;
+                        if (l_kryonetbenchmark0_G.readyTrial) {
+                            l_kryonetbenchmark0_G.tearDown();
+                            l_kryonetbenchmark0_G.readyTrial = false;
                         }
                     } catch (Throwable t) {
                         control.isFailing = true;
                         throw t;
                     } finally {
-                        NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
+                        KryoNetBenchmark_jmhType.tearTrialMutexUpdater.set(l_kryonetbenchmark0_G, 0);
                     }
                 } else {
-                    long l_networkcommunicationbenchmark0_G_backoff = 1;
-                    while (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                        TimeUnit.MILLISECONDS.sleep(l_networkcommunicationbenchmark0_G_backoff);
-                        l_networkcommunicationbenchmark0_G_backoff = Math.max(1024, l_networkcommunicationbenchmark0_G_backoff * 2);
+                    long l_kryonetbenchmark0_G_backoff = 1;
+                    while (KryoNetBenchmark_jmhType.tearTrialMutexUpdater.get(l_kryonetbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_kryonetbenchmark0_G_backoff);
+                        l_kryonetbenchmark0_G_backoff = Math.max(1024, l_kryonetbenchmark0_G_backoff * 2);
                         if (control.isFailing) throw new FailureAssistException();
                         if (Thread.interrupted()) throw new InterruptedException();
                     }
                 }
                 synchronized(this.getClass()) {
-                    f_networkcommunicationbenchmark0_G = null;
+                    f_kryonetbenchmark0_G = null;
                 }
             }
             res.allOps += res.measuredOps * batchSize;
@@ -318,7 +318,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             throw new IllegalStateException("Harness failed to distribute threads among groups properly");
     }
 
-    public static void sendingMessageModelInMessageEnvelop_sample_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, SampleBuffer buffer, int targetSamples, long opsPerInv, int batchSize, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
+    public static void sendingMessageModelInMessageEnvelop_sample_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, SampleBuffer buffer, int targetSamples, long opsPerInv, int batchSize, KryoNetBenchmark_jmhType l_kryonetbenchmark0_G) throws Throwable {
         long realTime = 0;
         long operations = 0;
         int rnd = (int)System.nanoTime();
@@ -333,7 +333,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             }
             for (int b = 0; b < batchSize; b++) {
                 if (control.volatileSpoiler) return;
-                l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
             }
             if (sample) {
                 buffer.add((System.nanoTime() - time) / opsPerInv);
@@ -360,7 +360,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             this.blackhole = new Blackhole("Today's password is swordfish. I understand instantiating Blackholes directly is dangerous.");
         }
         if (threadParams.getSubgroupIndex() == 0) {
-            NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G = _jmh_tryInit_f_networkcommunicationbenchmark0_G(control);
+            KryoNetBenchmark_jmhType l_kryonetbenchmark0_G = _jmh_tryInit_f_kryonetbenchmark0_G(control);
 
             control.preSetup();
 
@@ -368,34 +368,34 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             notifyControl.startMeasurement = true;
             RawResults res = new RawResults();
             int batchSize = iterationParams.getBatchSize();
-            sendingMessageModelInMessageEnvelop_ss_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, batchSize, l_networkcommunicationbenchmark0_G);
+            sendingMessageModelInMessageEnvelop_ss_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, batchSize, l_kryonetbenchmark0_G);
             control.preTearDown();
 
             if (control.isLastIteration()) {
-                if (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_networkcommunicationbenchmark0_G, 0, 1)) {
+                if (KryoNetBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_kryonetbenchmark0_G, 0, 1)) {
                     try {
                         if (control.isFailing) throw new FailureAssistException();
-                        if (l_networkcommunicationbenchmark0_G.readyTrial) {
-                            l_networkcommunicationbenchmark0_G.tearDown();
-                            l_networkcommunicationbenchmark0_G.readyTrial = false;
+                        if (l_kryonetbenchmark0_G.readyTrial) {
+                            l_kryonetbenchmark0_G.tearDown();
+                            l_kryonetbenchmark0_G.readyTrial = false;
                         }
                     } catch (Throwable t) {
                         control.isFailing = true;
                         throw t;
                     } finally {
-                        NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.set(l_networkcommunicationbenchmark0_G, 0);
+                        KryoNetBenchmark_jmhType.tearTrialMutexUpdater.set(l_kryonetbenchmark0_G, 0);
                     }
                 } else {
-                    long l_networkcommunicationbenchmark0_G_backoff = 1;
-                    while (NetworkCommunicationBenchmark_jmhType.tearTrialMutexUpdater.get(l_networkcommunicationbenchmark0_G) == 1) {
-                        TimeUnit.MILLISECONDS.sleep(l_networkcommunicationbenchmark0_G_backoff);
-                        l_networkcommunicationbenchmark0_G_backoff = Math.max(1024, l_networkcommunicationbenchmark0_G_backoff * 2);
+                    long l_kryonetbenchmark0_G_backoff = 1;
+                    while (KryoNetBenchmark_jmhType.tearTrialMutexUpdater.get(l_kryonetbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_kryonetbenchmark0_G_backoff);
+                        l_kryonetbenchmark0_G_backoff = Math.max(1024, l_kryonetbenchmark0_G_backoff * 2);
                         if (control.isFailing) throw new FailureAssistException();
                         if (Thread.interrupted()) throw new InterruptedException();
                     }
                 }
                 synchronized(this.getClass()) {
-                    f_networkcommunicationbenchmark0_G = null;
+                    f_kryonetbenchmark0_G = null;
                 }
             }
             int opsPerInv = control.benchmarkParams.getOpsPerInvocation();
@@ -408,36 +408,36 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             throw new IllegalStateException("Harness failed to distribute threads among groups properly");
     }
 
-    public static void sendingMessageModelInMessageEnvelop_ss_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, int batchSize, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
+    public static void sendingMessageModelInMessageEnvelop_ss_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, int batchSize, KryoNetBenchmark_jmhType l_kryonetbenchmark0_G) throws Throwable {
         long realTime = 0;
         result.startTime = System.nanoTime();
         for (int b = 0; b < batchSize; b++) {
             if (control.volatileSpoiler) return;
-            l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+            l_kryonetbenchmark0_G.sendingMessageModelInMessageEnvelop();
         }
         result.stopTime = System.nanoTime();
         result.realTime = realTime;
     }
 
     
-    static volatile NetworkCommunicationBenchmark_jmhType f_networkcommunicationbenchmark0_G;
+    static volatile KryoNetBenchmark_jmhType f_kryonetbenchmark0_G;
     
-    NetworkCommunicationBenchmark_jmhType _jmh_tryInit_f_networkcommunicationbenchmark0_G(InfraControl control) throws Throwable {
-        NetworkCommunicationBenchmark_jmhType val = f_networkcommunicationbenchmark0_G;
+    KryoNetBenchmark_jmhType _jmh_tryInit_f_kryonetbenchmark0_G(InfraControl control) throws Throwable {
+        KryoNetBenchmark_jmhType val = f_kryonetbenchmark0_G;
         if (val != null) {
             return val;
         }
         synchronized(this.getClass()) {
             try {
             if (control.isFailing) throw new FailureAssistException();
-            val = f_networkcommunicationbenchmark0_G;
+            val = f_kryonetbenchmark0_G;
             if (val != null) {
                 return val;
             }
-            val = new NetworkCommunicationBenchmark_jmhType();
+            val = new KryoNetBenchmark_jmhType();
             val.setUp();
             val.readyTrial = true;
-            f_networkcommunicationbenchmark0_G = val;
+            f_kryonetbenchmark0_G = val;
             } catch (Throwable t) {
                 control.isFailing = true;
                 throw t;

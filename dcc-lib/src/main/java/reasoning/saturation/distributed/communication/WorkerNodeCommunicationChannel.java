@@ -151,16 +151,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
         for (Long receiverWorkerID : workerIDs) {
             if (receiverWorkerID != this.workerID) {
-                /*
                 List<Serializable> bufferedAxioms = this.workerIDToBufferedAxioms.computeIfAbsent(receiverWorkerID, p -> new ArrayList<>());
                 bufferedAxioms.add(axiom);
                 if (bufferedAxioms.size() == maxNumAxiomsToBufferBeforeSending) {
                     sendAxioms(receiverWorkerID, bufferedAxioms);
                     this.workerIDToBufferedAxioms.remove(receiverWorkerID);
                 }
-
-                 */
-                sendAxioms(receiverWorkerID, Collections.singletonList(axiom));
             } else {
                 // add axioms from this worker directly to the queue
                 toDo.add(axiom);
@@ -177,7 +173,6 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     /**
      * Indicates if at least one axiom has been transmitted.
      */
-    /*
     public boolean sendAllBufferedAxioms() {
         boolean axiomTransmitted = false;
         for (Map.Entry<Long, List<Serializable>> workerIDToBufferedAxioms : this.workerIDToBufferedAxioms.entrySet()) {
@@ -188,7 +183,6 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         return axiomTransmitted;
     }
 
-     */
     private void sendAxioms(long receiverWorkerID, List<? extends Serializable> axioms) {
         distributedMessages.getAndIncrement();
 
@@ -260,15 +254,15 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     private class MessageProcessorImpl implements MessageProcessor {
         @Override
-        public void process(MessageEnvelope messageEnvelope) {
-            if (!(messageEnvelope.getMessage() instanceof MessageModel)) {
+        public void process(long socketID, Object message) {
+            if (!(message instanceof MessageModel)) {
                 throw new MessageProtocolViolationException();
             }
-            MessageModel messageModel = (MessageModel) messageEnvelope.getMessage();
+            MessageModel messageModel = (MessageModel) message;
 
             if (!allConnectionsEstablished) {
                 // get worker ID / control node ID to socket ID mapping
-                socketIDToWorkerID.put(messageEnvelope.getSocketID(), messageModel.getSenderID());
+                socketIDToWorkerID.put(socketID, messageModel.getSenderID());
                 if (workers != null && workers.size() == socketIDToWorkerID.size()) {
                     //  if all connections (i.e., # workers - 1 + single control node) are established
                     allConnectionsEstablished = true;
@@ -276,12 +270,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
                 if (messageModel instanceof InitializeWorkerMessage) {
                     // first message from control node
-                    WorkerNodeCommunicationChannel.this.controlNodeSocketID = messageEnvelope.getSocketID();
+                    WorkerNodeCommunicationChannel.this.controlNodeSocketID = socketID;
                     initializationMessageID = messageModel.getMessageID();
                 }
             }
 
-            WorkerNodeCommunicationChannel.this.toDo.add(messageEnvelope.getMessage());
+            WorkerNodeCommunicationChannel.this.toDo.add(message);
         }
     }
 

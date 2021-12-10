@@ -2,7 +2,7 @@ package eldlreasoning;
 
 import data.DefaultClosure;
 import data.IndexedELOntology;
-import eldlreasoning.rules.OWLELRule;
+import eldlreasoning.rules.*;
 import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptInclusion;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
@@ -44,7 +44,7 @@ public class OWLELWorkerFactory implements WorkerFactory<DefaultClosure<ELConcep
         List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workers = new ArrayList<>(numberOfWorkers);
 
         for (UnifiedSet<ELConcept> conceptWorker : conceptWorkers) {
-            Collection<OWLELRule> rules = OWL2ELSaturationUtils.getOWL2ELRules(elOntology);
+            List<OWLELRule> rules = getOWL2ELRules(elOntology);
             WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> pm = new WorkerModel<>(
                     rules,
                     conceptWorker
@@ -52,6 +52,17 @@ public class OWLELWorkerFactory implements WorkerFactory<DefaultClosure<ELConcep
             workers.add(pm);
         }
         return workers;
+    }
+
+    public static List<OWLELRule> getOWL2ELRules(IndexedELOntology elOntology) {
+        List<OWLELRule> rules = new ArrayList<>();
+        rules.add(new ComposeConjunctionRule(elOntology.getNegativeConcepts()));
+        rules.add(new DecomposeConjunctionRule());
+        rules.add(new ReflexiveSubsumptionRule());
+        rules.add(new SubsumedByTopRule(elOntology.getTop()));
+        rules.add(new UnfoldExistentialRule());
+        rules.add(new UnfoldSubsumptionRule(elOntology.getOntologyAxioms()));
+        return rules;
     }
 
 }

@@ -38,4 +38,6 @@ public abstract class GraphGenerator<E> {
     public int getNumberOfNodes() {
         return numberOfNodes;
     }
+
+    public abstract String getGraphTypeName();
 }

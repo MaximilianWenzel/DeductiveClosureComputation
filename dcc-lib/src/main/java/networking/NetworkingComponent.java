@@ -5,15 +5,14 @@ import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
 import networking.io.SocketManagerFactory;
-import networking.messages.MessageEnvelope;
-import util.ConsoleUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.*;
-import java.util.logging.Logger;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class NetworkingComponent implements Runnable {
 
@@ -22,7 +21,7 @@ public class NetworkingComponent implements Runnable {
     protected Selector selector;
 
     protected List<PortListener> portNumbersToListen;
-    protected List<ServerConnector> serversToConnectTo;
+    protected BlockingQueue<ServerConnector> serversToConnectTo = new LinkedBlockingQueue<>();
 
     protected List<ServerSocketChannel> serverSocketChannels = new ArrayList<>();
 
@@ -30,8 +29,6 @@ public class NetworkingComponent implements Runnable {
 
     protected MessageProcessor messageProcessor;
     protected SocketManagerFactory socketManagerFactory;
-
-    final Object serverConnectorLock = new Object();
 
     protected boolean running = true;
 
@@ -41,7 +38,7 @@ public class NetworkingComponent implements Runnable {
                                List<ServerConnector> serversToConnectTo) {
         this.socketManagerFactory = socketManagerFactory;
         this.portNumbersToListen = portNumbersToListen;
-        this.serversToConnectTo = serversToConnectTo;
+        this.serversToConnectTo.addAll(serversToConnectTo);
         this.messageProcessor = messageProcessor;
         init();
     }
@@ -81,8 +78,8 @@ public class NetworkingComponent implements Runnable {
                 listenToPort(portListener);
             }
 
-            for (ServerConnector serverConnector : this.serversToConnectTo) {
-                connectToServer(serverConnector);
+            while (!serversToConnectTo.isEmpty()) {
+                connectToServer(serversToConnectTo.take(), SocketChannel.open());
             }
 
             while (running) {
@@ -115,7 +112,7 @@ public class NetworkingComponent implements Runnable {
                 }
                 socketManager.close();
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
 
@@ -126,6 +123,13 @@ public class NetworkingComponent implements Runnable {
         selector.select();
         if (!selector.isOpen()) {
             return;
+        }
+        while (!serversToConnectTo.isEmpty()) {
+            try {
+                connectToServer(serversToConnectTo.take(), SocketChannel.open());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         Set<SelectionKey> keys = selector.selectedKeys();
 
@@ -140,39 +144,39 @@ public class NetworkingComponent implements Runnable {
                 acceptClientConnection(key);
             }
             if (key.isConnectable()) {
-                connectToServer(key);
+                finishServerConnection(key);
             }
         }
         keys.clear();
+
+
     }
 
-    private void connectToServer(SelectionKey key) throws IOException {
+    private void finishServerConnection(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
-        if (!socketChannel.finishConnect()) {
-            throw new IllegalStateException("Could not connect to server: " + socketChannel.getRemoteAddress());
-        }
+        socketChannel.finishConnect();
+
         SocketManager socketManager = socketManagerFactory.createNewSocketManager(socketChannel);
+        ServerConnector serverConnector = (ServerConnector) key.attachment();
+        initNewConnectedSocket(socketManager);
+        serverConnector.onConnectionEstablished(socketManager);
+    }
 
-        synchronized (serverConnectorLock) {
-            ServerConnector serverConnector = (ServerConnector) key.attachment();
-            initNewConnectedSocket(socketManager);
-            serverConnector.onConnectionEstablished(socketManager);
+    private void connectToServer(ServerConnector serverConnector, SocketChannel socketChannel) throws IOException {
+        socketChannel.configureBlocking(false);
+
+        ServerData serverData = serverConnector.getServerData();
+        socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
+        SelectionKey key = socketChannel.register(selector, SelectionKey.OP_CONNECT);
+        key.attach(serverConnector);
+        if (socketChannel.finishConnect()) {
+            finishServerConnection(key);
         }
-
     }
 
 
     public void connectToServer(ServerConnector serverConnector) throws IOException {
-        SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.configureBlocking(false);
-
-        synchronized (serverConnectorLock) {
-            SelectionKey key = socketChannel.register(selector, SelectionKey.OP_CONNECT);
-            key.attach(serverConnector);
-            ServerData serverData = serverConnector.getServerData();
-            socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
-        }
-
+        serversToConnectTo.add(serverConnector);
         // finish connection establishment by NIO thread
         selector.wakeup();
     }
@@ -182,7 +186,7 @@ public class NetworkingComponent implements Runnable {
 
         SocketChannel socketChannel = socketManager.getSocketChannel();
         socketChannel.configureBlocking(false);
-        SelectionKey key = socketChannel.register(this.selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+        SelectionKey key = socketChannel.register(this.selector, SelectionKey.OP_READ);
         key.attach(socketManager);
     }
 
@@ -190,8 +194,7 @@ public class NetworkingComponent implements Runnable {
         SocketManager socketManager = (SocketManager) key.attachment();
         Queue<Object> receivedMessages = socketManager.readMessages();
         while (!receivedMessages.isEmpty()) {
-            MessageEnvelope messageEnvelope = new MessageEnvelope(socketManager.getSocketID(), receivedMessages.poll());
-            messageProcessor.process(messageEnvelope);
+            messageProcessor.process(socketManager.getSocketID(), receivedMessages.poll());
         }
 
         // connected socket is closed
@@ -203,16 +206,12 @@ public class NetworkingComponent implements Runnable {
         }
     }
 
-    private void writeToSocket(SelectionKey key) {
+    private void writeToSocket(SelectionKey key) throws IOException {
         SocketManager socketManager = (SocketManager) key.attachment();
 
-        synchronized (socketManager) {
-            if (socketManager.hasMessagesToSend()) {
-                socketManager.sendMessages();
-            } else {
-                // remove write selector
-                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-            }
+        if (!socketManager.hasMessagesToSend() || socketManager.sendMessages()) {
+            // all messages have been sent
+            key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
         }
     }
 
@@ -220,10 +219,7 @@ public class NetworkingComponent implements Runnable {
         SocketManager socketManager = this.socketIDToMessageManager.get(socketID);
         try {
             if (socketManager != null) {
-                socketManager.enqueueMessageToSend(message);
-
-                // add write selector
-                synchronized (socketManager) {
+                if (!socketManager.sendMessage(message)) {
                     SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
                     key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
                     selector.wakeup();

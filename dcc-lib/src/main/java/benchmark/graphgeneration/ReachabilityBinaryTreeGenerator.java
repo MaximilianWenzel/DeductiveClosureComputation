@@ -1,6 +1,6 @@
 package benchmark.graphgeneration;
 
-import benchmark.ToldReachability;
+import benchmark.transitiveclosure.ToldReachability;
 
 public class ReachabilityBinaryTreeGenerator extends BinaryTreeGenerator<ToldReachability> {
     public ReachabilityBinaryTreeGenerator(int depth) {
@@ -10,5 +10,10 @@ public class ReachabilityBinaryTreeGenerator extends BinaryTreeGenerator<ToldRea
     @Override
     protected ToldReachability generateEdge(int sourceNode, int destinationNode) {
         return new ToldReachability(sourceNode, destinationNode);
+    }
+
+    @Override
+    public String getGraphTypeName() {
+        return "BinaryTree";
     }
 }

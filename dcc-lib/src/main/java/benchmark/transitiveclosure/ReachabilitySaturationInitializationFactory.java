@@ -1,11 +1,10 @@
-package benchmark;
+package benchmark.transitiveclosure;
 
 import org.roaringbitmap.RoaringBitmap;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
-import java.util.Collection;
 import java.util.List;
 
 public class ReachabilitySaturationInitializationFactory extends SaturationInitializationFactory<ReachabilityClosure, Reachability, RoaringBitmap> {

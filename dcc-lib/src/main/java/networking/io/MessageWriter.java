@@ -1,66 +1,69 @@
 package networking.io;
 
-import util.SerializationUtils;
+import util.serialization.JavaSerializer;
+import util.serialization.Serializer;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayDeque;
-import java.util.Queue;
 
 public class MessageWriter {
-    // TODO probably change queue implementation
-    private final Queue<Object> messagesToSend = new ArrayDeque<>();
-
     private final SocketChannel socketChannel;
-
-    private final ByteBuffer messageSizeBuffer = ByteBuffer.wrap(new byte[4]);
 
     // TODO user defined buffer size
     private ByteBuffer messageBuffer = ByteBuffer.allocate(((int) Math.pow(2, 20) * 2));
 
-    private Object currentMessage;
+    private Object bufferLock = new Object();
 
-    private boolean newMessageStarts = true;
+    private int numBytesForLength = 4;
+    private Serializer serializer = new JavaSerializer();
 
     public MessageWriter(SocketChannel socketChannel) {
         this.socketChannel = socketChannel;
     }
 
-    public void enqueue(Object message) {
-        messagesToSend.add(message);
+    /**
+     * Returns whether all messages have been transmitted.
+     */
+    public boolean send(Serializable message) throws IOException {
+        // write message to buffer
+        synchronized (bufferLock) {
+
+            // reserve bytes for length
+            messageBuffer.position(messageBuffer.position() + numBytesForLength);
+
+            // write object to buffer
+            int start = messageBuffer.position();
+            serializer.serializeToByteBuffer(message, messageBuffer);
+            int end = messageBuffer.position();
+
+            // write length to buffer
+            int numBytesObject = end - start;
+            messageBuffer.position(messageBuffer.position() - numBytesObject - numBytesForLength);
+            messageBuffer.putInt(numBytesObject);
+
+            // set position to end of object
+            messageBuffer.position(end);
+        }
+
+        return readFromBufferAndWriteToSocket();
+
     }
 
-    public void write() throws IOException {
-        if (newMessageStarts) {
-            currentMessage = messagesToSend.poll();
-            if (currentMessage == null) {
-                return;
-            }
-            messageBuffer.clear();
-            SerializationUtils.kryoSerializeToByteBuffer(currentMessage, messageBuffer);
-            messageBuffer.flip();
-
-            messageSizeBuffer.clear();
-            messageSizeBuffer.putInt(0, messageBuffer.remaining());
-            newMessageStarts = false;
-        }
-
-        if (messageSizeBuffer.hasRemaining()) {
-            write(messageSizeBuffer);
-        }
-
-        if (!messageSizeBuffer.hasRemaining()) {
-            write(messageBuffer);
-            if (!messageBuffer.hasRemaining()) {
-                // complete message sent
-                currentMessage = null;
-                newMessageStarts = true;
-            }
+    /**
+     * Returns whether all messages have been written to the socket from the buffer.
+     */
+    public boolean readFromBufferAndWriteToSocket() throws IOException {
+        synchronized (bufferLock) {
+            readFromBufferAndWriteToSocket(messageBuffer);
+            return messageBuffer.position() == 0;
         }
     }
 
-    private int write(ByteBuffer byteBuffer) throws IOException {
+    private int readFromBufferAndWriteToSocket(ByteBuffer byteBuffer) throws IOException {
+        messageBuffer.flip();
+
         int bytesWritten = this.socketChannel.write(byteBuffer);
         int totalBytesWritten = bytesWritten;
 
@@ -68,12 +71,15 @@ public class MessageWriter {
             bytesWritten = this.socketChannel.write(byteBuffer);
             totalBytesWritten += bytesWritten;
         }
+        byteBuffer.compact();
 
         return totalBytesWritten;
     }
 
     public boolean isEmpty() {
-        return this.messagesToSend.isEmpty() && this.currentMessage == null;
+        synchronized (bufferLock) {
+            return messageBuffer.position() > 0;
+        }
     }
 
 }

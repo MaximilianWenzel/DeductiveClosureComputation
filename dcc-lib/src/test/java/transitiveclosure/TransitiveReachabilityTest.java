@@ -1,7 +1,7 @@
 package transitiveclosure;
 
-import benchmark.*;
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
+import benchmark.transitiveclosure.*;
 import networking.ServerData;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
@@ -99,12 +99,8 @@ public class TransitiveReachabilityTest {
 
 
         SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
-        workerServerFactory = new SaturationWorkerServerGenerator<>(benchmarkConfiguration, numberOfWorkers, new Callable() {
-            @Override
-            public ReachabilityClosure call() throws Exception {
-                return new ReachabilityClosure();
-            }
-        });
+        workerServerFactory = new SaturationWorkerServerGenerator<>(
+                benchmarkConfiguration, numberOfWorkers, 10, (Callable) ReachabilityClosure::new);
 
         List<SaturationWorker<ReachabilityClosure, Reachability, RoaringBitmap>> saturationWorkers;
         saturationWorkers = workerServerFactory.generateWorkers();
@@ -123,7 +119,8 @@ public class TransitiveReachabilityTest {
                 workers,
                 new ReachabilityWorkloadDistributor(workers),
                 initialAxioms,
-                new ReachabilityClosure()
+                new ReachabilityClosure(),
+                10
         );
 
         ReachabilityClosure closure = saturation.saturate();

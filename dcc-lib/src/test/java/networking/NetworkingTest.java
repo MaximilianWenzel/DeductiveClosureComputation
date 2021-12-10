@@ -1,5 +1,7 @@
 package networking;
 
+import benchmark.jmh.ReceiverStub;
+import benchmark.jmh.SenderStub;
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class NetworkingTest {
 
@@ -25,13 +28,13 @@ public class NetworkingTest {
 
         MessageProcessor messageProcessor = new MessageProcessor() {
             @Override
-            public void process(MessageEnvelope message) {
+            public void process(long socketID, Object message) {
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                System.out.println(LocalDateTime.now() + " - Received message: " + message.getMessage());
+                System.out.println(LocalDateTime.now() + " - Received message: " + message);
             }
         };
 
@@ -96,8 +99,20 @@ public class NetworkingTest {
 
         try {
             Thread.sleep(2000);
-            Scanner s = new Scanner(System.in);
-            s.next();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testSenderReceiverStubs() {
+        LinkedBlockingQueue<Object> linkedBlockingQueue = new LinkedBlockingQueue<>();
+        ReceiverStub receiverStub = new ReceiverStub(linkedBlockingQueue);
+        SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()));
+
+        try {
+            senderStub.sendMessage("Test");
+            assert linkedBlockingQueue.take().getClass().equals(String.class);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

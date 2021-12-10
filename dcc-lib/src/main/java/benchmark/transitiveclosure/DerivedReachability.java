@@ -1,4 +1,4 @@
-package benchmark;
+package benchmark.transitiveclosure;
 
 public class DerivedReachability extends Reachability {
 

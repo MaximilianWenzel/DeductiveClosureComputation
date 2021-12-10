@@ -1,6 +1,7 @@
 package networking.io;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
@@ -17,16 +18,18 @@ public abstract class SocketManager {
         return socketID;
     }
 
-    public void enqueueMessageToSend(Object message) throws IOException {
-        this.messageWriter.enqueue(message);
+    /**
+     * Returns whether the complete message could be transmitted.
+     */
+    public boolean sendMessage(Serializable message) throws IOException {
+        return this.messageWriter.send(message);
     }
 
-    public void sendMessages() {
-        try {
-            this.messageWriter.write();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    /**
+     * Returns whether all messages could be transmitted.
+     */
+    public boolean sendMessages() throws IOException {
+        return this.messageWriter.readFromBufferAndWriteToSocket();
     }
 
     public Queue<Object> readMessages() throws IOException, ClassNotFoundException {

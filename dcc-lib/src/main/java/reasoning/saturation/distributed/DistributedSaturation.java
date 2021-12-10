@@ -28,7 +28,8 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
                                  List<DistributedWorkerModel<C, A, T>> workers,
                                  WorkloadDistributor<C, A, T> workloadDistributor,
                                  List<? extends A> initialAxioms,
-                                 C resultingClosure) {
+                                 C resultingClosure,
+                                 int numberOfAxiomsToBuffer) {
         this.workloadDistributor = workloadDistributor;
         this.workers = workers;
         this.controlNode = new SaturationControlNode<>(benchmarkConfiguration, workers, workloadDistributor, initialAxioms, resultingClosure);

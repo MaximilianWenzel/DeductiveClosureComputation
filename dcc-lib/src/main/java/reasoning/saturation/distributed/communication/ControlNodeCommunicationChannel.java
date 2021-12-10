@@ -153,15 +153,15 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     private class MessageProcessorImpl implements MessageProcessor {
 
         @Override
-        public void process(MessageEnvelope message) {
+        public void process(long socketID, Object message) {
             if (!allConnectionsEstablished) {
-                long workerID = ((MessageModel)message.getMessage()).getSenderID();
-                ControlNodeCommunicationChannel.this.socketIDToWorkerID.put(message.getSocketID(), workerID);
+                long workerID = ((MessageModel)message).getSenderID();
+                ControlNodeCommunicationChannel.this.socketIDToWorkerID.put(socketID, workerID);
                 if (socketIDToWorkerID.size() == ControlNodeCommunicationChannel.this.workers.size()) {
                     allConnectionsEstablished = true;
                 }
             }
-            receivedMessages.add((MessageModel) message.getMessage());
+            receivedMessages.add((MessageModel) message);
         }
     }
     private class WorkerServerConnector extends ServerConnector {

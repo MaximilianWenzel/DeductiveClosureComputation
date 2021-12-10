@@ -1,6 +1,7 @@
 package networking.io;
 
-import util.SerializationUtils;
+import util.serialization.JavaSerializer;
+import util.serialization.Serializer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -16,43 +17,49 @@ public class MessageReader {
     protected SocketChannel socketChannel;
 
     protected int messageSizeInBytes;
+    protected int readBytes = 0;
 
     // TODO user defined buffer size
-    protected ByteBuffer messageBuffer = ByteBuffer.allocate(((int)Math.pow(2, 20) * 2));
+    protected ByteBuffer messageBuffer = ByteBuffer.allocate(((int) Math.pow(2, 20) * 2));
 
     protected boolean newMessageStarts = true;
     protected boolean endOfStreamReached = false;
+    private Serializer serializer = new JavaSerializer();
 
     public MessageReader(SocketChannel socketChannel) {
         this.socketChannel = socketChannel;
     }
 
     public void read() throws IOException, ClassNotFoundException {
-        if (newMessageStarts) {
-            // first read message size in bytes
-            //read(messageSizeBuffer);
+        readBytes += read(messageBuffer);
 
-            /*
-            if (messageSizeBuffer.remaining() == 0) {
+        this.messageBuffer.flip();
+        while (readBytes > 0) {
+            // read messages from buffer
+            if (newMessageStarts && messageBuffer.hasRemaining()) {
+                // first read message size in bytes
                 onNewMessageSizeHasBeenRead();
             }
-
-             */
-        }
-        if (messageSizeInBytes != -1) {
-            // if message size is known
-            read(messageBuffer);
-            if (fullMessageHasBeenRead()) {
+            if (messageSizeInBytes != -1 && moreCompletedMessagesInBuffer()) {
+                // if message size is known
                 onCompleteMessageHasBeenRead();
             }
+
+            if (!moreCompletedMessagesInBuffer()) {
+                break;
+            }
         }
+        messageBuffer.compact();
+    }
+
+    protected void onBytesHaveBeenRead() {
+
     }
 
     protected void onNewMessageSizeHasBeenRead() {
         newMessageStarts = false;
-        //messageSizeInBytes = messageSizeBuffer.getInt(0);
-        //messageSizeBuffer.clear();
-        messageBuffer.clear();
+        messageSizeInBytes = messageBuffer.getInt();
+        readBytes -= 4;
     }
 
     protected void onCompleteMessageHasBeenRead() throws IOException, ClassNotFoundException {
@@ -75,26 +82,16 @@ public class MessageReader {
         return totalBytesRead;
     }
 
-    protected Object getCompletedMessageAndClearBuffer() {
-        if (fullMessageHasBeenRead()) {
-            messageBuffer.flip();
-            Object obj = SerializationUtils.kryoDeserializeFromByteBuffer(messageBuffer, 0, messageSizeInBytes);
-            initBufferForNewMessage();
-            return obj;
-        } else {
-            throw new IllegalStateException("Message has not read completely yet. Remaining bytes: " + messageBuffer.remaining());
-        }
+    protected Object getCompletedMessageAndClearBuffer() throws IOException, ClassNotFoundException {
+        Object obj = serializer.deserializeFromByteBuffer(messageBuffer);
+        initBufferForNewMessage();
+        return obj;
     }
 
     protected void initBufferForNewMessage() {
-        messageBuffer.compact();
-        if (messageBuffer.hasRemaining()) {
-            this.messageSizeInBytes = this.messageBuffer.getInt();
-            this.messageBuffer.clear();
-            //this.messageSizeBuffer.clear();
-            this.messageSizeInBytes = -1;
-            this.newMessageStarts = true;
-        }
+        readBytes -= messageSizeInBytes;
+        messageSizeInBytes = -1;
+        newMessageStarts = true;
     }
 
     public boolean hasMessagesOrReadsCurrentlyMessage() {
@@ -109,7 +106,7 @@ public class MessageReader {
         return endOfStreamReached;
     }
 
-    protected boolean fullMessageHasBeenRead() {
-        return messageBuffer.remaining() < this.messageBuffer.capacity() - messageSizeInBytes;
+    protected boolean moreCompletedMessagesInBuffer() {
+        return readBytes >= messageSizeInBytes;
     }
 }

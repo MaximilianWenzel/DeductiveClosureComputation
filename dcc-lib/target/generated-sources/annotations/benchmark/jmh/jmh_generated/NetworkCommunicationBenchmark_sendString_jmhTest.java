@@ -33,7 +33,7 @@ import org.openjdk.jmh.results.AggregationPolicy;
 import org.openjdk.jmh.runner.FailureAssistException;
 
 import benchmark.jmh.jmh_generated.NetworkCommunicationBenchmark_jmhType;
-public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnvelop_jmhTest {
+public final class NetworkCommunicationBenchmark_sendString_jmhTest {
 
     byte p000, p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015;
     byte p016, p017, p018, p019, p020, p021, p022, p023, p024, p025, p026, p027, p028, p029, p030, p031;
@@ -58,7 +58,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
     Blackhole blackhole;
     Control notifyControl;
 
-    public BenchmarkTaskResult sendingMessageModelInMessageEnvelop_Throughput(InfraControl control, ThreadParams threadParams) throws Throwable {
+    public BenchmarkTaskResult sendString_Throughput(InfraControl control, ThreadParams threadParams) throws Throwable {
         this.benchmarkParams = control.benchmarkParams;
         this.iterationParams = control.iterationParams;
         this.threadParams    = threadParams;
@@ -75,17 +75,17 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
 
             control.announceWarmupReady();
             while (control.warmupShouldWait) {
-                l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                l_networkcommunicationbenchmark0_G.sendString();
                 res.allOps++;
             }
 
             notifyControl.startMeasurement = true;
-            sendingMessageModelInMessageEnvelop_thrpt_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, l_networkcommunicationbenchmark0_G);
+            sendString_thrpt_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, l_networkcommunicationbenchmark0_G);
             notifyControl.stopMeasurement = true;
             control.announceWarmdownReady();
             try {
                 while (control.warmdownShouldWait) {
-                    l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                    l_networkcommunicationbenchmark0_G.sendString();
                     res.allOps++;
                 }
             } catch (Throwable e) {
@@ -128,19 +128,19 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             res.measuredOps *= opsPerInv;
             res.measuredOps /= batchSize;
             BenchmarkTaskResult results = new BenchmarkTaskResult((long)res.allOps, (long)res.measuredOps);
-            results.add(new ThroughputResult(ResultRole.PRIMARY, "sendingMessageModelInMessageEnvelop", res.measuredOps, res.getTime(), benchmarkParams.getTimeUnit()));
+            results.add(new ThroughputResult(ResultRole.PRIMARY, "sendString", res.measuredOps, res.getTime(), benchmarkParams.getTimeUnit()));
             this.blackhole.evaporate("Yes, I am Stephen Hawking, and know a thing or two about black holes.");
             return results;
         } else
             throw new IllegalStateException("Harness failed to distribute threads among groups properly");
     }
 
-    public static void sendingMessageModelInMessageEnvelop_thrpt_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
+    public static void sendString_thrpt_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
         long operations = 0;
         long realTime = 0;
         result.startTime = System.nanoTime();
         do {
-            l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+            l_networkcommunicationbenchmark0_G.sendString();
             operations++;
         } while(!control.isDone);
         result.stopTime = System.nanoTime();
@@ -149,7 +149,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
     }
 
 
-    public BenchmarkTaskResult sendingMessageModelInMessageEnvelop_AverageTime(InfraControl control, ThreadParams threadParams) throws Throwable {
+    public BenchmarkTaskResult sendString_AverageTime(InfraControl control, ThreadParams threadParams) throws Throwable {
         this.benchmarkParams = control.benchmarkParams;
         this.iterationParams = control.iterationParams;
         this.threadParams    = threadParams;
@@ -166,17 +166,17 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
 
             control.announceWarmupReady();
             while (control.warmupShouldWait) {
-                l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                l_networkcommunicationbenchmark0_G.sendString();
                 res.allOps++;
             }
 
             notifyControl.startMeasurement = true;
-            sendingMessageModelInMessageEnvelop_avgt_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, l_networkcommunicationbenchmark0_G);
+            sendString_avgt_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, l_networkcommunicationbenchmark0_G);
             notifyControl.stopMeasurement = true;
             control.announceWarmdownReady();
             try {
                 while (control.warmdownShouldWait) {
-                    l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                    l_networkcommunicationbenchmark0_G.sendString();
                     res.allOps++;
                 }
             } catch (Throwable e) {
@@ -219,19 +219,19 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             res.measuredOps *= opsPerInv;
             res.measuredOps /= batchSize;
             BenchmarkTaskResult results = new BenchmarkTaskResult((long)res.allOps, (long)res.measuredOps);
-            results.add(new AverageTimeResult(ResultRole.PRIMARY, "sendingMessageModelInMessageEnvelop", res.measuredOps, res.getTime(), benchmarkParams.getTimeUnit()));
+            results.add(new AverageTimeResult(ResultRole.PRIMARY, "sendString", res.measuredOps, res.getTime(), benchmarkParams.getTimeUnit()));
             this.blackhole.evaporate("Yes, I am Stephen Hawking, and know a thing or two about black holes.");
             return results;
         } else
             throw new IllegalStateException("Harness failed to distribute threads among groups properly");
     }
 
-    public static void sendingMessageModelInMessageEnvelop_avgt_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
+    public static void sendString_avgt_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
         long operations = 0;
         long realTime = 0;
         result.startTime = System.nanoTime();
         do {
-            l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+            l_networkcommunicationbenchmark0_G.sendString();
             operations++;
         } while(!control.isDone);
         result.stopTime = System.nanoTime();
@@ -240,7 +240,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
     }
 
 
-    public BenchmarkTaskResult sendingMessageModelInMessageEnvelop_SampleTime(InfraControl control, ThreadParams threadParams) throws Throwable {
+    public BenchmarkTaskResult sendString_SampleTime(InfraControl control, ThreadParams threadParams) throws Throwable {
         this.benchmarkParams = control.benchmarkParams;
         this.iterationParams = control.iterationParams;
         this.threadParams    = threadParams;
@@ -257,7 +257,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
 
             control.announceWarmupReady();
             while (control.warmupShouldWait) {
-                l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                l_networkcommunicationbenchmark0_G.sendString();
                 res.allOps++;
             }
 
@@ -266,12 +266,12 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             int batchSize = iterationParams.getBatchSize();
             int opsPerInv = benchmarkParams.getOpsPerInvocation();
             SampleBuffer buffer = new SampleBuffer();
-            sendingMessageModelInMessageEnvelop_sample_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, buffer, targetSamples, opsPerInv, batchSize, l_networkcommunicationbenchmark0_G);
+            sendString_sample_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, buffer, targetSamples, opsPerInv, batchSize, l_networkcommunicationbenchmark0_G);
             notifyControl.stopMeasurement = true;
             control.announceWarmdownReady();
             try {
                 while (control.warmdownShouldWait) {
-                    l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                    l_networkcommunicationbenchmark0_G.sendString();
                     res.allOps++;
                 }
             } catch (Throwable e) {
@@ -311,14 +311,14 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             res.allOps /= batchSize;
             res.measuredOps *= opsPerInv;
             BenchmarkTaskResult results = new BenchmarkTaskResult((long)res.allOps, (long)res.measuredOps);
-            results.add(new SampleTimeResult(ResultRole.PRIMARY, "sendingMessageModelInMessageEnvelop", buffer, benchmarkParams.getTimeUnit()));
+            results.add(new SampleTimeResult(ResultRole.PRIMARY, "sendString", buffer, benchmarkParams.getTimeUnit()));
             this.blackhole.evaporate("Yes, I am Stephen Hawking, and know a thing or two about black holes.");
             return results;
         } else
             throw new IllegalStateException("Harness failed to distribute threads among groups properly");
     }
 
-    public static void sendingMessageModelInMessageEnvelop_sample_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, SampleBuffer buffer, int targetSamples, long opsPerInv, int batchSize, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
+    public static void sendString_sample_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, SampleBuffer buffer, int targetSamples, long opsPerInv, int batchSize, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
         long realTime = 0;
         long operations = 0;
         int rnd = (int)System.nanoTime();
@@ -333,7 +333,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             }
             for (int b = 0; b < batchSize; b++) {
                 if (control.volatileSpoiler) return;
-                l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+                l_networkcommunicationbenchmark0_G.sendString();
             }
             if (sample) {
                 buffer.add((System.nanoTime() - time) / opsPerInv);
@@ -351,7 +351,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
     }
 
 
-    public BenchmarkTaskResult sendingMessageModelInMessageEnvelop_SingleShotTime(InfraControl control, ThreadParams threadParams) throws Throwable {
+    public BenchmarkTaskResult sendString_SingleShotTime(InfraControl control, ThreadParams threadParams) throws Throwable {
         this.benchmarkParams = control.benchmarkParams;
         this.iterationParams = control.iterationParams;
         this.threadParams    = threadParams;
@@ -368,7 +368,7 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             notifyControl.startMeasurement = true;
             RawResults res = new RawResults();
             int batchSize = iterationParams.getBatchSize();
-            sendingMessageModelInMessageEnvelop_ss_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, batchSize, l_networkcommunicationbenchmark0_G);
+            sendString_ss_jmhStub(control, res, benchmarkParams, iterationParams, threadParams, blackhole, notifyControl, startRndMask, batchSize, l_networkcommunicationbenchmark0_G);
             control.preTearDown();
 
             if (control.isLastIteration()) {
@@ -401,19 +401,19 @@ public final class NetworkCommunicationBenchmark_sendingMessageModelInMessageEnv
             int opsPerInv = control.benchmarkParams.getOpsPerInvocation();
             long totalOps = opsPerInv;
             BenchmarkTaskResult results = new BenchmarkTaskResult(totalOps, totalOps);
-            results.add(new SingleShotResult(ResultRole.PRIMARY, "sendingMessageModelInMessageEnvelop", res.getTime(), benchmarkParams.getTimeUnit()));
+            results.add(new SingleShotResult(ResultRole.PRIMARY, "sendString", res.getTime(), benchmarkParams.getTimeUnit()));
             this.blackhole.evaporate("Yes, I am Stephen Hawking, and know a thing or two about black holes.");
             return results;
         } else
             throw new IllegalStateException("Harness failed to distribute threads among groups properly");
     }
 
-    public static void sendingMessageModelInMessageEnvelop_ss_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, int batchSize, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
+    public static void sendString_ss_jmhStub(InfraControl control, RawResults result, BenchmarkParams benchmarkParams, IterationParams iterationParams, ThreadParams threadParams, Blackhole blackhole, Control notifyControl, int startRndMask, int batchSize, NetworkCommunicationBenchmark_jmhType l_networkcommunicationbenchmark0_G) throws Throwable {
         long realTime = 0;
         result.startTime = System.nanoTime();
         for (int b = 0; b < batchSize; b++) {
             if (control.volatileSpoiler) return;
-            l_networkcommunicationbenchmark0_G.sendingMessageModelInMessageEnvelop();
+            l_networkcommunicationbenchmark0_G.sendString();
         }
         result.stopTime = System.nanoTime();
         result.realTime = realTime;
