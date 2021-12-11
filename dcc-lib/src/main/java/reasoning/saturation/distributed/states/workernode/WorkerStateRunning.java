@@ -11,8 +11,14 @@ import java.util.Collection;
 
 public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
 
+    private long messageIDOfAxiomsReceivedInConvergedState = -1L;
+
     public WorkerStateRunning(SaturationWorker<C, A, T> worker) {
         super(worker);
+    }
+    public WorkerStateRunning(SaturationWorker<C, A, T> worker, long messageIDOfAxiomsReceivedInConvergedState) {
+        super(worker);
+        this.messageIDOfAxiomsReceivedInConvergedState = messageIDOfAxiomsReceivedInConvergedState;
     }
 
     public void mainWorkerLoop() throws InterruptedException {
@@ -56,11 +62,16 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     @Override
     public void visit(SaturationAxiomsMessage<C, A, T> message) {
+        // acknowledge message only if it has not been acknowledged before
+        if (message.getMessageID() != messageIDOfAxiomsReceivedInConvergedState) {
+            communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
+        }
+
         Collection<A> axioms = message.getAxioms();
         for (A axiom : axioms) {
             incrementalReasoner.processAxiom(axiom);
+
         }
-        communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
     }
 
     @Override

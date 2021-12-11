@@ -1,8 +1,6 @@
 package benchmark.jmh;
 
 import networking.ServerData;
-import networking.messages.MessageEnvelope;
-import networking.messages.SaturationAxiomsMessage;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -23,7 +21,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @Fork(value = 1, warmups = 0)
 @Warmup(iterations = 2, time = 2000, timeUnit = MILLISECONDS)
 @Measurement(iterations = 3, time = 2000, timeUnit = MILLISECONDS)
-public class NetworkCommunicationBenchmark {
+public class NetworkingComponentBenchmark {
 
     private SenderStub senderStub;
     private ReceiverStub receiverStub;
@@ -34,7 +32,7 @@ public class NetworkCommunicationBenchmark {
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-                .include(NetworkCommunicationBenchmark.class.getSimpleName())
+                .include(NetworkingComponentBenchmark.class.getSimpleName())
                 .forks(1)
                 .build();
 

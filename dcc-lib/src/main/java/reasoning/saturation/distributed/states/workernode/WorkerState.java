@@ -32,7 +32,7 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         if (message instanceof MessageModel) {
             ((MessageModel<C, A, T>)message).accept(this);
         } else {
-            throw new IllegalArgumentException("Axioms only allowed in state 'running'.");
+            throw new IllegalArgumentException("Axioms only allowed in state 'running'. Current state: " + this.getClass());
         }
     }
 

@@ -29,7 +29,6 @@ public class MessageWriter {
     public boolean send(Serializable message) throws IOException {
         // write message to buffer
         synchronized (bufferLock) {
-
             // reserve bytes for length
             messageBuffer.position(messageBuffer.position() + numBytesForLength);
 
@@ -57,7 +56,7 @@ public class MessageWriter {
     public boolean readFromBufferAndWriteToSocket() throws IOException {
         synchronized (bufferLock) {
             readFromBufferAndWriteToSocket(messageBuffer);
-            return messageBuffer.position() == 0;
+            return messageBuffer.position() == 0; // 'compact' operation sets position to beginning if buffer is empty
         }
     }
 
@@ -78,7 +77,7 @@ public class MessageWriter {
 
     public boolean isEmpty() {
         synchronized (bufferLock) {
-            return messageBuffer.position() > 0;
+            return messageBuffer.position() == 0;
         }
     }
 

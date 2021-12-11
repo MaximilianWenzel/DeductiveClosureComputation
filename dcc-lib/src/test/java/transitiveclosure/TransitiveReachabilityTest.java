@@ -140,11 +140,14 @@ public class TransitiveReachabilityTest {
     void testDistributedClosureComputation() {
         distributedClosureComputation(initialAxioms, 4);
 
+        /*
         ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
         distributedClosureComputation(generator.generateGraph(), 4);
 
         generator = new ReachabilityBinaryTreeGenerator(8);
         distributedClosureComputation(generator.generateGraph(), 20);
+
+         */
     }
 
     @Test

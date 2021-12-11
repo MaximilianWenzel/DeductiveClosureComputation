@@ -45,6 +45,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     protected boolean allConnectionsEstablished = false;
     protected AtomicInteger initializedWorkers = new AtomicInteger(0);
+    protected AtomicInteger receivedClosureResults = new AtomicInteger(0);
 
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
@@ -204,5 +205,9 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         return this.initializedWorkers.get() == this.workers.size();
     }
 
+
+    public AtomicInteger getReceivedClosureResultsCounter() {
+        return this.receivedClosureResults;
+    }
 
 }

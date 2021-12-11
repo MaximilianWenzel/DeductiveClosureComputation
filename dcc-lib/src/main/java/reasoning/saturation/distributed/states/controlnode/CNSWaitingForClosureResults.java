@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Serializable, T extends Serializable> extends ControlNodeState<C, A, T> {
 
     protected int numberOfWorkers;
-    protected AtomicInteger receivedClosureResults = new AtomicInteger(0);
 
     public CNSWaitingForClosureResults(SaturationControlNode<C, A, T> saturationControlNode) {
         super(saturationControlNode);
@@ -22,16 +21,15 @@ public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Seriali
     @Override
     public void visit(SaturationAxiomsMessage<C, A, T> message) {
         saturationControlNode.addAxiomsToClosureResult(message.getAxioms());
-        log.info("Worker " + message.getSenderID() + " sent closure results.");
-
+        communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
     }
 
     @Override
     public void visit(AcknowledgementMessage message) {
+        // 'closure result' requests of control node are acknowledged if all results have been transmitted
         acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
-        receivedClosureResults.getAndIncrement();
 
-        if (receivedClosureResults.get() == this.numberOfWorkers) {
+        if (communicationChannel.getReceivedClosureResultsCounter().get() == this.numberOfWorkers) {
             log.info("All closure results received.");
             saturationControlNode.switchState(new CNSFinished<>(saturationControlNode));
         }

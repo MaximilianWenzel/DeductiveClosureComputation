@@ -18,6 +18,7 @@ import util.NetworkingUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
@@ -45,7 +46,6 @@ public class KryoNetBenchmark {
                 .include(KryoNetBenchmark.class.getSimpleName())
                 .forks(1)
                 .build();
-
         new Runner(opt).run();
     }
 

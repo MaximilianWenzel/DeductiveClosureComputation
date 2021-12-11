@@ -2,6 +2,8 @@ package reasoning.saturation.distributed.communication;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
@@ -32,7 +34,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     private final int portToListen;
     private final int maxNumAxiomsToBufferBeforeSending;
-    private final Map<Long, List<Serializable>> workerIDToBufferedAxioms = new HashMap<>();
+    private final Map<Long, List<A>> workerIDToBufferedAxioms = new HashMap<>();
     private final AtomicLong distributedMessages = new AtomicLong(0);
     private final AtomicLong acknowledgedMessages = new AtomicLong(0);
     private final AtomicLong establishedConnections = new AtomicLong(0);
@@ -115,8 +117,26 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     public void sendToControlNode(C closure) {
         // generate closure
-        SaturationAxiomsMessage<C, A, T> saturationAxiomsMessage = new SaturationAxiomsMessage<>(workerID, closure.getClosureResults());
-        networkingComponent.sendMessage(controlNodeSocketID, saturationAxiomsMessage);
+        Collection<A> closureResults = closure.getClosureResults();
+
+        if (closureResults.size() < this.maxNumAxiomsToBufferBeforeSending) {
+            sendAxioms(getControlNodeID(), new ArrayList<>(closureResults));
+        } else {
+            // send results in smaller batches
+            Iterator<A> closureResultsIt = closureResults.iterator();
+            int counter = 0;
+            List<A> batch = new ArrayList<>(maxNumAxiomsToBufferBeforeSending);
+            while (closureResultsIt.hasNext()) {
+                batch.add(closureResultsIt.next());
+                counter++;
+                if (counter > maxNumAxiomsToBufferBeforeSending) {
+                    counter = 0;
+                    sendAxioms(getControlNodeID(), new ArrayList<>(batch));
+                    batch = new ArrayList<>(maxNumAxiomsToBufferBeforeSending);
+                }
+            }
+            sendAxioms(getControlNodeID(), new ArrayList<>(batch));
+        }
     }
 
     public void send(long workerID, SaturationStatusMessage status, Runnable onAcknowledgement) {
@@ -147,15 +167,16 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     public void distributeAxiom(A axiom) {
+        // TODO: check if axiom has already been distributed
         List<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
 
         for (Long receiverWorkerID : workerIDs) {
             if (receiverWorkerID != this.workerID) {
-                List<Serializable> bufferedAxioms = this.workerIDToBufferedAxioms.computeIfAbsent(receiverWorkerID, p -> new ArrayList<>());
+                List<A> bufferedAxioms = this.workerIDToBufferedAxioms.computeIfAbsent(receiverWorkerID, p -> new ArrayList<>(maxNumAxiomsToBufferBeforeSending));
                 bufferedAxioms.add(axiom);
                 if (bufferedAxioms.size() == maxNumAxiomsToBufferBeforeSending) {
                     sendAxioms(receiverWorkerID, bufferedAxioms);
-                    this.workerIDToBufferedAxioms.remove(receiverWorkerID);
+                    bufferedAxioms.clear();
                 }
             } else {
                 // add axioms from this worker directly to the queue
@@ -175,20 +196,24 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
      */
     public boolean sendAllBufferedAxioms() {
         boolean axiomTransmitted = false;
-        for (Map.Entry<Long, List<Serializable>> workerIDToBufferedAxioms : this.workerIDToBufferedAxioms.entrySet()) {
-            sendAxioms(workerIDToBufferedAxioms.getKey(), workerIDToBufferedAxioms.getValue());
+        for (Map.Entry<Long, List<A>> workerIDToBufferedAxioms : this.workerIDToBufferedAxioms.entrySet()) {
+            List<A> bufferedAxioms = workerIDToBufferedAxioms.getValue();
+            if (bufferedAxioms.isEmpty()) {
+                continue;
+            }
+            sendAxioms(workerIDToBufferedAxioms.getKey(), bufferedAxioms);
+            bufferedAxioms.clear();
             axiomTransmitted = true;
         }
-        this.workerIDToBufferedAxioms.clear();
         return axiomTransmitted;
     }
 
-    private void sendAxioms(long receiverWorkerID, List<? extends Serializable> axioms) {
-        distributedMessages.getAndIncrement();
-
+    private void sendAxioms(long receiverWorkerID, List<A> axioms) {
         if (axioms.isEmpty()) {
             return;
         }
+
+        distributedMessages.getAndIncrement();
         SaturationAxiomsMessage saturationAxiomsMessage = new SaturationAxiomsMessage(workerID, axioms);
         Long socketID = this.workerIDToSocketID.get(receiverWorkerID);
 
@@ -250,6 +275,14 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     public boolean allConnectionsEstablished() {
         // # of all other workers
         return this.establishedConnections.get() == this.workers.size() - 1;
+    }
+
+    public AtomicLong getDistributedMessages() {
+        return distributedMessages;
+    }
+
+    public AtomicLong getAcknowledgedMessages() {
+        return acknowledgedMessages;
     }
 
     private class MessageProcessorImpl implements MessageProcessor {
@@ -334,13 +367,5 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                         }
                     });
         }
-    }
-
-    public AtomicLong getDistributedMessages() {
-        return distributedMessages;
-    }
-
-    public AtomicLong getAcknowledgedMessages() {
-        return acknowledgedMessages;
     }
 }

@@ -3,6 +3,7 @@ package benchmark.transitiveclosure.experiments;
 import benchmark.graphgeneration.BinaryTreeGenerator;
 import benchmark.graphgeneration.GraphGenerator;
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
+import benchmark.graphgeneration.ReachabilityChainGraphGenerator;
 import benchmark.transitiveclosure.*;
 import com.google.common.base.Stopwatch;
 import networking.ServerData;
@@ -64,6 +65,15 @@ public class ReachabilityBenchmark {
                                          List<Integer> maxNumberOfAxiomsToBuffer) {
         for (Integer depth : treeDepth) {
             BinaryTreeGenerator<ToldReachability> generator = new ReachabilityBinaryTreeGenerator(depth);
+            startBenchmark(generator, numberOfWorkers, maxNumberOfAxiomsToBuffer);
+        }
+    }
+
+    public void startChainGraphBenchmark(List<Integer> chainLength,
+                                         List<Integer> numberOfWorkers,
+                                         List<Integer> maxNumberOfAxiomsToBuffer) {
+        for (Integer depth : chainLength) {
+            ReachabilityChainGraphGenerator generator = new ReachabilityChainGraphGenerator(depth);
             startBenchmark(generator, numberOfWorkers, maxNumberOfAxiomsToBuffer);
         }
     }
@@ -155,6 +165,7 @@ public class ReachabilityBenchmark {
         log.info("Distributed");
         log.info("Tree Depth: " + generator.getDiameter());
         log.info("#Workers: " + numWorkers);
+        log.info("#AxiomsToBuffer: " + numAxiomsToBuffer);
         runtime = distributedClosureComputation(initialAxioms, numWorkers, numAxiomsToBuffer);
 
         CSVRow row = new CSVRow(

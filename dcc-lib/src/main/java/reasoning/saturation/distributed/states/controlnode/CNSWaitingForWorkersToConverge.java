@@ -33,7 +33,9 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
                     communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT, new Runnable() {
                         @Override
                         public void run() {
-                            // do nothing
+                            communicationChannel.getReceivedClosureResultsCounter().getAndIncrement();
+                            log.info("(" + communicationChannel.getReceivedClosureResultsCounter().get() +  "/" + numberOfWorkers + ")" +
+                                    " workers have sent their closure results.");
                         }
                     });
                 }

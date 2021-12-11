@@ -20,10 +20,10 @@ public abstract class BinaryTreeGenerator<E> extends GraphGenerator<E> {
 
     public BinaryTreeGenerator(int depth) {
         this.diameter = depth;
-        this.numberOfEdgesOriginalGraph = this.getNumberOfNonTransitiveEdges(depth);
-        this.numberOfEdgesInTransitiveClosure = this.getNumberOfTransitiveEdges(depth);
+        this.numberOfEdgesOriginalGraph = this.computeNumberOfNonTransitiveEdges(depth);
+        this.numberOfEdgesInTransitiveClosure = this.computeNumberOfTransitiveEdges(depth);
         this.totalNumberOfEdges = this.numberOfEdgesOriginalGraph + this.numberOfEdgesInTransitiveClosure;
-        this.numberOfNodes = this.getNumberOfNodes(depth);
+        this.numberOfNodes = this.computeNumberOfNodes(depth);
 
         this.nodeIDs = new ArrayList<>();
         for (int i = 0; i < numberOfNodes; i++) {
@@ -55,15 +55,15 @@ public abstract class BinaryTreeGenerator<E> extends GraphGenerator<E> {
         generateGraphRec(currentDepth + 1, nextNode2);
     }
 
-    private int getNumberOfNonTransitiveEdges(int depth) {
+    protected int computeNumberOfNonTransitiveEdges(int depth) {
         return (int) (Math.pow(2, depth) - 2);
     }
 
-    private int getNumberOfTransitiveEdges(int depth) {
+    protected int computeNumberOfTransitiveEdges(int depth) {
         return (int) ((depth - 3) * Math.pow(2, depth) + 4);
     }
 
-    private int getNumberOfNodes(int depth) {
+    protected int computeNumberOfNodes(int depth) {
         return (int) (Math.pow(2, depth) - 1);
     }
 

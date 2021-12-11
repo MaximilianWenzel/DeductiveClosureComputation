@@ -209,7 +209,7 @@ public class NetworkingComponent implements Runnable {
     private void writeToSocket(SelectionKey key) throws IOException {
         SocketManager socketManager = (SocketManager) key.attachment();
 
-        if (!socketManager.hasMessagesToSend() || socketManager.sendMessages()) {
+        if (socketManager.sendMessages()) {
             // all messages have been sent
             key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
         }
@@ -218,14 +218,13 @@ public class NetworkingComponent implements Runnable {
     public void sendMessage(long socketID, Serializable message) {
         SocketManager socketManager = this.socketIDToMessageManager.get(socketID);
         try {
-            if (socketManager != null) {
-                if (!socketManager.sendMessage(message)) {
-                    SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
+            if (!socketManager.sendMessage(message)) {
+                // has still messages to send - add write selector
+                SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
+                if ((key.interestOps() & SelectionKey.OP_WRITE) == 0) {
+                    // write is not set yet
                     key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-                    selector.wakeup();
                 }
-            } else {
-                throw new IllegalArgumentException("Socket with ID " + socketID + " does not exist.");
             }
         } catch (IOException e) {
             e.printStackTrace();
