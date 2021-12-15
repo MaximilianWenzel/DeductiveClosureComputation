@@ -1,11 +1,8 @@
 package reasoning.saturation.parallel;
 
 import data.Closure;
-import data.DefaultClosure;
 import data.ParallelToDo;
-import data.ToDoQueue;
 import enums.SaturationStatusMessage;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.rules.ParallelSaturationInferenceProcessor;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.models.WorkerModel;
@@ -14,15 +11,13 @@ import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
     private SaturationInitializationFactory<C, A, T> factory;
 
-    private final BlockingDeque<SaturationStatusMessage> statusMessages = new LinkedBlockingDeque<>();
+    private final BlockingQueue<SaturationStatusMessage> statusMessages = new LinkedBlockingQueue<>();
     private List<SaturationContext<C, A, T>> contexts;
     private Collection<WorkerModel<C, A, T>> workerModels;
     private volatile boolean allWorkersConverged = false;
@@ -131,7 +126,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         return allWorkersConverged;
     }
 
-    public BlockingDeque<SaturationStatusMessage> getStatusMessages() {
+    public BlockingQueue<SaturationStatusMessage> getStatusMessages() {
         return statusMessages;
     }
 }

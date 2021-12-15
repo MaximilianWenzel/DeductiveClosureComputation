@@ -1,8 +1,12 @@
 package benchmark.transitiveclosure.experiments;
 
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
+
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class IndividualExperiments {
 
@@ -25,12 +29,10 @@ public class IndividualExperiments {
 
     public static void benchmark(File outputDirectory) {
         List<Integer> binaryTreeDepth = new ArrayList<>();
-        binaryTreeDepth.add(4);
-        binaryTreeDepth.add(5);
-        binaryTreeDepth.add(6);
-        binaryTreeDepth.add(7);
-        binaryTreeDepth.add(8);
-        binaryTreeDepth.add(9);
+
+        for (int i = 10; i < 13; i++) {
+            binaryTreeDepth.add(i);
+        }
 
         //binaryTreeDepth.add(12);
         //binaryTreeDepth.add(13);
@@ -57,14 +59,34 @@ public class IndividualExperiments {
         List<Integer> maxNumberOfAxiomsToBuffer = new ArrayList<>();
         //maxNumberOfAxiomsToBuffer.add(1);
         //maxNumberOfAxiomsToBuffer.add(10);
-        maxNumberOfAxiomsToBuffer.add(20);
+        maxNumberOfAxiomsToBuffer.add(50);
         //maxNumberOfAxiomsToBuffer.add(100);
 
-        ReachabilityBenchmark benchmark = new ReachabilityBenchmark(outputDirectory, 3);
+        List<Integer> ruleDelaysInNanoSec = new ArrayList<>();
+        ruleDelaysInNanoSec.add(0); // 0
+        ruleDelaysInNanoSec.add(1_000); // 0.001ms
+        ruleDelaysInNanoSec.add(10_000); // 0.01ms
+        ruleDelaysInNanoSec.add(50_000);
+        ruleDelaysInNanoSec.add(80_000);
+        ruleDelaysInNanoSec.add(100_000); // 0.1ms
+        ruleDelaysInNanoSec.add(200_000);
+        ruleDelaysInNanoSec.add(500_000);
+        //ruleDelaysInNanoSec.add(1_000_000); // 1ms
+        //ruleDelaysInNanoSec.add(10_000_000); // 10ms
+        //ruleDelaysInNanoSec.add(100_000_000); // 100ms
+        //ruleDelaysInNanoSec.add(1_000_000_000); // 1s
+
+        Set<ReachabilityBenchmark.Approach> includedApproaches = new UnifiedSet<>();
+        includedApproaches.add(ReachabilityBenchmark.Approach.SINGLE_THREADED);
+        includedApproaches.add(ReachabilityBenchmark.Approach.PARALLEL);
+        includedApproaches.add(ReachabilityBenchmark.Approach.DISTRIBUTED);
+
+        ReachabilityBenchmark benchmark = new ReachabilityBenchmark(outputDirectory, 3, includedApproaches);
         benchmark.startBinaryTreeBenchmark(
                 binaryTreeDepth,
                 numberOfWorkers,
-                maxNumberOfAxiomsToBuffer
+                maxNumberOfAxiomsToBuffer,
+                ruleDelaysInNanoSec
         );
 
         /*

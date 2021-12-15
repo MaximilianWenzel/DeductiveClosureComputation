@@ -2,8 +2,6 @@ package reasoning.saturation.distributed.communication;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
@@ -23,12 +21,13 @@ import util.ConsoleUtils;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
-public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable> implements SaturationCommunicationChannel {
+public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable>
+        implements SaturationCommunicationChannel {
 
     private final Logger log = ConsoleUtils.getLogger();
 
@@ -44,7 +43,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private WorkloadDistributor<C, A, T> workloadDistributor;
     private BiMap<Long, Long> socketIDToWorkerID;
     private BiMap<Long, Long> workerIDToSocketID;
-    private BlockingDeque<Object> toDo = new LinkedBlockingDeque<>();
+    private BlockingQueue<Object> toDo = new LinkedBlockingQueue<>();
     private BenchmarkConfiguration benchmarkConfiguration;
     private long controlNodeSocketID = -1L;
     private boolean allConnectionsEstablished = false;
@@ -96,7 +95,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         for (DistributedWorkerModel workerModel : this.workers) {
             if (workerModel.getID() > this.workerID) {
                 try {
-                    WorkerServerConnector workerServerConnector = new WorkerServerConnector(workerModel.getServerData());
+                    WorkerServerConnector workerServerConnector = new WorkerServerConnector(
+                            workerModel.getServerData());
                     networkingComponent.connectToServer(workerServerConnector);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -172,7 +172,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
         for (Long receiverWorkerID : workerIDs) {
             if (receiverWorkerID != this.workerID) {
-                List<A> bufferedAxioms = this.workerIDToBufferedAxioms.computeIfAbsent(receiverWorkerID, p -> new ArrayList<>(maxNumAxiomsToBufferBeforeSending));
+                List<A> bufferedAxioms = this.workerIDToBufferedAxioms.computeIfAbsent(receiverWorkerID,
+                        p -> new ArrayList<>(maxNumAxiomsToBufferBeforeSending));
                 bufferedAxioms.add(axiom);
                 if (bufferedAxioms.size() == maxNumAxiomsToBufferBeforeSending) {
                     sendAxioms(receiverWorkerID, bufferedAxioms);
@@ -321,7 +322,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         @Override
         public void onConnectionEstablished(SocketManager socketManager) {
             try {
-                log.info("Connection to worker server established: " + socketManager.getSocketChannel().getRemoteAddress());
+                log.info("Connection to worker server established: " + socketManager.getSocketChannel()
+                        .getRemoteAddress());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -330,7 +332,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 return;
             }
 
-            StateInfoMessage stateInfoMessage = new StateInfoMessage(WorkerNodeCommunicationChannel.this.workerID, SaturationStatusMessage.WORKER_CLIENT_HELLO);
+            StateInfoMessage stateInfoMessage = new StateInfoMessage(WorkerNodeCommunicationChannel.this.workerID,
+                    SaturationStatusMessage.WORKER_CLIENT_HELLO);
             send(socketManager.getSocketID(), stateInfoMessage,
                     new Runnable() {
                         @Override
@@ -358,7 +361,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 // worker not yet initialized
                 return;
             }
-            StateInfoMessage stateInfoMessage = new StateInfoMessage(WorkerNodeCommunicationChannel.this.workerID, SaturationStatusMessage.WORKER_SERVER_HELLO);
+            StateInfoMessage stateInfoMessage = new StateInfoMessage(WorkerNodeCommunicationChannel.this.workerID,
+                    SaturationStatusMessage.WORKER_SERVER_HELLO);
             send(socketManager.getSocketID(), stateInfoMessage,
                     new Runnable() {
                         @Override

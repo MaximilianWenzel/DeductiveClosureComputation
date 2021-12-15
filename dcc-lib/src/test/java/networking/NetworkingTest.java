@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class NetworkingTest {
@@ -106,13 +107,13 @@ public class NetworkingTest {
 
     @Test
     public void testSenderReceiverStubs() {
-        LinkedBlockingQueue<Object> linkedBlockingQueue = new LinkedBlockingQueue<>();
-        ReceiverStub receiverStub = new ReceiverStub(linkedBlockingQueue);
+        LinkedBlockingQueue<Object> arrayBlockingQueue = new LinkedBlockingQueue<>();
+        ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue);
         SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()));
 
         try {
             senderStub.sendMessage("Test");
-            assert linkedBlockingQueue.take().getClass().equals(String.class);
+            assert arrayBlockingQueue.take().getClass().equals(String.class);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -20,24 +20,27 @@ public class ReachabilityWorkerFactory implements DistributedWorkerFactory<Reach
     private RoaringBitmap nodeIDs = new RoaringBitmap();
     private int numberOfWorkers;
     private List<ServerData> workerServerData;
+    private int ruleDelayInNanoSec = 0;
 
-    public ReachabilityWorkerFactory(List<? extends Reachability> initialAxioms, List<ServerData> workerServerData) {
+    public ReachabilityWorkerFactory(List<? extends Reachability> initialAxioms, List<ServerData> workerServerData, int ruleDelayInNanoSec) {
         this.initialAxioms = initialAxioms;
         this.numberOfWorkers = workerServerData.size();
         this.workerServerData = workerServerData;
+        this.ruleDelayInNanoSec = ruleDelayInNanoSec;
         init();
     }
 
-    public ReachabilityWorkerFactory(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
+    public ReachabilityWorkerFactory(List<? extends Reachability> initialAxioms, int numberOfWorkers, int ruleDelayInNanoSec) {
         this.initialAxioms = initialAxioms;
         this.numberOfWorkers = numberOfWorkers;
+        this.ruleDelayInNanoSec = ruleDelayInNanoSec;
         init();
     }
 
-    public static List<Rule<ReachabilityClosure, Reachability>> getReachabilityRules() {
+    public static List<Rule<ReachabilityClosure, Reachability>> getReachabilityRules(int ruleDelayInNanoSec) {
         List<Rule<ReachabilityClosure, Reachability>> reachabilityRules = new ArrayList<>();
         reachabilityRules.add(new InitRule());
-        reachabilityRules.add(new DeriveReachabilityRule());
+        reachabilityRules.add(new DeriveReachabilityRule(ruleDelayInNanoSec));
         return reachabilityRules;
     }
 
@@ -82,7 +85,7 @@ public class ReachabilityWorkerFactory implements DistributedWorkerFactory<Reach
         List<WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = new ArrayList<>();
         for (RoaringBitmap nodeIDsForWorker : nodeIDsForWorkers) {
             WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap> workerModel = new WorkerModel<>(
-                    getReachabilityRules(),
+                    getReachabilityRules(ruleDelayInNanoSec),
                     nodeIDsForWorker
             );
             workers.add(workerModel);

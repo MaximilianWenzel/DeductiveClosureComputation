@@ -21,6 +21,7 @@ import java.io.Serializable;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +52,7 @@ public class KryoNetBenchmark {
 
     private void registerKryoClasses(Kryo kryo) {
         kryo.register(TestObject.class);
+        kryo.register(TestObjectWithFields.class);
         kryo.register(MessageEnvelope.class);
         kryo.register(SaturationAxiomsMessage.class);
         kryo.register(ArrayList.class);
@@ -112,9 +114,15 @@ public class KryoNetBenchmark {
 
     @Benchmark
     public void sendString() throws InterruptedException {
-        client.sendTCP("Hello world!");
+        client.sendTCP("Hello World!");
         Object o = queue.take();
         assert o.getClass() != null;
     }
 
+    @Benchmark
+    public void sendObject() throws InterruptedException {
+        client.sendTCP(new TestObjectWithFields(10));
+        Object o = queue.take();
+        assert o.getClass() != null;
+    }
 }

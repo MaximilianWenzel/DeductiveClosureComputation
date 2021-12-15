@@ -1,7 +1,6 @@
 package benchmark.jmh;
 
 
-import networking.messages.SaturationAxiomsMessage;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -9,6 +8,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +23,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @Measurement(iterations = 3, time = 2000, timeUnit = MILLISECONDS)
 public class InterProcessCommunicationBenchmark {
 
-    private BlockingQueue<Object> receivedMessages = new LinkedBlockingQueue<>();
+    private BlockingQueue<Object> receivedMessages;
     private MessageSender sender;
 
     public static void main(String[] args) throws RunnerException {

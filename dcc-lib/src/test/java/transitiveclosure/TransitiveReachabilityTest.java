@@ -67,7 +67,7 @@ public class TransitiveReachabilityTest {
     Set<Reachability> singleThreadedClosureComputation(List<? extends Reachability> initialAxioms) {
         SingleThreadedSaturation<ReachabilityClosure, Reachability> saturation = new SingleThreadedSaturation<>(
                 initialAxioms.iterator(),
-                ReachabilityWorkerFactory.getReachabilityRules(),
+                ReachabilityWorkerFactory.getReachabilityRules(0),
                 new ReachabilityClosure()
         );
 
@@ -81,7 +81,7 @@ public class TransitiveReachabilityTest {
 
     Set<Reachability> parallelClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
         ParallelSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new ParallelSaturation<>(
-                new ReachabilitySaturationInitializationFactory(initialAxioms, numberOfWorkers)
+                new ReachabilitySaturationInitializationFactory(initialAxioms, numberOfWorkers, 0)
         );
 
         ReachabilityClosure closure = saturation.saturate();
@@ -110,7 +110,8 @@ public class TransitiveReachabilityTest {
         List<ServerData> serverDataList = workerServerFactory.getServerDataList();
         ReachabilityWorkerFactory workerFactory = new ReachabilityWorkerFactory(
                 initialAxioms,
-                serverDataList
+                serverDataList,
+                0
         );
 
         List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = workerFactory.generateDistributedWorkers();

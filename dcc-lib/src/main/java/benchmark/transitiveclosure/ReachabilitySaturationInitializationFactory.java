@@ -15,10 +15,10 @@ public class ReachabilitySaturationInitializationFactory extends SaturationIniti
     ReachabilityWorkloadDistributor workloadDistributor;
     List<WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workerModels;
 
-    public ReachabilitySaturationInitializationFactory(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
+    public ReachabilitySaturationInitializationFactory(List<? extends Reachability> initialAxioms, int numberOfWorkers, int ruleDelayInNanoSec) {
         this.initialAxioms = initialAxioms;
         this.numberOfWorkers = numberOfWorkers;
-        workerFactory = new ReachabilityWorkerFactory(initialAxioms, numberOfWorkers);
+        workerFactory = new ReachabilityWorkerFactory(initialAxioms, numberOfWorkers, ruleDelayInNanoSec);
         workerModels = workerFactory.generateWorkers();
         workloadDistributor = new ReachabilityWorkloadDistributor(workerModels);
     }

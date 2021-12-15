@@ -1,5 +1,6 @@
 package benchmark.transitiveclosure;
 
+import com.google.common.base.Stopwatch;
 import org.roaringbitmap.IntConsumer;
 import org.roaringbitmap.RoaringBitmap;
 import reasoning.rules.Rule;
@@ -9,8 +10,27 @@ import reasoning.rules.Rule;
  */
 public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachability> {
 
+    int ruleDelayInNanoSec = 0;
+
+    public DeriveReachabilityRule() {
+
+    }
+
+    public DeriveReachabilityRule(int ruleDelayInNanoSec) {
+        this.ruleDelayInNanoSec = ruleDelayInNanoSec;
+    }
+
     @Override
     public void apply(Reachability axiom) {
+        if (ruleDelayInNanoSec > 0) {
+            Stopwatch s = Stopwatch.createStarted();
+            while (true) {
+                if (s.elapsed().toNanos() > ruleDelayInNanoSec) {
+                    break;
+                }
+            }
+        }
+
         if (axiom instanceof ToldReachability) {
             // y: source node
             // z: destination node
