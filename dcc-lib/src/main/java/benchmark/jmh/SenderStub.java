@@ -5,8 +5,6 @@ import networking.ServerData;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
-import networking.io.SocketManagerFactory;
-import networking.messages.MessageEnvelope;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -25,13 +23,13 @@ public class SenderStub {
     }
 
     private void init() {
+        MessageProcessor messageProcessor = new MessageProcessor() {
+            @Override
+            public void process(long socketID, Object message) {
+            }
+        };
+
         networkingComponent = new NetworkingComponent(
-                new SocketManagerFactory(),
-                new MessageProcessor() {
-                    @Override
-                    public void process(long socketID, Object message) {
-                    }
-                },
                 Collections.emptyList(),
                 Collections.emptyList()
         );
@@ -44,7 +42,7 @@ public class SenderStub {
         }
 
         AtomicInteger connectionEstablished = new AtomicInteger(0);
-        ServerConnector serverConnector = new ServerConnector(serverData) {
+        ServerConnector serverConnector = new ServerConnector(serverData, messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 destinationSocket = socketManager;

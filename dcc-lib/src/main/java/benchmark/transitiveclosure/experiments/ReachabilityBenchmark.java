@@ -225,7 +225,7 @@ public class ReachabilityBenchmark {
             // initialize workers
             SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
 
-            workerServerFactory = new SaturationWorkerServerGenerator<>(null, numWorkers, numberOfAxiomsToBuffer,
+            workerServerFactory = new SaturationWorkerServerGenerator<>(numWorkers, numberOfAxiomsToBuffer,
                     (Callable) () -> new ReachabilityClosure());
 
             List<SaturationWorker<ReachabilityClosure, Reachability, RoaringBitmap>> saturationWorkers;
@@ -250,12 +250,10 @@ public class ReachabilityBenchmark {
 
             List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = workerFactory.generateDistributedWorkers();
             DistributedSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new DistributedSaturation<>(
-                    null,
                     workers,
                     new ReachabilityWorkloadDistributor(workers),
                     initialAxioms,
-                    new ReachabilityClosure(),
-                    numberOfAxiomsToBuffer
+                    new ReachabilityClosure()
             );
 
             // run saturation

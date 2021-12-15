@@ -57,6 +57,17 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         throw new MessageProtocolViolationException();
     }
 
+    @Override
+    public void visit(RequestAxiomMessageCount message) {
+        throw new MessageProtocolViolationException();
+    }
+
+    @Override
+    public void visit(AxiomCount message) {
+        throw new MessageProtocolViolationException();
+    }
+
+
     protected void messageProtocolViolation(StateInfoMessage message) {
         log.warning("State: " + this.getClass() + ", message type: " + message.getStatusMessage());
         throw new MessageProtocolViolationException();

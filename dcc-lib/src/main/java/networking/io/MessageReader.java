@@ -6,13 +6,8 @@ import util.serialization.Serializer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayDeque;
-import java.util.Queue;
 
 public class MessageReader {
-
-    // TODO probably change queue implementation
-    protected final Queue<Object> completedMessages = new ArrayDeque<>();
 
     protected SocketChannel socketChannel;
 
@@ -26,8 +21,13 @@ public class MessageReader {
     protected boolean endOfStreamReached = false;
     private Serializer serializer = new JavaSerializer();
 
-    public MessageReader(SocketChannel socketChannel) {
+    private MessageProcessor messageProcessor;
+    private long socketID;
+
+    public MessageReader(long socketID, SocketChannel socketChannel, MessageProcessor messageProcessor) {
         this.socketChannel = socketChannel;
+        this.socketID = socketID;
+        this.messageProcessor = messageProcessor;
     }
 
     public void read() throws IOException, ClassNotFoundException {
@@ -63,7 +63,7 @@ public class MessageReader {
     }
 
     protected void onCompleteMessageHasBeenRead() throws IOException, ClassNotFoundException {
-        this.completedMessages.add(getCompletedMessageAndClearBuffer());
+        messageProcessor.process(socketID, getCompletedMessageAndClearBuffer());
     }
 
     protected int read(ByteBuffer byteBuffer) throws IOException {
@@ -95,11 +95,7 @@ public class MessageReader {
     }
 
     public boolean hasMessagesOrReadsCurrentlyMessage() {
-        return !this.completedMessages.isEmpty() || messageSizeInBytes != -1 || !newMessageStarts;
-    }
-
-    public Queue<Object> getReceivedMessages() {
-        return this.completedMessages;
+        return messageSizeInBytes != -1 || !newMessageStarts;
     }
 
     public boolean isEndOfStreamReached() {

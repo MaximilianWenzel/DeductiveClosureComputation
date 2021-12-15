@@ -7,7 +7,6 @@ import reasoning.reasoner.IncrementalReasoner;
 import reasoning.reasoner.IncrementalReasonerImpl;
 import reasoning.rules.DistributedSaturationInferenceProcessor;
 import reasoning.rules.Rule;
-import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
 import reasoning.saturation.distributed.states.workernode.WorkerState;
 import reasoning.saturation.distributed.states.workernode.WorkerStateFinished;
@@ -24,21 +23,12 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
     private WorkerState<C, A, T> state;
     private IncrementalReasoner<C, A> incrementalReasoner;
-    private BenchmarkConfiguration benchmarkConfiguration;
 
     public SaturationWorker(int portToListen,
                             int maxNumberOfAxiomsToBufferBeforeSending,
                             C closure,
                             IncrementalReasonerType incrementalReasonerType) {
         this.communicationChannel = new WorkerNodeCommunicationChannel<>(portToListen, maxNumberOfAxiomsToBufferBeforeSending);
-        this.state = new WorkerStateInitializing<>(this);
-        this.closure = closure;
-        this.incrementalReasonerType = incrementalReasonerType;
-    }
-
-    public SaturationWorker(int portToListen, int maxNumberOfAxiomsToBufferBeforeSending, C closure, IncrementalReasonerType incrementalReasonerType, BenchmarkConfiguration benchmarkConfiguration) {
-        this.benchmarkConfiguration = benchmarkConfiguration;
-        this.communicationChannel = new WorkerNodeCommunicationChannel<>(benchmarkConfiguration, portToListen, maxNumberOfAxiomsToBufferBeforeSending);
         this.state = new WorkerStateInitializing<>(this);
         this.closure = closure;
         this.incrementalReasonerType = incrementalReasonerType;

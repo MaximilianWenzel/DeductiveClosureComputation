@@ -4,8 +4,6 @@ import networking.NetworkingComponent;
 import networking.connectors.PortListener;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
-import networking.io.SocketManagerFactory;
-import networking.messages.MessageEnvelope;
 import util.NetworkingUtils;
 
 import java.util.Collections;
@@ -21,22 +19,23 @@ public class ReceiverStub {
     }
 
     private void init(Queue<Object> queue) {
+        MessageProcessor messageProcessor = new MessageProcessor() {
+            @Override
+            public void process(long socketID, Object message) {
+                assert message != null;
+                queue.add(message);
+            }
+        };
+
         serverPort = NetworkingUtils.getFreePort();
-        PortListener portListener = new PortListener(serverPort) {
+        PortListener portListener = new PortListener(serverPort, messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected.");
             }
         };
+
         networkingComponent = new NetworkingComponent(
-                new SocketManagerFactory(),
-                new MessageProcessor() {
-                    @Override
-                    public void process(long socketID, Object message) {
-                        assert message != null;
-                        queue.add(message);
-                    }
-                },
                 Collections.singletonList(portListener),
                 Collections.emptyList()
         );

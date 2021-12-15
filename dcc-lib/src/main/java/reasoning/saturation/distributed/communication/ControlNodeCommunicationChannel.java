@@ -11,11 +11,7 @@ import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
-import networking.io.SocketManagerFactory;
-import networking.messages.AcknowledgementMessage;
-import networking.messages.InitializeWorkerMessage;
-import networking.messages.MessageModel;
-import networking.messages.StateInfoMessage;
+import networking.messages.*;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
@@ -37,7 +33,6 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     private final Logger log = ConsoleUtils.getLogger();
 
-    protected BenchmarkConfiguration benchmarkConfiguration;
     protected NetworkingComponent networkingComponent;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
@@ -55,6 +50,10 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected AtomicInteger initializedWorkers = new AtomicInteger(0);
     protected AtomicInteger receivedClosureResults = new AtomicInteger(0);
 
+    protected AtomicInteger saturationStage = new AtomicInteger(0);
+    protected AtomicInteger sumOfAllReceivedAxioms = new AtomicInteger(0);
+    protected AtomicInteger sumOfAllSentAxioms = new AtomicInteger(0);
+
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
                                            WorkloadDistributor<C, A, T> workloadDistributor,
@@ -62,17 +61,6 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
-        init();
-    }
-
-    public ControlNodeCommunicationChannel(BenchmarkConfiguration benchmarkConfiguration,
-                                           List<DistributedWorkerModel<C, A, T>> workers,
-                                           WorkloadDistributor<C, A, T> workloadDistributor,
-                                           List<? extends A> initialAxioms) {
-        this.workers = workers;
-        this.workloadDistributor = workloadDistributor;
-        this.initialAxioms = initialAxioms;
-        this.benchmarkConfiguration = benchmarkConfiguration;
         init();
     }
 
@@ -87,15 +75,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         acknowledgementEventManager = new AcknowledgementEventManager();
 
-        SocketManagerFactory socketManagerFactory;
-        if (benchmarkConfiguration != null) {
-            socketManagerFactory = benchmarkConfiguration.getSocketManagerFactory();
-        } else {
-            socketManagerFactory = new SocketManagerFactory();
-        }
         networkingComponent = new NetworkingComponent(
-                socketManagerFactory,
-                new MessageProcessorImpl(),
                 Collections.emptyList(),
                 Collections.emptyList()
         );
@@ -120,7 +100,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     }
 
     @Override
-    public boolean hasMoreMessagesToReadWriteOrToBeAcknowledged() {
+    public boolean hasMoreMessages() {
         return this.receivedMessages.isEmpty();
     }
 
@@ -156,6 +136,16 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         networkingComponent.sendMessage(receiverSocketID, message);
     }
 
+    public void requestAxiomCountsFromAllWorkers() {
+        saturationStage.getAndIncrement();
+
+        for (Long socketID : this.socketIDToWorkerID.keySet()) {
+            RequestAxiomMessageCount requestAxiomMessageCount = new RequestAxiomMessageCount(controlNodeID,
+                    this.saturationStage.get());
+            send(socketID, requestAxiomMessageCount);
+        }
+    }
+
     public AcknowledgementEventManager getAcknowledgementEventManager() {
         return this.acknowledgementEventManager;
     }
@@ -166,6 +156,18 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     public AtomicInteger getReceivedClosureResultsCounter() {
         return this.receivedClosureResults;
+    }
+
+    public AtomicInteger getSaturationStage() {
+        return saturationStage;
+    }
+
+    public AtomicInteger getSumOfAllReceivedAxioms() {
+        return sumOfAllReceivedAxioms;
+    }
+
+    public AtomicInteger getSumOfAllSentAxioms() {
+        return sumOfAllSentAxioms;
     }
 
     private class MessageProcessorImpl implements MessageProcessor {
@@ -188,7 +190,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         private final DistributedWorkerModel<C, A, T> workerModel;
 
         public WorkerServerConnector(ServerData serverData, DistributedWorkerModel<C, A, T> workerModel) {
-            super(serverData);
+            super(serverData, new MessageProcessorImpl());
             this.workerModel = workerModel;
         }
 
@@ -200,6 +202,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
             socketIDToWorkerID.put(socketManager.getSocketID(), workerModel.getID());
 
             // send message
+            // TODO: send initial axioms in batches
             log.info("Sending initialization message to worker " + workerModel.getID() + ".");
             InitializeWorkerMessage<C, A, T> initializeWorkerMessage = new InitializeWorkerMessage<>(
                     ControlNodeCommunicationChannel.this.controlNodeID,

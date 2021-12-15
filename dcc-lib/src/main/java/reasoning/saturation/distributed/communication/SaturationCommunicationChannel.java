@@ -4,7 +4,7 @@ public interface SaturationCommunicationChannel {
 
     Object read() throws InterruptedException;
 
-    boolean hasMoreMessagesToReadWriteOrToBeAcknowledged();
+    boolean hasMoreMessages();
 
     void terminate();
 }

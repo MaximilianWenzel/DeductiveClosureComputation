@@ -14,4 +14,8 @@ public interface MessageModelVisitor<C extends Closure<A>, A extends Serializabl
     void visit(DebugMessage message);
 
     void visit(AcknowledgementMessage message);
+
+    void visit(AxiomCount message);
+
+    void visit(RequestAxiomMessageCount message);
 }

@@ -6,8 +6,6 @@ import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
-import networking.io.SocketManagerFactory;
-import networking.messages.MessageEnvelope;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -15,8 +13,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Scanner;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class NetworkingTest {
@@ -39,21 +35,21 @@ public class NetworkingTest {
             }
         };
 
-        PortListener portListener = new PortListener(serverPort) {
+        PortListener portListener = new PortListener(serverPort, messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
 
-        ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort)) {
+        ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort), messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
 
-        ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort)) {
+        ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort), messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
@@ -65,8 +61,6 @@ public class NetworkingTest {
 
 
         NetworkingComponent networkingComponent = new NetworkingComponent(
-                new SocketManagerFactory(),
-                messageProcessor,
                 Collections.singletonList(portListener),
                 serverConnectors);
         networkingComponent.startNIOThread();
@@ -85,7 +79,7 @@ public class NetworkingTest {
             }
         }
 
-        ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort)) {
+        ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort), messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Connection established!");

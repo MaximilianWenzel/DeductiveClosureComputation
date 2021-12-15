@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.SaturationWorker;
-import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 
 import java.util.Collection;
@@ -123,10 +122,9 @@ public class OWLELSaturationTest {
 
 
     void testDistributedSaturation() {
-        BenchmarkConfiguration benchmarkConfiguration = new BenchmarkConfiguration(10);
         SaturationWorkerServerGenerator<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerFactory;
         workerFactory = new SaturationWorkerServerGenerator<>(
-                benchmarkConfiguration, 3, 10,
+                3, 10,
                 DefaultClosure::new
         );
 
@@ -141,12 +139,13 @@ public class OWLELSaturationTest {
         }
 
         List<ServerData> workerServerData = workerFactory.getServerDataList();
-        OWLELDistributedWorkerFactory owlWorkerFactory = new OWLELDistributedWorkerFactory(elOntology, workerServerData);
+        OWLELDistributedWorkerFactory owlWorkerFactory = new OWLELDistributedWorkerFactory(elOntology,
+                workerServerData);
         List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workerModels =
                 owlWorkerFactory.generateDistributedWorkers();
         OWLELWorkloadDistributor workloadDistributor = new OWLELWorkloadDistributor(workerModels);
         DistributedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> distributedSaturation = new DistributedSaturation<>(
-                benchmarkConfiguration, workerModels, workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>(), 10);
+                workerModels, workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>());
 
         ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
             @Override

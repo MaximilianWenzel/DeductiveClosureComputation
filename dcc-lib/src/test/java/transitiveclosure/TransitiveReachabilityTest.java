@@ -10,7 +10,6 @@ import org.roaringbitmap.RoaringBitmap;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.SaturationWorker;
-import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.parallel.ParallelSaturation;
 
@@ -95,12 +94,9 @@ public class TransitiveReachabilityTest {
 
 
     void distributedClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
-        BenchmarkConfiguration benchmarkConfiguration = new BenchmarkConfiguration(10);
-
-
         SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
         workerServerFactory = new SaturationWorkerServerGenerator<>(
-                benchmarkConfiguration, numberOfWorkers, 10, (Callable) ReachabilityClosure::new);
+                numberOfWorkers, 10, (Callable) ReachabilityClosure::new);
 
         List<SaturationWorker<ReachabilityClosure, Reachability, RoaringBitmap>> saturationWorkers;
         saturationWorkers = workerServerFactory.generateWorkers();
@@ -116,12 +112,10 @@ public class TransitiveReachabilityTest {
 
         List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = workerFactory.generateDistributedWorkers();
         DistributedSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new DistributedSaturation<>(
-                benchmarkConfiguration,
                 workers,
                 new ReachabilityWorkloadDistributor(workers),
                 initialAxioms,
-                new ReachabilityClosure(),
-                10
+                new ReachabilityClosure()
         );
 
         ReachabilityClosure closure = saturation.saturate();
@@ -141,13 +135,12 @@ public class TransitiveReachabilityTest {
     void testDistributedClosureComputation() {
         distributedClosureComputation(initialAxioms, 4);
 
-        /*
         ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
         distributedClosureComputation(generator.generateGraph(), 4);
 
+        /*
         generator = new ReachabilityBinaryTreeGenerator(8);
         distributedClosureComputation(generator.generateGraph(), 20);
-
          */
     }
 

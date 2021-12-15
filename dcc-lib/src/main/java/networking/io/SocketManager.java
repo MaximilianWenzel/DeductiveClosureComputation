@@ -4,15 +4,23 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class SocketManager {
+public class SocketManager {
 
     public static final AtomicLong socketIDCounter = new AtomicLong(1);
     protected long socketID;
     protected SocketChannel socketChannel;
     protected MessageReader messageReader;
     protected MessageWriter messageWriter;
+
+    public SocketManager(SocketChannel socketChannel, MessageProcessor messageProcessor) {
+        this.socketChannel = socketChannel;
+        this.socketID = socketIDCounter.getAndIncrement();
+        this.messageWriter = new MessageWriter(socketChannel);
+        this.messageReader = new MessageReader(socketID, socketChannel, messageProcessor);
+    }
 
     public long getSocketID() {
         return socketID;
@@ -32,13 +40,8 @@ public abstract class SocketManager {
         return this.messageWriter.readFromBufferAndWriteToSocket();
     }
 
-    public Queue<Object> readMessages() throws IOException, ClassNotFoundException {
+    public void readMessages() throws IOException, ClassNotFoundException {
         messageReader.read();
-        return this.messageReader.getReceivedMessages();
-    }
-
-    public Queue<Object> getReceivedMessages() {
-        return this.messageReader.getReceivedMessages();
     }
 
     public boolean endOfStreamReached() {

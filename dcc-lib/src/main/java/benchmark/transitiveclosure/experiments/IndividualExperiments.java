@@ -3,7 +3,6 @@ package benchmark.transitiveclosure.experiments;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
 import java.io.File;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -30,7 +29,7 @@ public class IndividualExperiments {
     public static void benchmark(File outputDirectory) {
         List<Integer> binaryTreeDepth = new ArrayList<>();
 
-        for (int i = 10; i < 13; i++) {
+        for (int i = 10; i < 17; i++) {
             binaryTreeDepth.add(i);
         }
 
@@ -64,13 +63,13 @@ public class IndividualExperiments {
 
         List<Integer> ruleDelaysInNanoSec = new ArrayList<>();
         ruleDelaysInNanoSec.add(0); // 0
-        ruleDelaysInNanoSec.add(1_000); // 0.001ms
-        ruleDelaysInNanoSec.add(10_000); // 0.01ms
-        ruleDelaysInNanoSec.add(50_000);
-        ruleDelaysInNanoSec.add(80_000);
-        ruleDelaysInNanoSec.add(100_000); // 0.1ms
-        ruleDelaysInNanoSec.add(200_000);
-        ruleDelaysInNanoSec.add(500_000);
+        //ruleDelaysInNanoSec.add(1_000); // 0.001ms
+        //ruleDelaysInNanoSec.add(10_000); // 0.01ms
+        //ruleDelaysInNanoSec.add(50_000);
+        //ruleDelaysInNanoSec.add(80_000);
+        //ruleDelaysInNanoSec.add(100_000); // 0.1ms
+        //ruleDelaysInNanoSec.add(200_000);
+        //ruleDelaysInNanoSec.add(500_000);
         //ruleDelaysInNanoSec.add(1_000_000); // 1ms
         //ruleDelaysInNanoSec.add(10_000_000); // 10ms
         //ruleDelaysInNanoSec.add(100_000_000); // 100ms

@@ -2,9 +2,7 @@ package networking;
 
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
-import networking.io.MessageProcessor;
 import networking.io.SocketManager;
-import networking.io.SocketManagerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -27,19 +25,12 @@ public class NetworkingComponent implements Runnable {
 
     protected Map<Long, SocketManager> socketIDToMessageManager = new HashMap<>();
 
-    protected MessageProcessor messageProcessor;
-    protected SocketManagerFactory socketManagerFactory;
-
     protected boolean running = true;
 
-    public NetworkingComponent(SocketManagerFactory socketManagerFactory,
-                                MessageProcessor messageProcessor,
-                               List<PortListener> portNumbersToListen,
+    public NetworkingComponent(List<PortListener> portNumbersToListen,
                                List<ServerConnector> serversToConnectTo) {
-        this.socketManagerFactory = socketManagerFactory;
         this.portNumbersToListen = portNumbersToListen;
         this.serversToConnectTo.addAll(serversToConnectTo);
-        this.messageProcessor = messageProcessor;
         init();
     }
 
@@ -85,7 +76,7 @@ public class NetworkingComponent implements Runnable {
             while (running) {
                 try {
                     mainNIOSelectorLoop();
-                } catch(ClosedSelectorException e) {
+                } catch (ClosedSelectorException e) {
                     // terminated
                 } catch (CancelledKeyException e) {
                     // connection has been closed
@@ -156,8 +147,8 @@ public class NetworkingComponent implements Runnable {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         socketChannel.finishConnect();
 
-        SocketManager socketManager = socketManagerFactory.createNewSocketManager(socketChannel);
         ServerConnector serverConnector = (ServerConnector) key.attachment();
+        SocketManager socketManager = new SocketManager(socketChannel, serverConnector.getMessageProcessor());
         initNewConnectedSocket(socketManager);
         serverConnector.onConnectionEstablished(socketManager);
     }
@@ -192,10 +183,7 @@ public class NetworkingComponent implements Runnable {
 
     private void readFromSocket(SelectionKey key) throws IOException, ClassNotFoundException {
         SocketManager socketManager = (SocketManager) key.attachment();
-        Queue<Object> receivedMessages = socketManager.readMessages();
-        while (!receivedMessages.isEmpty()) {
-            messageProcessor.process(socketManager.getSocketID(), receivedMessages.poll());
-        }
+        socketManager.readMessages();
 
         // connected socket is closed
         if (socketManager.endOfStreamReached()) {
@@ -237,10 +225,11 @@ public class NetworkingComponent implements Runnable {
 
         SocketChannel socketChannel = serverSocketChannel.accept();
         while (socketChannel != null) {
-            SocketManager socketManager = socketManagerFactory.createNewSocketManager(socketChannel);
+            PortListener portListener = (PortListener) key.attachment();
+
+            SocketManager socketManager = new SocketManager(socketChannel, portListener.getMessageProcessor());
             initNewConnectedSocket(socketManager);
 
-            PortListener portListener = (PortListener) key.attachment();
             portListener.onConnectionEstablished(socketManager);
 
             socketChannel = serverSocketChannel.accept();
@@ -264,9 +253,5 @@ public class NetworkingComponent implements Runnable {
             }
         }
         return false;
-    }
-
-    public void setMessageProcessor(MessageProcessor messageProcessor) {
-        this.messageProcessor = messageProcessor;
     }
 }

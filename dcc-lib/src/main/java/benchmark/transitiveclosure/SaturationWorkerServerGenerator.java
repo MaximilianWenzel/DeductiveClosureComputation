@@ -3,7 +3,6 @@ package benchmark.transitiveclosure;
 import data.Closure;
 import networking.ServerData;
 import reasoning.saturation.distributed.SaturationWorker;
-import reasoning.saturation.distributed.communication.BenchmarkConfiguration;
 import util.NetworkingUtils;
 
 import java.io.Serializable;
@@ -16,13 +15,12 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
     private Callable<C> closureFactory;
-    private BenchmarkConfiguration benchmarkConfiguration;
     private int numberOfAxiomsToBuffer;
 
-    public SaturationWorkerServerGenerator(BenchmarkConfiguration benchmarkConfiguration, int numberOfWorkers, int numberOfAxiomsToBuffer, Callable<C> closureFactory) {
+    public SaturationWorkerServerGenerator(int numberOfWorkers,
+                                           int numberOfAxiomsToBuffer, Callable<C> closureFactory) {
         this.numberOfWorkers = numberOfWorkers;
         this.closureFactory = closureFactory;
-        this.benchmarkConfiguration = benchmarkConfiguration;
         this.numberOfAxiomsToBuffer = numberOfAxiomsToBuffer;
         init();
     }
@@ -44,8 +42,7 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
                         serverData.getPortNumber(),
                         10,
                         closure,
-                        SaturationWorker.IncrementalReasonerType.SINGLE_THREADED,
-                        benchmarkConfiguration
+                        SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
                 );
                 saturationWorkers.add(worker);
             } catch (Exception e) {

@@ -12,7 +12,6 @@ import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
-import networking.io.SocketManagerFactory;
 import networking.messages.*;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
@@ -23,6 +22,7 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
@@ -32,10 +32,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final Logger log = ConsoleUtils.getLogger();
 
     private final int portToListen;
-    private final int maxNumAxiomsToBufferBeforeSending;
     private final Map<Long, List<A>> workerIDToBufferedAxioms = new HashMap<>();
-    private final AtomicLong distributedMessages = new AtomicLong(0);
-    private final AtomicLong acknowledgedMessages = new AtomicLong(0);
     private final AtomicLong establishedConnections = new AtomicLong(0);
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A, T>> workers;
@@ -44,12 +41,19 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private BiMap<Long, Long> socketIDToWorkerID;
     private BiMap<Long, Long> workerIDToSocketID;
     private BlockingQueue<Object> toDo = new LinkedBlockingQueue<>();
-    private BenchmarkConfiguration benchmarkConfiguration;
     private long controlNodeSocketID = -1L;
     private boolean allConnectionsEstablished = false;
     private AcknowledgementEventManager acknowledgementEventManager;
     private long initializationMessageID = -1;
     private SaturationAxiomsMessage<C, A, T> initialAxioms;
+
+    // TODO: let user define batch size for sending closure to control node
+    private final int closureResultAxiomBatchSize = 1000;
+    private final int maxNumAxiomsToBufferBeforeSending;
+
+    private int saturationStage = 0;
+    private AtomicInteger sentAxiomMessages = new AtomicInteger(0);
+    private AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
 
     public WorkerNodeCommunicationChannel(int portToListen,
                                           int maxNumAxiomsToBufferBeforeSending) {
@@ -58,31 +62,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         init();
     }
 
-    public WorkerNodeCommunicationChannel(BenchmarkConfiguration benchmarkConfiguration,
-                                          int portToListen,
-                                          int maxNumAxiomsToBufferBeforeSending) {
-        this.benchmarkConfiguration = benchmarkConfiguration;
-        this.portToListen = portToListen;
-        this.maxNumAxiomsToBufferBeforeSending = maxNumAxiomsToBufferBeforeSending;
-        init();
-    }
-
-
     private void init() {
         this.socketIDToWorkerID = HashBiMap.create();
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
-
-        SocketManagerFactory socketManagerFactory;
-        if (benchmarkConfiguration != null) {
-            socketManagerFactory = benchmarkConfiguration.getSocketManagerFactory();
-        } else {
-            socketManagerFactory = new SocketManagerFactory();
-        }
         networkingComponent = new NetworkingComponent(
-                socketManagerFactory,
-                new WorkerNodeCommunicationChannel<C, A, T>.MessageProcessorImpl(),
                 Collections.singletonList(new WorkerServerPortListener(portToListen)),
                 Collections.emptyList()
         );
@@ -115,6 +100,14 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         send(0, status, onAcknowledgement);
     }
 
+    public void sendAxiomCountToControlNode() {
+        AxiomCount axiomCount = new AxiomCount(this.workerID, this.saturationStage, this.sentAxiomMessages.get(),
+                this.receivedAxiomMessages.get());
+        this.sentAxiomMessages.set(0);
+        this.receivedAxiomMessages.set(0);
+        send(controlNodeSocketID, axiomCount);
+    }
+
     public void sendToControlNode(C closure) {
         // generate closure
         Collection<A> closureResults = closure.getClosureResults();
@@ -125,17 +118,17 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
             // send results in smaller batches
             Iterator<A> closureResultsIt = closureResults.iterator();
             int counter = 0;
-            List<A> batch = new ArrayList<>(maxNumAxiomsToBufferBeforeSending);
+            List<A> batch = new ArrayList<>(closureResultAxiomBatchSize);
             while (closureResultsIt.hasNext()) {
                 batch.add(closureResultsIt.next());
                 counter++;
-                if (counter > maxNumAxiomsToBufferBeforeSending) {
+                if (counter > closureResultAxiomBatchSize) {
                     counter = 0;
-                    sendAxioms(getControlNodeID(), new ArrayList<>(batch));
-                    batch = new ArrayList<>(maxNumAxiomsToBufferBeforeSending);
+                    sendAxioms(getControlNodeID(), batch);
+                    batch = new ArrayList<>(closureResultAxiomBatchSize);
                 }
             }
-            sendAxioms(getControlNodeID(), new ArrayList<>(batch));
+            sendAxioms(getControlNodeID(), batch);
         }
     }
 
@@ -160,9 +153,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     @Override
-    public boolean hasMoreMessagesToReadWriteOrToBeAcknowledged() {
+    public boolean hasMoreMessages() {
         return !this.toDo.isEmpty()
-                || distributedMessages.get() != acknowledgedMessages.get()
                 || networkingComponent.socketsCurrentlyReadMessages();
     }
 
@@ -213,8 +205,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         if (axioms.isEmpty()) {
             return;
         }
-
-        distributedMessages.getAndIncrement();
+        sentAxiomMessages.getAndIncrement();
         SaturationAxiomsMessage saturationAxiomsMessage = new SaturationAxiomsMessage(workerID, axioms);
         Long socketID = this.workerIDToSocketID.get(receiverWorkerID);
 
@@ -222,12 +213,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
             log.warning("Worker " + receiverWorkerID + " has for worker " + this.workerID + " no socket ID assigned.");
         }
 
-        send(socketID, saturationAxiomsMessage, new Runnable() {
-            @Override
-            public void run() {
-                acknowledgedMessages.getAndIncrement();
-            }
-        });
+        send(socketID, saturationAxiomsMessage);
     }
 
     public List<DistributedWorkerModel<C, A, T>> getWorkers() {
@@ -278,12 +264,16 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         return this.establishedConnections.get() == this.workers.size() - 1;
     }
 
-    public AtomicLong getDistributedMessages() {
-        return distributedMessages;
+    public AtomicInteger getSentAxiomMessages() {
+        return sentAxiomMessages;
     }
 
-    public AtomicLong getAcknowledgedMessages() {
-        return acknowledgedMessages;
+    public AtomicInteger getReceivedAxiomMessages() {
+        return receivedAxiomMessages;
+    }
+
+    public void setSaturationStage(int saturationStage) {
+        this.saturationStage = saturationStage;
     }
 
     private class MessageProcessorImpl implements MessageProcessor {
@@ -316,7 +306,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private class WorkerServerConnector extends ServerConnector {
 
         public WorkerServerConnector(ServerData serverData) {
-            super(serverData);
+            super(serverData, new MessageProcessorImpl());
         }
 
         @Override
@@ -347,7 +337,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private class WorkerServerPortListener extends PortListener {
 
         public WorkerServerPortListener(int port) {
-            super(port);
+            super(port, new MessageProcessorImpl());
         }
 
         @Override
