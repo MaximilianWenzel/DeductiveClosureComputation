@@ -1,10 +1,11 @@
 package benchmark.jmh;
 
-import networking.NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.ServerData;
 import networking.connectors.ServerConnector;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
+import networking.io.nio.NIOSocketManager;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -13,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SenderStub {
 
-    NetworkingComponent networkingComponent;
+    NIONetworkingComponent networkingComponent;
     ServerData serverData;
     SocketManager destinationSocket;
 
@@ -29,7 +30,7 @@ public class SenderStub {
             }
         };
 
-        networkingComponent = new NetworkingComponent(
+        networkingComponent = new NIONetworkingComponent(
                 Collections.emptyList(),
                 Collections.emptyList()
         );

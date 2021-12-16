@@ -9,7 +9,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +37,7 @@ public class NetworkingComponentBenchmark {
                 .build();
 
         new Runner(opt).run();
+
     }
 
     @Setup(Level.Trial)
@@ -67,6 +67,14 @@ public class NetworkingComponentBenchmark {
         Object o = queue.take();
         assert o.getClass() != null;
     }
+
+    @Benchmark
+    public void sendJustAnObject() throws InterruptedException {
+        senderStub.sendMessage(new TestObjectWithFields(10));
+    }
+
+
+
 
 
     /*
@@ -107,7 +115,6 @@ public class NetworkingComponentBenchmark {
     }
 
      */
-
 
 
 }

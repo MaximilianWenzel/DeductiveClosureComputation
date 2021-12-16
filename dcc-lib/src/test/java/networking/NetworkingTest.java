@@ -42,14 +42,16 @@ public class NetworkingTest {
             }
         };
 
-        ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort), messageProcessor) {
+        ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort),
+                messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
 
-        ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort), messageProcessor) {
+        ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort),
+                messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
@@ -60,7 +62,7 @@ public class NetworkingTest {
         serverConnectors.add(serverConnector2);
 
 
-        NetworkingComponent networkingComponent = new NetworkingComponent(
+        NIONetworkingComponent networkingComponent = new NIONetworkingComponent(
                 Collections.singletonList(portListener),
                 serverConnectors);
         networkingComponent.startNIOThread();
@@ -79,7 +81,8 @@ public class NetworkingTest {
             }
         }
 
-        ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort), messageProcessor) {
+        ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort),
+                messageProcessor) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Connection established!");
@@ -113,4 +116,86 @@ public class NetworkingTest {
         }
     }
 
+    @Test
+    void testNIO2NetworkCommunication() {
+        int serverPort = 6066;
+        List<Long> socketIDs = new ArrayList<>();
+        MessageProcessor messageProcessor = new MessageProcessor() {
+            @Override
+            public void process(long socketID, Object message) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(LocalDateTime.now() + " - Received message: " + message);
+            }
+        };
+
+        PortListener portListener = new PortListener(serverPort, messageProcessor) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                System.out.println("Client connected to server socket.");
+            }
+        };
+
+        ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort),
+                messageProcessor) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                socketIDs.add(socketManager.getSocketID());
+                System.out.println("Connection to server established.");
+            }
+        };
+
+        ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort),
+                messageProcessor) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                socketIDs.add(socketManager.getSocketID());
+            }
+        };
+        List<ServerConnector> serverConnectors = new ArrayList<>();
+        serverConnectors.add(serverConnector1);
+        serverConnectors.add(serverConnector2);
+
+
+        NIO2NetworkingComponent networkingComponent = new NIO2NetworkingComponent(
+                Collections.singletonList(portListener),
+                serverConnectors);
+
+        while (socketIDs.isEmpty()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        for (long id : socketIDs) {
+            for (int i = 0; i < 2; i++) {
+                networkingComponent.sendMessage(id, "Hello socket " + id + "! - " + LocalDateTime.now());
+            }
+        }
+
+        ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort),
+                messageProcessor) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                System.out.println("Connection established!");
+                networkingComponent.sendMessage(socketIDs.iterator().next(), "Message from new connection!");
+            }
+        };
+        try {
+            networkingComponent.connectToServer(serverConnector3);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 }

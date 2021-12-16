@@ -18,6 +18,7 @@ public class ConsoleUtils {
         handler.setLevel(Level.ALL);
 
         log.addHandler(handler);
+
     }
 
     public static Logger getLogger() {

@@ -5,7 +5,7 @@ import com.google.common.collect.HashBiMap;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
-import networking.NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.PortListener;
@@ -36,7 +36,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final AtomicLong establishedConnections = new AtomicLong(0);
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A, T>> workers;
-    private NetworkingComponent networkingComponent;
+    private NIONetworkingComponent networkingComponent;
     private WorkloadDistributor<C, A, T> workloadDistributor;
     private BiMap<Long, Long> socketIDToWorkerID;
     private BiMap<Long, Long> workerIDToSocketID;
@@ -67,7 +67,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
-        networkingComponent = new NetworkingComponent(
+        networkingComponent = new NIONetworkingComponent(
                 Collections.singletonList(new WorkerServerPortListener(portToListen)),
                 Collections.emptyList()
         );
@@ -311,12 +311,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
         @Override
         public void onConnectionEstablished(SocketManager socketManager) {
-            try {
-                log.info("Connection to worker server established: " + socketManager.getSocketChannel()
-                        .getRemoteAddress());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            log.info("Connection to worker server established.");
             if (WorkerNodeCommunicationChannel.this.workerID == -1) {
                 // worker not yet initialized
                 return;
@@ -342,11 +337,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
         @Override
         public void onConnectionEstablished(SocketManager socketManager) {
-            try {
-                log.info("Client connected to worker: " + socketManager.getSocketChannel().getRemoteAddress());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            log.info("Client connected to worker.");
             if (WorkerNodeCommunicationChannel.this.workerID == -1) {
                 // worker not yet initialized
                 return;

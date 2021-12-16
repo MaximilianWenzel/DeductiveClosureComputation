@@ -1,6 +1,6 @@
 package benchmark.jmh;
 
-import networking.NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.connectors.PortListener;
 import networking.io.MessageProcessor;
 import networking.io.SocketManager;
@@ -12,7 +12,7 @@ import java.util.Queue;
 public class ReceiverStub {
 
     int serverPort;
-    NetworkingComponent networkingComponent;
+    NIONetworkingComponent networkingComponent;
 
     public ReceiverStub(Queue<Object> queue) {
         init(queue);
@@ -35,7 +35,7 @@ public class ReceiverStub {
             }
         };
 
-        networkingComponent = new NetworkingComponent(
+        networkingComponent = new NIONetworkingComponent(
                 Collections.singletonList(portListener),
                 Collections.emptyList()
         );

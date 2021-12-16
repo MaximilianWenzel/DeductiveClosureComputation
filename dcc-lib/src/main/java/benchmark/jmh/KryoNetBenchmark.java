@@ -125,4 +125,5 @@ public class KryoNetBenchmark {
         Object o = queue.take();
         assert o.getClass() != null;
     }
+
 }

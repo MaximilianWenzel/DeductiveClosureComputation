@@ -16,6 +16,7 @@ public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachabili
 
     }
 
+
     public DeriveReachabilityRule(int ruleDelayInNanoSec) {
         this.ruleDelayInNanoSec = ruleDelayInNanoSec;
     }

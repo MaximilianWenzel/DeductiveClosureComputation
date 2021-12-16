@@ -3,7 +3,6 @@ package benchmark.jmh;
 import java.io.Serializable;
 
 public class TestObject implements Serializable {
-
     double randomNumber = Math.random();
 
     public TestObject() {
@@ -14,4 +13,5 @@ public class TestObject implements Serializable {
     public String toString() {
         return "Test-" + randomNumber;
     }
+
 }

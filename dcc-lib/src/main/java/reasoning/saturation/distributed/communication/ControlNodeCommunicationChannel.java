@@ -5,7 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
 import enums.SaturationStatusMessage;
-import networking.NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.ServerConnector;
@@ -33,7 +33,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     private final Logger log = ConsoleUtils.getLogger();
 
-    protected NetworkingComponent networkingComponent;
+    protected NIONetworkingComponent networkingComponent;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
     protected BiMap<Long, Long> socketIDToWorkerID;
@@ -75,7 +75,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         acknowledgementEventManager = new AcknowledgementEventManager();
 
-        networkingComponent = new NetworkingComponent(
+        networkingComponent = new NIONetworkingComponent(
                 Collections.emptyList(),
                 Collections.emptyList()
         );
