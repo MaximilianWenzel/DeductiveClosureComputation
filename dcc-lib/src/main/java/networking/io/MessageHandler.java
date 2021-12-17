@@ -1,6 +1,6 @@
 package networking.io;
 
-public interface MessageProcessor {
+public interface MessageHandler {
 
     void process(long socketID, Object message);
 }

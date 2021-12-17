@@ -22,7 +22,7 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
     public void visit(StateInfoMessage message) {
         switch (message.getStatusMessage()) {
             case WORKER_SERVER_HELLO:
-                communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
+                // do nothing
                 break;
             default:
                 messageProtocolViolation(message);
@@ -32,6 +32,8 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
     @Override
     public void visit(AcknowledgementMessage message) {
         acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
+        log.info("ACK");
+        log.info("Initialized workers: " + communicationChannel.getInitializedWorkers().get());
 
         if (communicationChannel.allWorkersInitialized()) {
             log.info("All workers successfully initialized.");

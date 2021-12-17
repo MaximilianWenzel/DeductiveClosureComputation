@@ -1,17 +1,17 @@
 package networking.connectors;
 
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 
 import java.util.Objects;
 
 public abstract class PortListener implements ConnectionEstablishmentListener {
 
     private int port;
-    private MessageProcessor messageProcessor;
+    private MessageHandler messageHandler;
 
-    public PortListener(int port, MessageProcessor messageProcessor) {
+    public PortListener(int port, MessageHandler messageHandler) {
         this.port = port;
-        this.messageProcessor = messageProcessor;
+        this.messageHandler = messageHandler;
     }
 
     @Override
@@ -31,7 +31,7 @@ public abstract class PortListener implements ConnectionEstablishmentListener {
         return port;
     }
 
-    public MessageProcessor getMessageProcessor() {
-        return messageProcessor;
+    public MessageHandler getMessageProcessor() {
+        return messageHandler;
     }
 }

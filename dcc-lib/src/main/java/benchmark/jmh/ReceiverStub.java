@@ -1,8 +1,9 @@
 package benchmark.jmh;
 
-import networking.NIONetworkingComponent;
+import networking.NIO2NetworkingComponent;
+import networking.NetworkingComponent;
 import networking.connectors.PortListener;
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import util.NetworkingUtils;
 
@@ -12,14 +13,14 @@ import java.util.Queue;
 public class ReceiverStub {
 
     int serverPort;
-    NIONetworkingComponent networkingComponent;
+    NetworkingComponent networkingComponent;
 
     public ReceiverStub(Queue<Object> queue) {
         init(queue);
     }
 
     private void init(Queue<Object> queue) {
-        MessageProcessor messageProcessor = new MessageProcessor() {
+        MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
                 assert message != null;
@@ -28,18 +29,17 @@ public class ReceiverStub {
         };
 
         serverPort = NetworkingUtils.getFreePort();
-        PortListener portListener = new PortListener(serverPort, messageProcessor) {
+        PortListener portListener = new PortListener(serverPort, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected.");
             }
         };
 
-        networkingComponent = new NIONetworkingComponent(
+        networkingComponent = new NIO2NetworkingComponent(
                 Collections.singletonList(portListener),
                 Collections.emptyList()
         );
-        networkingComponent.startNIOThread();
 
         try {
             Thread.sleep(500);

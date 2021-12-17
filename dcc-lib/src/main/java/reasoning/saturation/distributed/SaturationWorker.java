@@ -84,8 +84,8 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     public void initializeWorker(InitializeWorkerMessage<C, A, T> message) {
-        this.communicationChannel.setWorkers(message.getWorkers());
         this.communicationChannel.setWorkerID(message.getWorkerID());
+        this.communicationChannel.setWorkers(message.getWorkers());
         this.communicationChannel.setWorkloadDistributor(message.getWorkloadDistributor());
         this.communicationChannel.setInitialAxioms(message.getInitialAxioms());
         this.setRules(message.getRules());

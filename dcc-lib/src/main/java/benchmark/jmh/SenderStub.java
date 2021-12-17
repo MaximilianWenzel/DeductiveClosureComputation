@@ -1,11 +1,11 @@
 package benchmark.jmh;
 
-import networking.NIONetworkingComponent;
+import networking.NIO2NetworkingComponent;
+import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.connectors.ServerConnector;
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import networking.io.SocketManager;
-import networking.io.nio.NIOSocketManager;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SenderStub {
 
-    NIONetworkingComponent networkingComponent;
+    NetworkingComponent networkingComponent;
     ServerData serverData;
     SocketManager destinationSocket;
 
@@ -24,17 +24,16 @@ public class SenderStub {
     }
 
     private void init() {
-        MessageProcessor messageProcessor = new MessageProcessor() {
+        MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
             }
         };
 
-        networkingComponent = new NIONetworkingComponent(
+        networkingComponent = new NIO2NetworkingComponent(
                 Collections.emptyList(),
                 Collections.emptyList()
         );
-        networkingComponent.startNIOThread();
 
         try {
             Thread.sleep(500);
@@ -43,7 +42,7 @@ public class SenderStub {
         }
 
         AtomicInteger connectionEstablished = new AtomicInteger(0);
-        ServerConnector serverConnector = new ServerConnector(serverData, messageProcessor) {
+        ServerConnector serverConnector = new ServerConnector(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 destinationSocket = socketManager;

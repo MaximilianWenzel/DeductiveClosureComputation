@@ -3,6 +3,7 @@ package reasoning.saturation.distributed.states.workernode;
 import data.Closure;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.*;
+import nio2kryo.Axiom;
 import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
@@ -10,15 +11,18 @@ import java.util.Collection;
 
 public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
 
+    private boolean lastMessageWasAxiomCountRequest = false;
+
     public WorkerStateRunning(SaturationWorker<C, A, T> worker) {
         super(worker);
     }
 
     public void mainWorkerLoop() throws InterruptedException {
         if (!communicationChannel.hasMoreMessages()) {
-            this.communicationChannel.sendAllBufferedAxioms();
-            communicationChannel.sendAxiomCountToControlNode();
-
+            boolean axiomsSent = this.communicationChannel.sendAllBufferedAxioms();
+            if (!lastMessageWasAxiomCountRequest || axiomsSent) {
+                communicationChannel.sendAxiomCountToControlNode();
+            }
             this.worker.switchState(new WorkerStateConverged<>(worker));
             return;
         }
@@ -28,6 +32,12 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
             ((MessageModel<C, A, T>)obj).accept(this);
         } else {
             incrementalReasoner.processAxiom((A) obj);
+        }
+
+        if (obj instanceof AxiomCount) {
+            lastMessageWasAxiomCountRequest = true;
+        } else {
+            lastMessageWasAxiomCountRequest = false;
         }
     }
 
@@ -39,7 +49,14 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     @Override
     public void visit(StateInfoMessage message) {
-        messageProtocolViolation(message);
+        switch (message.getStatusMessage()) {
+            case WORKER_SERVER_HELLO:
+            case WORKER_CLIENT_HELLO:
+                communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
+                break;
+            default:
+                messageProtocolViolation(message);
+        }
     }
 
     @Override
@@ -54,7 +71,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     @Override
     public void visit(AcknowledgementMessage message) {
-        throw new MessageProtocolViolationException();
+        // ignore
     }
 
     @Override

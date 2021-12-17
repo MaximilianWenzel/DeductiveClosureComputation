@@ -24,7 +24,13 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
 
     @Override
     public void visit(StateInfoMessage message) {
-        throw new MessageProtocolViolationException();
+        switch (message.getStatusMessage()) {
+            case WORKER_SERVER_HELLO:
+                // ignore
+                break;
+            default:
+                throw new MessageProtocolViolationException("Received message: " + message.getStatusMessage());
+        }
     }
 
     @Override
@@ -62,7 +68,12 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
                 // all workers converged
                 onSaturationConverged();
             }
+        } else if (saturationConvergedVerificationStage && sumOfAllReceivedAxioms.get() != sumOfAllSentAxioms.get()) {
+            log.info("Sum of received axioms does not equal sum of sent axioms anymore.");
+            saturationConvergedVerificationStage = false;
+            convergedWorkers.set(0);
         }
+
     }
 
     private void onSaturationConverged() {

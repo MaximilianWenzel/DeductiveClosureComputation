@@ -42,7 +42,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         }
 
         this.serverSocketChannels = new ArrayList<>(portNumbersToListen.size());
-
+        startNIOThread();
     }
 
     @Override
@@ -55,7 +55,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         this.serverSocketChannels.add(serverSocketChannel);
     }
 
-    public Thread startNIOThread() {
+    private Thread startNIOThread() {
         if (nioThread == null) {
             nioThread = new Thread(this);
             nioThread.start();

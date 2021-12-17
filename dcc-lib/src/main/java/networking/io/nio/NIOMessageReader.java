@@ -1,6 +1,6 @@
 package networking.io.nio;
 
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import util.serialization.JavaSerializer;
 import util.serialization.Serializer;
 
@@ -22,13 +22,13 @@ public class NIOMessageReader {
     protected boolean endOfStreamReached = false;
     private Serializer serializer = new JavaSerializer();
 
-    private MessageProcessor messageProcessor;
+    private MessageHandler messageHandler;
     private long socketID;
 
-    public NIOMessageReader(long socketID, SocketChannel socketChannel, MessageProcessor messageProcessor) {
+    public NIOMessageReader(long socketID, SocketChannel socketChannel, MessageHandler messageHandler) {
         this.socketChannel = socketChannel;
         this.socketID = socketID;
-        this.messageProcessor = messageProcessor;
+        this.messageHandler = messageHandler;
     }
 
     public void read() throws IOException, ClassNotFoundException {
@@ -53,10 +53,6 @@ public class NIOMessageReader {
         messageBuffer.compact();
     }
 
-    protected void onBytesHaveBeenRead() {
-
-    }
-
     protected void onNewMessageSizeHasBeenRead() {
         newMessageStarts = false;
         messageSizeInBytes = messageBuffer.getInt();
@@ -64,17 +60,17 @@ public class NIOMessageReader {
     }
 
     protected void onCompleteMessageHasBeenRead() throws IOException, ClassNotFoundException {
-        messageProcessor.process(socketID, getCompletedMessageAndClearBuffer());
+        messageHandler.process(socketID, getCompletedMessageAndClearBuffer());
     }
 
     protected int read(ByteBuffer byteBuffer) throws IOException {
-        int bytesRead = this.socketChannel.read(byteBuffer);
-        int totalBytesRead = bytesRead;
+        int bytesRead;
+        int totalBytesRead = 0;
 
-        while (bytesRead > 0) {
+        do {
             bytesRead = this.socketChannel.read(byteBuffer);
             totalBytesRead += bytesRead;
-        }
+        } while (bytesRead > 0);
 
         if (bytesRead == -1) {
             this.endOfStreamReached = true;

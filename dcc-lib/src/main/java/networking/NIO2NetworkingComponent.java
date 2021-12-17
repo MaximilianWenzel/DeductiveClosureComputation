@@ -2,7 +2,7 @@ package networking;
 
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import networking.io.nio2.NIO2SocketManager;
 
 import java.io.IOException;
@@ -15,6 +15,7 @@ import java.nio.channels.CompletionHandler;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 
 public class NIO2NetworkingComponent implements NetworkingComponent {
 
@@ -36,7 +37,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     }
 
     private void init() throws IOException {
-        threadPool = AsynchronousChannelGroup.withFixedThreadPool(2, Thread::new);
+        threadPool = AsynchronousChannelGroup.withFixedThreadPool(1, Thread::new);
 
         for (PortListener portListener : portNumbersToListen) {
             listenToPort(portListener);
@@ -58,6 +59,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         AsynchronousSocketChannel client = AsynchronousSocketChannel.open(threadPool);
         ServerData serverData = serverConnector.getServerData();
         InetSocketAddress hostAddress = new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber());
+        /*
         client.connect(hostAddress, serverConnector.getMessageProcessor(),
                 new CompletionHandler<Void, MessageProcessor>() {
                     @Override
@@ -71,13 +73,26 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
                     public void failed(Throwable exc, MessageProcessor attachment) {
                     }
                 });
+
+         */
+        try {
+            client.connect(hostAddress).get();
+            NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor());
+            socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
+            socketManager.startReading();
+            serverConnector.onConnectionEstablished(socketManager);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void sendMessage(long socketID, Serializable message) {
         NIO2SocketManager socketManager = this.socketIDToSocketManager.get(socketID);
         if (socketManager == null) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("No socket exists with ID: " + socketID);
         }
         try {
             socketManager.sendMessage(message);
@@ -88,20 +103,20 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
 
     @Override
     public void terminate() {
-        threadPool.shutdown();
-
-        this.socketIDToSocketManager.values().forEach(socketManager -> {
-            try {
-                socketManager.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-        this.socketIDToSocketManager.clear();
+        try {
+            threadPool.shutdownNow();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public boolean socketsCurrentlyReadMessages() {
+        for (NIO2SocketManager socketManager : socketIDToSocketManager.values()) {
+            if (socketManager.hasMessagesToRead()) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -117,11 +132,12 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         }
 
         @Override
-        public void completed(AsynchronousSocketChannel result, Object attachment) {
-            NIO2SocketManager socketManager = new NIO2SocketManager(result, (MessageProcessor) attachment);
-            socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
-            portListener.onConnectionEstablished(socketManager);
+        public void completed(AsynchronousSocketChannel socket, Object attachment) {
             serverSocket.accept(portListener.getMessageProcessor(), this);
+            NIO2SocketManager socketManager = new NIO2SocketManager(socket, (MessageHandler) attachment);
+            socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
+            socketManager.startReading();
+            portListener.onConnectionEstablished(socketManager);
         }
 
         @Override

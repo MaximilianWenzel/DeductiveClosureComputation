@@ -1,6 +1,6 @@
 package networking.io.nio2;
 
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import networking.io.SocketManager;
 
 import java.io.IOException;
@@ -15,13 +15,20 @@ public class NIO2SocketManager implements SocketManager {
     protected AsynchronousSocketChannel socketChannel;
     protected NIO2MessageReader messageReader;
     protected NIO2MessageWriter messageWriter;
+    protected MessageHandler messageHandler;
 
-    public NIO2SocketManager(AsynchronousSocketChannel socketChannel, MessageProcessor messageProcessor) {
+    public NIO2SocketManager(AsynchronousSocketChannel socketChannel, MessageHandler messageHandler) {
         this.socketChannel = socketChannel;
         this.socketID = socketIDCounter.getAndIncrement();
-        this.messageReader = new NIO2MessageReader(socketID, socketChannel, messageProcessor);
+        this.messageHandler = messageHandler;
+        this.messageReader = new NIO2MessageReader(socketID, socketChannel, messageHandler);
         this.messageWriter = new NIO2MessageWriter(socketChannel);
     }
+
+    public void startReading() {
+        messageReader.startReading();
+    }
+
 
     @Override
     public boolean sendMessage(Serializable message) throws IOException {

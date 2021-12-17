@@ -62,15 +62,14 @@ public class NIOMessageWriter {
     private int readFromBufferAndWriteToSocket(ByteBuffer byteBuffer) throws IOException {
         messageBuffer.flip();
 
-        int bytesWritten = this.socketChannel.write(byteBuffer);
-        int totalBytesWritten = bytesWritten;
-
-        while (bytesWritten > 0 && byteBuffer.hasRemaining()) {
+        int totalBytesWritten = 0;
+        int bytesWritten;
+        do {
             bytesWritten = this.socketChannel.write(byteBuffer);
             totalBytesWritten += bytesWritten;
-        }
-        byteBuffer.compact();
+        } while (bytesWritten > 0 && byteBuffer.hasRemaining());
 
+        byteBuffer.compact();
         return totalBytesWritten;
     }
 

@@ -45,7 +45,7 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
 
     @Override
     public void visit(AcknowledgementMessage message) {
-        throw new MessageProtocolViolationException();
+        communicationChannel.getAcknowledgementEventManager().messageAcknowledged(message.getMessageID());
     }
 
     @Override

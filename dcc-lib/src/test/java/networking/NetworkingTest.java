@@ -4,7 +4,7 @@ import benchmark.jmh.ReceiverStub;
 import benchmark.jmh.SenderStub;
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import org.junit.jupiter.api.Test;
 
@@ -13,7 +13,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class NetworkingTest {
 
@@ -23,7 +27,7 @@ public class NetworkingTest {
 
         List<Long> socketIDs = new ArrayList<>();
 
-        MessageProcessor messageProcessor = new MessageProcessor() {
+        MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
                 try {
@@ -35,7 +39,7 @@ public class NetworkingTest {
             }
         };
 
-        PortListener portListener = new PortListener(serverPort, messageProcessor) {
+        PortListener portListener = new PortListener(serverPort, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
@@ -43,7 +47,7 @@ public class NetworkingTest {
         };
 
         ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort),
-                messageProcessor) {
+                messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
@@ -51,7 +55,7 @@ public class NetworkingTest {
         };
 
         ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort),
-                messageProcessor) {
+                messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
@@ -65,7 +69,6 @@ public class NetworkingTest {
         NIONetworkingComponent networkingComponent = new NIONetworkingComponent(
                 Collections.singletonList(portListener),
                 serverConnectors);
-        networkingComponent.startNIOThread();
 
         while (socketIDs.isEmpty()) {
             try {
@@ -82,7 +85,7 @@ public class NetworkingTest {
         }
 
         ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort),
-                messageProcessor) {
+                messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Connection established!");
@@ -109,8 +112,13 @@ public class NetworkingTest {
         SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()));
 
         try {
-            senderStub.sendMessage("Test");
-            assert arrayBlockingQueue.take().getClass().equals(String.class);
+            int numResults = 100;
+            List<String> results = new ArrayList<>();
+            for (int i = 0; i < numResults; i++) {
+                senderStub.sendMessage("Test");
+                results.add((String) arrayBlockingQueue.take());
+            }
+            assertEquals(numResults, results.size());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -120,19 +128,16 @@ public class NetworkingTest {
     void testNIO2NetworkCommunication() {
         int serverPort = 6066;
         List<Long> socketIDs = new ArrayList<>();
-        MessageProcessor messageProcessor = new MessageProcessor() {
+        BlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
+        MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                receivedMessages.add((String) message);
                 System.out.println(LocalDateTime.now() + " - Received message: " + message);
             }
         };
 
-        PortListener portListener = new PortListener(serverPort, messageProcessor) {
+        PortListener portListener = new PortListener(serverPort, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected to server socket.");
@@ -140,7 +145,7 @@ public class NetworkingTest {
         };
 
         ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort),
-                messageProcessor) {
+                messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
@@ -149,7 +154,7 @@ public class NetworkingTest {
         };
 
         ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort),
-                messageProcessor) {
+                messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
@@ -166,26 +171,30 @@ public class NetworkingTest {
 
         while (socketIDs.isEmpty()) {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
 
+        int numMessages = 0;
         for (long id : socketIDs) {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 50; i++) {
                 networkingComponent.sendMessage(id, "Hello socket " + id + "! - " + LocalDateTime.now());
+                numMessages++;
             }
         }
 
         ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort),
-                messageProcessor) {
+                messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Connection established!");
                 networkingComponent.sendMessage(socketIDs.iterator().next(), "Message from new connection!");
             }
         };
+        numMessages++;
+
         try {
             networkingComponent.connectToServer(serverConnector3);
         } catch (IOException e) {
@@ -197,5 +206,7 @@ public class NetworkingTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        assertEquals(numMessages, receivedMessages.size());
     }
 }

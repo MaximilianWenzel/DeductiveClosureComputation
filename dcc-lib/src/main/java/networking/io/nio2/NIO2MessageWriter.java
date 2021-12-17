@@ -18,17 +18,17 @@ public class NIO2MessageWriter {
     private WriteCompletionHandler writeCompletionHandler = new WriteCompletionHandler();
     // TODO user defined buffer size
     private ByteBuffer messageBuffer = ByteBuffer.allocate(((int) Math.pow(2, 20) * 2));
-
-    private Object bufferLock = new Object();
+    private int bufferLimit = (int) (messageBuffer.capacity() * 0.1);
 
     private int numBytesForLength = 4;
     private Serializer serializer = new JavaSerializer();
-    private AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
+    private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
     private BlockingQueue<Serializable> messagesToSend = new LinkedBlockingQueue<>();
 
     public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {
         this.socketChannel = socketChannel;
     }
+
 
     /**
      * Returns whether all messages have been transmitted.
@@ -36,27 +36,32 @@ public class NIO2MessageWriter {
     public boolean send(Serializable message) {
         messagesToSend.add(message);
 
-        if (!currentlyWritingMessage.get()) {
-            writeMessagesIfRequired();
-        }
+        writeMessagesIfRequired();
         return true;
     }
 
     private void writeMessagesIfRequired() {
-        try {
-            serializeMessagesToBuffer();
-            if (messageBuffer.position() == 0) {
-                // no messages to write
-                return;
+        synchronized (currentlyWritingMessage) {
+            if (!currentlyWritingMessage.get()) {
+                currentlyWritingMessage.set(true);
+                if (this.messagesToSend.isEmpty() && messageBuffer.position() == 0) {
+                    // no messages to send
+                    currentlyWritingMessage.set(false);
+                    return;
+                }
+                try {
+                    serializeMessagesToBuffer();
+
+                } catch (InterruptedException | IOException e) {
+                    e.printStackTrace();
+                }
+                readFromBufferAndWriteToSocket();
             }
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
         }
-        readFromBufferAndWriteToSocket();
     }
 
     public void serializeMessagesToBuffer() throws InterruptedException, IOException {
-        while (!messagesToSend.isEmpty()) {
+        while (!messagesToSend.isEmpty() && messageBuffer.remaining() > bufferLimit) {
             Serializable message = messagesToSend.take();
 
             // reserve bytes for length
@@ -82,7 +87,6 @@ public class NIO2MessageWriter {
      */
     public void readFromBufferAndWriteToSocket() {
         messageBuffer.flip();
-        this.currentlyWritingMessage.set(true);
         this.socketChannel.write(messageBuffer, null, writeCompletionHandler);
     }
 
@@ -94,7 +98,9 @@ public class NIO2MessageWriter {
         @Override
         public void completed(Integer result, Object attachment) {
             messageBuffer.compact();
-            currentlyWritingMessage.set(false);
+            synchronized (currentlyWritingMessage) {
+                currentlyWritingMessage.set(false);
+            }
             writeMessagesIfRequired();
         }
 

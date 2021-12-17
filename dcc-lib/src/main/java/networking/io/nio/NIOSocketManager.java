@@ -1,6 +1,6 @@
 package networking.io.nio;
 
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import networking.io.SocketManager;
 
 import java.io.IOException;
@@ -16,11 +16,11 @@ public class NIOSocketManager implements SocketManager {
     protected NIOMessageReader messageReader;
     protected NIOMessageWriter messageWriter;
 
-    public NIOSocketManager(SocketChannel socketChannel, MessageProcessor messageProcessor) {
+    public NIOSocketManager(SocketChannel socketChannel, MessageHandler messageHandler) {
         this.socketChannel = socketChannel;
         this.socketID = socketIDCounter.getAndIncrement();
         this.messageWriter = new NIOMessageWriter(socketChannel);
-        this.messageReader = new NIOMessageReader(socketID, socketChannel, messageProcessor);
+        this.messageReader = new NIOMessageReader(socketID, socketChannel, messageHandler);
     }
 
     public long getSocketID() {

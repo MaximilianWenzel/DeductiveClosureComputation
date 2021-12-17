@@ -1,10 +1,8 @@
 package reasoning.saturation.distributed.states.workernode;
 
 import data.Closure;
-import networking.messages.AcknowledgementMessage;
-import networking.messages.InitializeWorkerMessage;
-import networking.messages.SaturationAxiomsMessage;
-import networking.messages.StateInfoMessage;
+import exceptions.MessageProtocolViolationException;
+import networking.messages.*;
 import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
@@ -29,7 +27,6 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
         log.info("Worker initialization message received from control node. Initializing worker...");
         this.worker.initializeWorker(message);
         log.info("Worker successfully initialized.");
-
         this.communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
     }
 
@@ -75,4 +72,8 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
         }
     }
 
+    @Override
+    public void visit(RequestAxiomMessageCount message) {
+        communicationChannel.setSaturationStage(message.getStage());
+    }
 }

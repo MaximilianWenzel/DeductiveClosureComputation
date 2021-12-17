@@ -5,11 +5,13 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
 import enums.SaturationStatusMessage;
+import networking.NIO2NetworkingComponent;
 import networking.NIONetworkingComponent;
+import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.ServerConnector;
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.*;
 import reasoning.saturation.models.DistributedWorkerModel;
@@ -33,7 +35,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     private final Logger log = ConsoleUtils.getLogger();
 
-    protected NIONetworkingComponent networkingComponent;
+    protected NetworkingComponent networkingComponent;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
     protected BiMap<Long, Long> socketIDToWorkerID;
@@ -75,12 +77,11 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         acknowledgementEventManager = new AcknowledgementEventManager();
 
-        networkingComponent = new NIONetworkingComponent(
+        networkingComponent = new NIO2NetworkingComponent(
                 Collections.emptyList(),
                 Collections.emptyList()
         );
 
-        networkingComponent.startNIOThread();
     }
 
     public void initializeConnectionToWorkerServers() {
@@ -154,6 +155,10 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         return this.initializedWorkers.get() == this.workers.size();
     }
 
+    public AtomicInteger getInitializedWorkers() {
+        return initializedWorkers;
+    }
+
     public AtomicInteger getReceivedClosureResultsCounter() {
         return this.receivedClosureResults;
     }
@@ -170,17 +175,10 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         return sumOfAllSentAxioms;
     }
 
-    private class MessageProcessorImpl implements MessageProcessor {
+    private class MessageHandlerImpl implements MessageHandler {
 
         @Override
         public void process(long socketID, Object message) {
-            if (!allConnectionsEstablished) {
-                long workerID = ((MessageModel) message).getSenderID();
-                ControlNodeCommunicationChannel.this.socketIDToWorkerID.put(socketID, workerID);
-                if (socketIDToWorkerID.size() == ControlNodeCommunicationChannel.this.workers.size()) {
-                    allConnectionsEstablished = true;
-                }
-            }
             receivedMessages.add((MessageModel) message);
         }
     }
@@ -190,7 +188,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         private final DistributedWorkerModel<C, A, T> workerModel;
 
         public WorkerServerConnector(ServerData serverData, DistributedWorkerModel<C, A, T> workerModel) {
-            super(serverData, new MessageProcessorImpl());
+            super(serverData, new MessageHandlerImpl());
             this.workerModel = workerModel;
         }
 
@@ -200,6 +198,9 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
             // get worker ID to socket ID mapping
             socketIDToWorkerID.put(socketManager.getSocketID(), workerModel.getID());
+            if (socketIDToWorkerID.size() == ControlNodeCommunicationChannel.this.workers.size()) {
+                allConnectionsEstablished = true;
+            }
 
             // send message
             // TODO: send initial axioms in batches

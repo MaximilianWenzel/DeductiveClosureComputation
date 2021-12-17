@@ -1,6 +1,6 @@
 package networking.io.nio2;
 
-import networking.io.MessageProcessor;
+import networking.io.MessageHandler;
 import util.serialization.JavaSerializer;
 import util.serialization.Serializer;
 
@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NIO2MessageReader {
@@ -18,37 +17,35 @@ public class NIO2MessageReader {
 
     protected int messageSizeInBytes;
     protected int readBytes;
-    protected Future<Integer> readBytesFuture;
 
     // TODO user defined buffer size
     protected ByteBuffer messageBuffer = ByteBuffer.allocate(((int) Math.pow(2, 20) * 2));
+    private int bufferLimit = (int) (messageBuffer.capacity() * 0.1);
 
     protected boolean newMessageStarts = true;
     protected boolean endOfStreamReached = false;
     private Serializer serializer = new JavaSerializer();
 
-    private MessageProcessor messageProcessor;
+    private MessageHandler messageHandler;
     private long socketID;
 
     private ReadCompletionHandler readCompletionHandler = new ReadCompletionHandler();
     private AtomicBoolean currentlyReading = new AtomicBoolean(false);
 
     public NIO2MessageReader(long socketID, AsynchronousSocketChannel socketChannel,
-                             MessageProcessor messageProcessor) {
+                             MessageHandler messageHandler) {
         this.socketChannel = socketChannel;
         this.socketID = socketID;
-        this.messageProcessor = messageProcessor;
-
-        init();
+        this.messageHandler = messageHandler;
     }
 
-    private void init() {
+    public void startReading() {
         currentlyReading.set(true);
         this.socketChannel.read(messageBuffer, null, readCompletionHandler);
-
     }
 
-    public void deserializeMessagesFromBuffer() throws IOException, ClassNotFoundException, ExecutionException, InterruptedException {
+    public void deserializeMessagesFromBuffer() throws IOException, ClassNotFoundException, ExecutionException,
+            InterruptedException {
         this.messageBuffer.flip();
         while (readBytes > 0) {
             // read messages from buffer
@@ -75,23 +72,23 @@ public class NIO2MessageReader {
     }
 
     protected void onCompleteMessageHasBeenRead() throws IOException, ClassNotFoundException {
-        messageProcessor.process(socketID, getCompletedMessageAndClearBuffer());
+        messageHandler.process(socketID, getCompletedMessageAndClearBuffer());
     }
 
     protected Object getCompletedMessageAndClearBuffer() throws IOException, ClassNotFoundException {
         Object obj = serializer.deserializeFromByteBuffer(messageBuffer);
-        initBufferForNewMessage();
+        prepareBufferForNewMessage();
         return obj;
     }
 
-    protected void initBufferForNewMessage() {
+    protected void prepareBufferForNewMessage() {
         readBytes -= messageSizeInBytes;
         messageSizeInBytes = -1;
         newMessageStarts = true;
     }
 
     public boolean hasMessagesOrReadsCurrentlyMessage() {
-        return messageSizeInBytes != -1 || !newMessageStarts;
+        return readBytes > 0 || messageSizeInBytes != -1 || !newMessageStarts;
     }
 
     public boolean isEndOfStreamReached() {
@@ -112,6 +109,9 @@ public class NIO2MessageReader {
                 deserializeMessagesFromBuffer();
             } catch (IOException | ClassNotFoundException | ExecutionException | InterruptedException e) {
                 e.printStackTrace();
+            }
+            if (readBytes == -1) {
+                return;
             }
             socketChannel.read(messageBuffer, null, this);
         }
