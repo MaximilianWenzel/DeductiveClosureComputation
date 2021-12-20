@@ -4,13 +4,13 @@ import data.Closure;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.InitializeWorkerMessage;
-import networking.messages.SaturationAxiomsMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
 
-public class WorkerStateFinished<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
+public class WorkerStateFinished<C extends Closure<A>, A extends Serializable, T extends Serializable>
+        extends WorkerState<C, A, T> {
 
     public WorkerStateFinished(SaturationWorker<C, A, T> worker) {
         super(worker);
@@ -28,12 +28,12 @@ public class WorkerStateFinished<C extends Closure<A>, A extends Serializable, T
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage<C, A, T> message) {
+    public void visit(AcknowledgementMessage message) {
         throw new MessageProtocolViolationException();
     }
 
     @Override
-    public void visit(AcknowledgementMessage message) {
+    public void visit(A axiom) {
         throw new MessageProtocolViolationException();
     }
 }

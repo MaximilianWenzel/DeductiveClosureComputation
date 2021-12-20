@@ -4,8 +4,11 @@ import java.io.Serializable;
 
 public class ServerData implements Serializable {
 
-    private final String serverName;
-    private final int portNumber;
+    private String serverName;
+    private int portNumber;
+
+    protected ServerData() {
+    }
 
     public ServerData(String serverName, int portNumber) {
         this.serverName = serverName;

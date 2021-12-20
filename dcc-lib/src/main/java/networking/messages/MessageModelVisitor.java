@@ -9,11 +9,11 @@ public interface MessageModelVisitor<C extends Closure<A>, A extends Serializabl
 
     void visit(StateInfoMessage message);
 
-    void visit(SaturationAxiomsMessage<C, A, T> message);
-
     void visit(DebugMessage message);
 
     void visit(AcknowledgementMessage message);
+
+    void visit(StatisticsMessage message);
 
     void visit(AxiomCount message);
 

@@ -11,8 +11,8 @@ import java.util.concurrent.TimeUnit;
 
 public class Nio2KryoClient {
 
-	public static int COUNT = 1000000000;
-//	public static int COUNT = 100000000;
+	//public static int COUNT = 1000000000;
+	public static int COUNT = 100000000;
 //	public static int COUNT = 10000000;
 //	public static int COUNT = 100000;
 //	public static int COUNT = 10000;

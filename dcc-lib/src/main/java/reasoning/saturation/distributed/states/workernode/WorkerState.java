@@ -7,35 +7,42 @@ import networking.messages.*;
 import reasoning.reasoner.IncrementalReasoner;
 import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
+import reasoning.saturation.distributed.metadata.SaturationConfiguration;
+import reasoning.saturation.distributed.metadata.WorkerStatistics;
+import reasoning.saturation.distributed.states.AxiomVisitor;
 import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.logging.Logger;
 
-public abstract class WorkerState<C extends Closure<A>, A extends Serializable, T extends Serializable> implements MessageModelVisitor<C, A, T> {
+public abstract class WorkerState<C extends Closure<A>, A extends Serializable, T extends Serializable> implements MessageModelVisitor<C, A, T>,
+        AxiomVisitor<A> {
 
     protected final Logger log = ConsoleUtils.getLogger();
     protected SaturationWorker<C, A, T> worker;
     protected WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
     protected IncrementalReasoner<C, A> incrementalReasoner;
     protected AcknowledgementEventManager acknowledgementEventManager;
+    protected WorkerStatistics stats;
+    protected SaturationConfiguration config;
 
     public WorkerState(SaturationWorker<C, A, T> worker) {
         this.worker = worker;
         this.communicationChannel = worker.getCommunicationChannel();
         this.incrementalReasoner = worker.getIncrementalReasoner();
         this.acknowledgementEventManager = communicationChannel.getAcknowledgementEventManager();
+        this.config = worker.getConfig();
+        this.stats = worker.getStats();
     }
 
     public void mainWorkerLoop() throws InterruptedException {
-        Object message = communicationChannel.read();
-        if (message instanceof MessageModel) {
-            ((MessageModel<C, A, T>)message).accept(this);
+        Object msg = communicationChannel.read();
+        if (msg instanceof MessageModel) {
+            ((MessageModel<C, A, T>)msg).accept(this);
         } else {
-            throw new IllegalArgumentException("Axioms only allowed in state 'running'. Current state: " + this.getClass());
+            this.visit((A) msg);
         }
     }
-
 
     @Override
     public void visit(DebugMessage message) {
@@ -44,11 +51,6 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
 
     @Override
     public void visit(InitializeWorkerMessage<C, A, T> message) {
-        throw new MessageProtocolViolationException();
-    }
-
-    @Override
-    public void visit(SaturationAxiomsMessage<C, A, T> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -67,6 +69,10 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         throw new MessageProtocolViolationException();
     }
 
+    @Override
+    public void visit(StatisticsMessage message) {
+        throw new MessageProtocolViolationException();
+    }
 
     protected void messageProtocolViolation(StateInfoMessage message) {
         log.warning("State: " + this.getClass() + ", message type: " + message.getStatusMessage());

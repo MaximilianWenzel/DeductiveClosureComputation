@@ -2,6 +2,9 @@ package reasoning.saturation.distributed;
 
 import data.Closure;
 import reasoning.saturation.Saturation;
+import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
+import reasoning.saturation.distributed.metadata.SaturationConfiguration;
+import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
@@ -13,6 +16,7 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected SaturationControlNode<C, A, T> controlNode;
+    protected SaturationConfiguration config;
 
     public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
                                  WorkloadDistributor<C, A, T> workloadDistributor,
@@ -20,12 +24,33 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
                                  C resultingClosure) {
         this.workloadDistributor = workloadDistributor;
         this.workers = workers;
-        this.controlNode = new SaturationControlNode<>(workers, workloadDistributor, initialAxioms, resultingClosure);
+        this.config = new SaturationConfiguration();
+        this.controlNode = new SaturationControlNode<>(workers, workloadDistributor, initialAxioms, resultingClosure, config);
     }
-    
+
+    public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
+                                 WorkloadDistributor<C, A, T> workloadDistributor,
+                                 List<? extends A> initialAxioms,
+                                 C resultingClosure,
+                                 SaturationConfiguration config) {
+        this.workloadDistributor = workloadDistributor;
+        this.workers = workers;
+        this.config = config;
+        this.controlNode = new SaturationControlNode<>(workers, workloadDistributor, initialAxioms, resultingClosure, config);
+    }
+
+
     @Override
     public C saturate() {
         return this.controlNode.saturate();
+    }
+
+    public ControlNodeStatistics getControlNodeStatistics() {
+        return controlNode.getControlNodeStatistics();
+    }
+
+    public List<WorkerStatistics> getWorkerStatistics() {
+        return controlNode.getWorkerStatistics();
     }
 
 }

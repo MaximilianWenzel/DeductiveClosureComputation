@@ -11,6 +11,9 @@ public abstract class WorkloadDistributor<C extends Closure<A>, A extends Serial
 
     protected Collection<? extends WorkerModel<C, A, T>> workerModels;
 
+    protected WorkloadDistributor() {
+    }
+
     public WorkloadDistributor(List<? extends WorkerModel<C, A, T>> workerModels) {
         this.workerModels = workerModels;
     }

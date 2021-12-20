@@ -11,6 +11,10 @@ public abstract class MessageModel<C extends Closure<A>, A extends Serializable,
     protected long senderID;
     protected long messageID = messageIDCounter.getAndIncrement();
 
+    protected MessageModel() {
+
+    }
+
     public MessageModel(long senderID) {
         this.senderID = senderID;
     }

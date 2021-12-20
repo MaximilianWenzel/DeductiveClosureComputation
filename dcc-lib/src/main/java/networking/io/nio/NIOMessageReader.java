@@ -2,6 +2,7 @@ package networking.io.nio;
 
 import networking.io.MessageHandler;
 import util.serialization.JavaSerializer;
+import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
 import java.io.IOException;
@@ -16,11 +17,13 @@ public class NIOMessageReader {
     protected int readBytes = 0;
 
     // TODO user defined buffer size
-    protected ByteBuffer messageBuffer = ByteBuffer.allocate(((int) Math.pow(2, 20) * 2));
+    private final int BUFFER_SIZE = 2 << 20;
+    private final int MESSAGE_SIZE_BYTES = 4;
+    protected ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     protected boolean newMessageStarts = true;
     protected boolean endOfStreamReached = false;
-    private Serializer serializer = new JavaSerializer();
+    private Serializer serializer = new KryoSerializer();
 
     private MessageHandler messageHandler;
     private long socketID;
@@ -37,7 +40,7 @@ public class NIOMessageReader {
         this.messageBuffer.flip();
         while (readBytes > 0) {
             // read messages from buffer
-            if (newMessageStarts && messageBuffer.hasRemaining()) {
+            if (newMessageStarts && readBytes >= MESSAGE_SIZE_BYTES) {
                 // first read message size in bytes
                 onNewMessageSizeHasBeenRead();
             }

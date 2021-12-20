@@ -3,8 +3,7 @@ dontinline,*.*_avgt_jmhStub
 dontinline,*.*_sample_jmhStub
 dontinline,*.*_ss_jmhStub
 dontinline,*.*_thrpt_jmhStub
-inline,benchmark/jmh/NetworkingComponentBenchmark.sendJustAnObject
-inline,benchmark/jmh/NetworkingComponentBenchmark.sendObject
-inline,benchmark/jmh/NetworkingComponentBenchmark.sendString
-inline,benchmark/jmh/NetworkingComponentBenchmark.setUp
-inline,benchmark/jmh/NetworkingComponentBenchmark.tearDown
+inline,benchmark/jmh/KryoNetBenchmark.sendObject
+inline,benchmark/jmh/KryoNetBenchmark.sendString
+inline,benchmark/jmh/KryoNetBenchmark.setUp
+inline,benchmark/jmh/KryoNetBenchmark.tearDown

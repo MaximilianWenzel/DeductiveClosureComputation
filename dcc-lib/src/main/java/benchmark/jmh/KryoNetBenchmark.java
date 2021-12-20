@@ -8,7 +8,6 @@ import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import data.Closure;
 import networking.messages.MessageEnvelope;
-import networking.messages.SaturationAxiomsMessage;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -54,9 +53,7 @@ public class KryoNetBenchmark {
         kryo.register(TestObject.class);
         kryo.register(TestObjectWithFields.class);
         kryo.register(MessageEnvelope.class);
-        kryo.register(SaturationAxiomsMessage.class);
         kryo.register(ArrayList.class);
-        kryo.register(networking.messages.SaturationAxiomsMessage.class);
         kryo.register(Closure.class);
         kryo.register(Serializable.class);
     }

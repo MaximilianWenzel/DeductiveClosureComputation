@@ -14,6 +14,7 @@ import networking.connectors.ServerConnector;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.*;
+import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
@@ -41,7 +42,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected BiMap<Long, Long> socketIDToWorkerID;
     protected BiMap<Long, Long> workerIDToSocketID;
     protected long controlNodeID = 0L;
-    protected BlockingQueue<MessageModel<C, A, T>> receivedMessages = new LinkedBlockingQueue<>();
+    protected BlockingQueue<Object> receivedMessages = new LinkedBlockingQueue<>();
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected List<? extends A> initialAxioms;
 
@@ -56,13 +57,17 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected AtomicInteger sumOfAllReceivedAxioms = new AtomicInteger(0);
     protected AtomicInteger sumOfAllSentAxioms = new AtomicInteger(0);
 
+    protected SaturationConfiguration config;
+
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
                                            WorkloadDistributor<C, A, T> workloadDistributor,
-                                           List<? extends A> initialAxioms) {
+                                           List<? extends A> initialAxioms,
+                                           SaturationConfiguration config) {
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
+        this.config = config;
         init();
     }
 
@@ -175,20 +180,17 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         return sumOfAllSentAxioms;
     }
 
-    private class MessageHandlerImpl implements MessageHandler {
-
-        @Override
-        public void process(long socketID, Object message) {
-            receivedMessages.add((MessageModel) message);
-        }
-    }
-
     private class WorkerServerConnector extends ServerConnector {
 
         private final DistributedWorkerModel<C, A, T> workerModel;
 
         public WorkerServerConnector(ServerData serverData, DistributedWorkerModel<C, A, T> workerModel) {
-            super(serverData, new MessageHandlerImpl());
+            super(serverData, new MessageHandler() {
+                @Override
+                public void process(long socketID, Object message) {
+                    receivedMessages.add(message);
+                }
+            });
             this.workerModel = workerModel;
         }
 
@@ -211,7 +213,8 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                     ControlNodeCommunicationChannel.this.workers,
                     workloadDistributor,
                     workerModel.getRules(),
-                    initialAxiomsDistributor.getInitialAxioms(workerModel.getID())
+                    initialAxiomsDistributor.getInitialAxioms(workerModel.getID()),
+                    config
             );
 
             send(socketManager.getSocketID(), initializeWorkerMessage, new Runnable() {

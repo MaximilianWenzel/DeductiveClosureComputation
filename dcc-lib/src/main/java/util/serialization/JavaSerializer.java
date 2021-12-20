@@ -1,8 +1,6 @@
 package util.serialization;
 
-import com.esotericsoftware.kryo.io.ByteBufferInputStream;
-import com.esotericsoftware.kryo.io.ByteBufferOutputStream;
-import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.*;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -18,16 +16,16 @@ public class JavaSerializer implements Serializer {
 
     @Override
     public void serializeToByteBuffer(Serializable object, ByteBuffer buffer) throws IOException {
-        ByteBufferOutputStream bufferOutputStream = new ByteBufferOutputStream(buffer);
-        ObjectOutputStream out = new ObjectOutputStream(bufferOutputStream);
+        ByteBufferOutput bbo = new ByteBufferOutput(buffer);
+        ObjectOutputStream out = new ObjectOutputStream(bbo);
         out.writeObject(object);
         out.flush();
     }
 
     @Override
     public Object deserializeFromByteBuffer(ByteBuffer buffer) throws IOException, ClassNotFoundException {
-        ByteBufferInputStream bis = new ByteBufferInputStream(buffer);
-        ObjectInputStream in = new ObjectInputStream(bis);
+        ByteBufferInput bbi = new ByteBufferInput(buffer);
+        ObjectInputStream in = new ObjectInputStream(bbi);
         return in.readObject();
     }
 

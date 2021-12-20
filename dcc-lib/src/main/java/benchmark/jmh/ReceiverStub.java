@@ -1,6 +1,8 @@
 package benchmark.jmh;
 
+import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.connectors.PortListener;
 import networking.io.MessageHandler;
@@ -14,8 +16,10 @@ public class ReceiverStub {
 
     int serverPort;
     NetworkingComponent networkingComponent;
+    NetworkingComponentType type;
 
-    public ReceiverStub(Queue<Object> queue) {
+    public ReceiverStub(Queue<Object> queue, NetworkingComponentType type) {
+        this.type = type;
         init(queue);
     }
 
@@ -36,10 +40,21 @@ public class ReceiverStub {
             }
         };
 
-        networkingComponent = new NIO2NetworkingComponent(
-                Collections.singletonList(portListener),
-                Collections.emptyList()
-        );
+        switch (type) {
+            case NIO:
+                networkingComponent = new NIONetworkingComponent(
+                        Collections.singletonList(portListener),
+                        Collections.emptyList()
+                );
+                break;
+            case ASYNC_NIO:
+                networkingComponent = new NIO2NetworkingComponent(
+                        Collections.singletonList(portListener),
+                        Collections.emptyList()
+                );
+                break;
+
+        }
 
         try {
             Thread.sleep(500);

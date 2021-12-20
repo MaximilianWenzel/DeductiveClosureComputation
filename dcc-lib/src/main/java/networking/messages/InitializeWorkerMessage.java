@@ -2,6 +2,7 @@ package networking.messages;
 
 import data.Closure;
 import reasoning.rules.Rule;
+import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
@@ -14,21 +15,25 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
     private long workerID;
     private List<DistributedWorkerModel<C, A, T>> workers;
     private WorkloadDistributor<C, A, T> workloadDistributor;
-    private Collection<? extends Rule<C, A>> rules;
-    private Collection<A> initialAxioms;
+    private List<? extends Rule<C, A>> rules;
+    private List<A> initialAxioms;
+    private SaturationConfiguration config;
 
-    public InitializeWorkerMessage(long senderID,
-                                   long workerID,
+    protected InitializeWorkerMessage() {
+    }
+
+    public InitializeWorkerMessage(long senderID, long workerID,
                                    List<DistributedWorkerModel<C, A, T>> workers,
                                    WorkloadDistributor<C, A, T> workloadDistributor,
-                                   Collection<? extends Rule<C, A>> rules,
-                                   Collection<A> initialAxioms) {
+                                   List<? extends Rule<C, A>> rules, List<A> initialAxioms,
+                                   SaturationConfiguration config) {
         super(senderID);
         this.workerID = workerID;
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.rules = rules;
         this.initialAxioms = initialAxioms;
+        this.config = config;
     }
 
     @Override
@@ -48,11 +53,15 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
         return workloadDistributor;
     }
 
-    public Collection<A> getInitialAxioms() {
+    public List<A> getInitialAxioms() {
         return initialAxioms;
     }
 
     public Collection<? extends Rule<C, A>> getRules() {
         return rules;
+    }
+
+    public SaturationConfiguration getConfig() {
+        return config;
     }
 }

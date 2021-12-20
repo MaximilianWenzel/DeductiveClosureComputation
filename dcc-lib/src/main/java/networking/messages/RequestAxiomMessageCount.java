@@ -4,6 +4,9 @@ public class RequestAxiomMessageCount extends MessageModel {
 
     private int stage;
 
+    protected RequestAxiomMessageCount() {
+    }
+
     public RequestAxiomMessageCount(long senderID, int stage) {
         super(senderID);
         this.stage = stage;

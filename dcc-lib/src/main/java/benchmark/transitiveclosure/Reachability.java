@@ -7,6 +7,10 @@ public abstract class Reachability implements Serializable {
     int sourceNode, destinationNode;
 
 
+    protected Reachability() {
+
+    }
+
     public Reachability(int sourceNode, int destinationNode) {
         this.sourceNode = sourceNode;
         this.destinationNode = destinationNode;

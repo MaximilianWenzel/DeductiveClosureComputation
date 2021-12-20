@@ -94,11 +94,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         if (socketManager == null) {
             throw new IllegalArgumentException("No socket exists with ID: " + socketID);
         }
-        try {
-            socketManager.sendMessage(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        socketManager.sendMessage(message);
     }
 
     @Override

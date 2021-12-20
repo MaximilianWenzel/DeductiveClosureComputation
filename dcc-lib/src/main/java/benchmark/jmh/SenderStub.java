@@ -1,13 +1,14 @@
 package benchmark.jmh;
 
+import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.connectors.ServerConnector;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,9 +18,12 @@ public class SenderStub {
     NetworkingComponent networkingComponent;
     ServerData serverData;
     SocketManager destinationSocket;
+    NetworkingComponentType type;
 
-    public SenderStub(ServerData serverData) {
+
+    public SenderStub(ServerData serverData, NetworkingComponentType type) {
         this.serverData = serverData;
+        this.type = type;
         init();
     }
 
@@ -30,10 +34,6 @@ public class SenderStub {
             }
         };
 
-        networkingComponent = new NIO2NetworkingComponent(
-                Collections.emptyList(),
-                Collections.emptyList()
-        );
 
         try {
             Thread.sleep(500);
@@ -50,12 +50,24 @@ public class SenderStub {
                 System.out.println("Connection to server established.");
             }
         };
-        try {
-            System.out.println("Connecting to server...");
-            networkingComponent.connectToServer(serverConnector);
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        System.out.println("Connecting to server...");
+        switch (type) {
+            case NIO:
+                networkingComponent = new NIONetworkingComponent(
+                        Collections.emptyList(),
+                        Collections.singletonList(serverConnector)
+                );
+                break;
+            case ASYNC_NIO:
+                networkingComponent = new NIO2NetworkingComponent(
+                        Collections.emptyList(),
+                        Collections.singletonList(serverConnector)
+                );
+                break;
+
         }
+
 
         // wait until connection established
         while (connectionEstablished.get() == 0) {

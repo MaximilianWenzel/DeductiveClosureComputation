@@ -9,6 +9,10 @@ import java.util.List;
 
 public class ReachabilityWorkloadDistributor extends WorkloadDistributor<ReachabilityClosure, Reachability, RoaringBitmap> {
 
+    protected ReachabilityWorkloadDistributor() {
+        super();
+    }
+
     public ReachabilityWorkloadDistributor(List<? extends WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workerModels) {
         super(workerModels);
     }

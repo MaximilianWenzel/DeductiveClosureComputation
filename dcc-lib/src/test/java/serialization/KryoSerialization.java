@@ -1,7 +1,6 @@
 package serialization;
 
 import networking.messages.MessageEnvelope;
-import networking.messages.SaturationAxiomsMessage;
 import org.junit.jupiter.api.Test;
 import util.serialization.KryoSerializer;
 
@@ -28,8 +27,8 @@ public class KryoSerialization {
     @Test
     public void testKryoByteBufferOutputStream() {
         String test = "Hello world!";
-        ByteBuffer writeBuffer = ByteBuffer.allocate(8192);
-        ByteBuffer messageSizeBuffer = ByteBuffer.allocate(8192);
+        ByteBuffer writeBuffer = ByteBuffer.allocateDirect(8192);
+        ByteBuffer messageSizeBuffer = ByteBuffer.allocateDirect(8192);
 
         int lastOffset = 0;
         for (int i = 0; i < 3; i++) {
@@ -43,7 +42,7 @@ public class KryoSerialization {
         writeBuffer.flip();
         messageSizeBuffer.flip();
 
-        ByteBuffer readBuffer = ByteBuffer.allocate(8192);
+        ByteBuffer readBuffer = ByteBuffer.allocateDirect(8192);
         while (writeBuffer.hasRemaining()) {
             int messageSize = messageSizeBuffer.getInt();
             readBuffer.putInt(messageSize);
@@ -66,11 +65,10 @@ public class KryoSerialization {
 
     @Test
     void testKryoObjectRegistration() {
-        ByteBuffer messageBuffer = ByteBuffer.allocate(8192);
+        ByteBuffer messageBuffer = ByteBuffer.allocateDirect(8192);
 
         ArrayList a = new ArrayList(Arrays.asList(new Object[1]));
-        SaturationAxiomsMessage<?, ?, ?> axioms = new SaturationAxiomsMessage<>((long) (Math.random() * Long.MAX_VALUE), a);
-        MessageEnvelope envelope = new MessageEnvelope(0, axioms);
+        MessageEnvelope envelope = new MessageEnvelope(0, a);
 
         byte[] bytes = kryoSerializer.serialize(envelope);
         assertTrue(bytes.length > 0);

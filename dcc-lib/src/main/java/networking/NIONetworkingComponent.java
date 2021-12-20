@@ -111,7 +111,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     }
 
-    private void mainNIOSelectorLoop() throws IOException, ClassNotFoundException {
+    private void mainNIOSelectorLoop() throws IOException, ClassNotFoundException, InterruptedException {
         selector.select();
         if (!selector.isOpen()) {
             return;
@@ -215,7 +215,6 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
                 if ((key.interestOps() & SelectionKey.OP_WRITE) == 0) {
                     // write is not set yet
                     key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-                    selector.wakeup();
                 }
             }
         } catch (IOException e) {

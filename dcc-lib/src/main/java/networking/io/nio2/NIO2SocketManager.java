@@ -31,7 +31,7 @@ public class NIO2SocketManager implements SocketManager {
 
 
     @Override
-    public boolean sendMessage(Serializable message) throws IOException {
+    public boolean sendMessage(Serializable message) {
         return messageWriter.send(message);
     }
 

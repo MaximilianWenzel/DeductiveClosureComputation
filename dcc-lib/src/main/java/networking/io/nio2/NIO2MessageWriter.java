@@ -1,6 +1,7 @@
 package networking.io.nio2;
 
 import util.serialization.JavaSerializer;
+import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
 import java.io.IOException;
@@ -15,13 +16,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class NIO2MessageWriter {
 
     private final AsynchronousSocketChannel socketChannel;
-    private WriteCompletionHandler writeCompletionHandler = new WriteCompletionHandler();
     // TODO user defined buffer size
-    private ByteBuffer messageBuffer = ByteBuffer.allocate(((int) Math.pow(2, 20) * 2));
-    private int bufferLimit = (int) (messageBuffer.capacity() * 0.1);
+    private final int BUFFER_SIZE = 2 << 20;
+    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.2);
+    private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     private int numBytesForLength = 4;
-    private Serializer serializer = new JavaSerializer();
+    private Serializer serializer = new KryoSerializer();
     private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
     private BlockingQueue<Serializable> messagesToSend = new LinkedBlockingQueue<>();
 
@@ -61,8 +62,8 @@ public class NIO2MessageWriter {
     }
 
     public void serializeMessagesToBuffer() throws InterruptedException, IOException {
-        while (!messagesToSend.isEmpty() && messageBuffer.remaining() > bufferLimit) {
-            Serializable message = messagesToSend.take();
+        while (!messagesToSend.isEmpty() && messageBuffer.position() < STOP_SERIALIZATION_TO_BUFFER_THRESHOLD) {
+            Serializable message = messagesToSend.poll();
 
             // reserve bytes for length
             messageBuffer.position(messageBuffer.position() + numBytesForLength);
@@ -87,27 +88,25 @@ public class NIO2MessageWriter {
      */
     public void readFromBufferAndWriteToSocket() {
         messageBuffer.flip();
-        this.socketChannel.write(messageBuffer, null, writeCompletionHandler);
+        this.socketChannel.write(messageBuffer, null, new CompletionHandler<Integer, Object>() {
+            @Override
+            public void completed(Integer result, Object attachment) {
+                messageBuffer.compact();
+                synchronized (currentlyWritingMessage) {
+                    currentlyWritingMessage.set(false);
+                }
+                writeMessagesIfRequired();
+            }
+
+            @Override
+            public void failed(Throwable exc, Object attachment) {
+
+            }
+        });
     }
 
     public boolean isEmpty() {
         return messagesToSend.isEmpty();
     }
-
-    private class WriteCompletionHandler implements CompletionHandler<Integer, Object> {
-        @Override
-        public void completed(Integer result, Object attachment) {
-            messageBuffer.compact();
-            synchronized (currentlyWritingMessage) {
-                currentlyWritingMessage.set(false);
-            }
-            writeMessagesIfRequired();
-        }
-
-        @Override
-        public void failed(Throwable exc, Object attachment) {
-        }
-    }
-
 
 }

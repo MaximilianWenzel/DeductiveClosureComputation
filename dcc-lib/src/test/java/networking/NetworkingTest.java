@@ -1,5 +1,6 @@
 package networking;
 
+import enums.NetworkingComponentType;
 import benchmark.jmh.ReceiverStub;
 import benchmark.jmh.SenderStub;
 import networking.connectors.PortListener;
@@ -108,8 +109,8 @@ public class NetworkingTest {
     @Test
     public void testSenderReceiverStubs() {
         LinkedBlockingQueue<Object> arrayBlockingQueue = new LinkedBlockingQueue<>();
-        ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue);
-        SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()));
+        ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue, NetworkingComponentType.ASYNC_NIO);
+        SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()), NetworkingComponentType.ASYNC_NIO);
 
         try {
             int numResults = 100;

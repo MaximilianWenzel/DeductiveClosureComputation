@@ -19,8 +19,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Fork(value = 1, warmups = 0)
-@Warmup(iterations = 2, time = 10000, timeUnit = MILLISECONDS)
-@Measurement(iterations = 3, time = 10000, timeUnit = MILLISECONDS)
+@Warmup(iterations = 2, time = 2000, timeUnit = MILLISECONDS)
+@Measurement(iterations = 3, time = 2000, timeUnit = MILLISECONDS)
 public class InterProcessCommunicationBenchmark {
 
     private BlockingQueue<Object> receivedMessages;

@@ -4,6 +4,9 @@ public class DebugMessage extends MessageModel {
 
     private String message;
 
+    protected DebugMessage() {
+    }
+
     public DebugMessage(long senderID, String message) {
         super(senderID);
         this.message = message;

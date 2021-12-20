@@ -16,6 +16,9 @@ public class WorkerModel<C extends Closure<A>, A extends Serializable, T extends
     protected List<? extends Rule<C, A>> rules;
     protected T workerTerms;
 
+    protected WorkerModel() {
+    }
+
     public WorkerModel(List<? extends Rule<C, A>> rules, T workerTerms) {
         this.rules = rules;
         this.workerTerms = workerTerms;

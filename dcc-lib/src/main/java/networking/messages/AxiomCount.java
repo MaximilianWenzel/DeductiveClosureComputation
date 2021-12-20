@@ -5,6 +5,9 @@ public class AxiomCount extends MessageModel {
     int sentAxioms;
     int receivedAxioms;
 
+    protected AxiomCount() {
+    }
+
     public AxiomCount(long senderID, int stage, int sentAxioms, int receivedAxioms) {
         super(senderID);
         this.stage = stage;

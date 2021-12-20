@@ -17,12 +17,15 @@ public class ReachabilityClosure implements Closure<Reachability> {
     public boolean add(Reachability reachability) {
         RoaringBitmap nodesReachableFromX;
         if (reachability instanceof DerivedReachability) {
-            RoaringBitmap nodesWithConnectionToY = nodeToIncomingConnectedNodesMap.computeIfAbsent(reachability.getDestinationNode(), p -> new RoaringBitmap());
+            RoaringBitmap nodesWithConnectionToY = nodeToIncomingConnectedNodesMap.computeIfAbsent(
+                    reachability.getDestinationNode(), p -> new RoaringBitmap());
             nodesWithConnectionToY.add(reachability.getSourceNode());
-            nodesReachableFromX = nodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(), p -> new RoaringBitmap());
+            nodesReachableFromX = nodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(),
+                    p -> new RoaringBitmap());
 
         } else if (reachability instanceof ToldReachability) {
-            nodesReachableFromX = toldNodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(), p -> new RoaringBitmap());
+            nodesReachableFromX = toldNodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(),
+                    p -> new RoaringBitmap());
         } else {
             throw new IllegalArgumentException();
         }
@@ -32,7 +35,8 @@ public class ReachabilityClosure implements Closure<Reachability> {
     }
 
     public void addDerivedReachability(ToldReachability toldReachability) {
-        RoaringBitmap connectedNodeIDs = nodeToOutgoingConnectedNodesMap.computeIfAbsent(toldReachability.getSourceNode(), p -> new RoaringBitmap());
+        RoaringBitmap connectedNodeIDs = nodeToOutgoingConnectedNodesMap.computeIfAbsent(
+                toldReachability.getSourceNode(), p -> new RoaringBitmap());
         connectedNodeIDs.add(toldReachability.getDestinationNode());
     }
 
@@ -55,6 +59,19 @@ public class ReachabilityClosure implements Closure<Reachability> {
             this.add(r);
         }
         return sizeBefore != this.nodeToOutgoingConnectedNodesMap.size();
+    }
+
+    @Override
+    public boolean contains(Reachability reachability) {
+        RoaringBitmap destinationNodes;
+        if (reachability instanceof ToldReachability) {
+            destinationNodes = this.toldNodeToOutgoingConnectedNodesMap.getOrDefault(reachability.getSourceNode(),
+                    emptyRoaringBitmap);
+        } else {
+            destinationNodes = this.nodeToOutgoingConnectedNodesMap.getOrDefault(reachability.getSourceNode(),
+                    emptyRoaringBitmap);
+        }
+        return destinationNodes.contains(reachability.getDestinationNode());
     }
 
     @Override

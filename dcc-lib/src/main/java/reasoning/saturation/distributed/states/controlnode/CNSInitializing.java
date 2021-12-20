@@ -2,6 +2,7 @@ package reasoning.saturation.distributed.states.controlnode;
 
 import data.Closure;
 import enums.SaturationStatusMessage;
+import enums.StatisticsComponent;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
@@ -14,6 +15,9 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
 
     public CNSInitializing(SaturationControlNode<C, A, T> saturationControlNode) {
         super(saturationControlNode);
+        if (config.collectStatistics()) {
+            stats.startStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
+        }
         this.numberOfWorkers = saturationControlNode.getWorkers().size();
         this.communicationChannel.initializeConnectionToWorkerServers();
     }
@@ -44,6 +48,11 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
                             // do nothing when message acknowledged
                         }
                     });
+            if (config.collectStatistics()) {
+                stats.stopStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
+                stats.startStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
+            }
+
             // all workers initialized
             saturationControlNode.switchState(new CNSWaitingForWorkersToConverge<>(saturationControlNode));
         }

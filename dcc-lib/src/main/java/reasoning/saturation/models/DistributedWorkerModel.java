@@ -12,6 +12,9 @@ import java.util.Set;
 public class DistributedWorkerModel<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerModel<C, A, T> {
     protected ServerData serverData;
 
+    protected DistributedWorkerModel() {
+    }
+
     public DistributedWorkerModel(List<? extends Rule<C, A>> rules, T workerTerms, ServerData serverData) {
         super(rules, workerTerms);
         this.serverData = serverData;

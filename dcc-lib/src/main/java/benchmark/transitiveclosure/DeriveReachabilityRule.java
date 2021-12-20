@@ -12,7 +12,7 @@ public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachabili
 
     int ruleDelayInNanoSec = 0;
 
-    public DeriveReachabilityRule() {
+    protected DeriveReachabilityRule() {
 
     }
 

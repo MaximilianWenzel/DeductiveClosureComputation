@@ -1,10 +1,7 @@
 package util.serialization;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.ByteBufferInputStream;
-import com.esotericsoftware.kryo.io.ByteBufferOutputStream;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.io.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -15,6 +12,10 @@ import java.nio.ByteBuffer;
 public class KryoSerializer implements Serializer {
 
     private Kryo kryo = new Kryo();
+
+    public KryoSerializer() {
+
+    }
 
     {
         kryo = new Kryo();
@@ -28,6 +29,7 @@ public class KryoSerializer implements Serializer {
         kryo.setRegistrationRequired(false);
     }
 
+
     @Override
     public byte[] serialize(Serializable object) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -39,10 +41,8 @@ public class KryoSerializer implements Serializer {
 
     @Override
     public void serializeToByteBuffer(Serializable object, ByteBuffer buffer) {
-        ByteBufferOutputStream bos = new ByteBufferOutputStream(buffer);
-        Output output = new Output(bos);
-        kryo.writeClassAndObject(output, object);
-        output.flush();
+        ByteBufferOutput bos = new ByteBufferOutput(buffer);
+        kryo.writeClassAndObject(bos, object);
     }
 
     public Object deserializeFromByteBuffer(ByteBuffer buffer, int offset, int numBytes) {
@@ -53,15 +53,8 @@ public class KryoSerializer implements Serializer {
 
     @Override
     public Object deserializeFromByteBuffer(ByteBuffer buffer) {
-        int previousPosition = buffer.position();
-        ByteBufferInputStream bis = new ByteBufferInputStream(buffer);
-        Input input = new Input(bis);
-        Object o = kryo.readClassAndObject(input);
-
-        // set new buffer position since kryo sets current buffer position to the end
-        int readBytes = (int) input.total();
-        buffer.position(previousPosition + readBytes);
-
+        ByteBufferInput bis = new ByteBufferInput(buffer);
+        Object o = kryo.readClassAndObject(bis);
         return o;
     }
 

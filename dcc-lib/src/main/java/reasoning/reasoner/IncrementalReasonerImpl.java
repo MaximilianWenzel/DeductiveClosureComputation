@@ -8,8 +8,8 @@ import java.util.Collection;
 
 public class IncrementalReasonerImpl<C extends Closure<A>, A extends Serializable> implements IncrementalReasoner<C, A> {
 
-    private final Collection<? extends Rule<C, A>> rules;
-    private final Closure<A> closure;
+    protected final Collection<? extends Rule<C, A>> rules;
+    protected final Closure<A> closure;
 
     public IncrementalReasonerImpl(Collection<? extends Rule<C, A>> rules, Closure<A> closure) {
         this.rules = rules;

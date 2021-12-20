@@ -40,7 +40,6 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
                 C closure = closureFactory.call();
                 SaturationWorker<C, A, T> worker = new SaturationWorker<>(
                         serverData.getPortNumber(),
-                        10,
                         closure,
                         SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
                 );

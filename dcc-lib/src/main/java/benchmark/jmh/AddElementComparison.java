@@ -6,9 +6,12 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-import org.roaringbitmap.RoaringBitmap;
 
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -16,16 +19,19 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Fork(value = 1, warmups = 0)
-@Warmup(iterations = 2, time = 1000, timeUnit = MILLISECONDS)
-@Measurement(iterations = 2, time = 1000, timeUnit = MILLISECONDS)
+@Warmup(iterations = 2, time = 2000, timeUnit = MILLISECONDS)
+@Measurement(iterations = 3, time = 2000, timeUnit = MILLISECONDS)
 public class AddElementComparison {
 
-    public static int size = 1_000_000;
-    UnifiedSet<Integer> unifiedSet;
-    RoaringBitmap rrBitmap;
+    public static int SIZE = 10_000_000;
+    UnifiedSet<TestObject> unifiedSet;
+    BlockingQueue<TestObject> linkedBlockingQueue;
+    BlockingQueue<TestObject> arrayBlockingQueue;
+    TestObject[] array;
+    AtomicInteger arrayPosition;
 
     public static void main(String[] args) throws RunnerException {
-        System.out.println("Size: " + AddElementComparison.size);
+        System.out.println("Size: " + AddElementComparison.SIZE);
         Options opt = new OptionsBuilder()
                 .include(AddElementComparison.class.getSimpleName())
                 .forks(1)
@@ -36,30 +42,43 @@ public class AddElementComparison {
 
     @Setup(Level.Iteration)
     public void setUp() {
-        unifiedSet = new UnifiedSet<>();
-        rrBitmap = new RoaringBitmap();
+        unifiedSet = new UnifiedSet<>(SIZE);
+        linkedBlockingQueue = new LinkedBlockingQueue<>();
+        arrayBlockingQueue = new ArrayBlockingQueue<>(SIZE);
+        array = new TestObject[SIZE];
+        arrayPosition = new AtomicInteger(0);
     }
 
     @Benchmark
     public void addElementUnifiedSet() {
-        for (int i = 0; i < size; i++) {
-            unifiedSet.add(i);
-        }
-        if (unifiedSet.isEmpty()) {
-            throw new IllegalStateException();
-        }
-        System.out.println(unifiedSet.size());
+        int sizeBefore = unifiedSet.size();
+        unifiedSet.add(new TestObject());
+        int sizeAfter = unifiedSet.size();
+        assert sizeBefore > sizeAfter;
     }
 
     @Benchmark
-    public void addElementRoaringBitmaps() {
-        for (int i = 0; i < size; i++) {
-            rrBitmap.add(i);
+    public void addElementLinkedBlockingQueue() {
+        int sizeBefore = linkedBlockingQueue.size();
+        linkedBlockingQueue.add(new TestObject());
+        int sizeAfter = linkedBlockingQueue.size();
+        assert sizeBefore > sizeAfter;
+    }
+
+    @Benchmark
+    public void addElementArrayBlockingQueue() {
+        int sizeBefore = arrayBlockingQueue.size();
+        arrayBlockingQueue.add(new TestObject());
+        int sizeAfter = arrayBlockingQueue.size();
+        assert sizeBefore > sizeAfter;
+    }
+
+    @Benchmark
+    public void addElementArray() {
+        array[arrayPosition.getAndIncrement()] = new TestObject();
+        if (arrayPosition.get() / SIZE > 0) {
+            arrayPosition.set(0);
         }
-        if (rrBitmap.isEmpty()) {
-            throw new IllegalStateException();
-        }
-        assert rrBitmap.rank(1000) != 0;
     }
 
 }

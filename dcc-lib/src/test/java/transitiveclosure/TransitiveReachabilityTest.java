@@ -10,8 +10,12 @@ import org.roaringbitmap.RoaringBitmap;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.SaturationWorker;
+import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
+import reasoning.saturation.distributed.metadata.SaturationConfiguration;
+import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.parallel.ParallelSaturation;
+import util.ConsoleUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,11 +115,13 @@ public class TransitiveReachabilityTest {
         );
 
         List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = workerFactory.generateDistributedWorkers();
+        SaturationConfiguration configuration = new SaturationConfiguration(true);
         DistributedSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new DistributedSaturation<>(
                 workers,
                 new ReachabilityWorkloadDistributor(workers),
                 initialAxioms,
-                new ReachabilityClosure()
+                new ReachabilityClosure(),
+                configuration
         );
 
         ReachabilityClosure closure = saturation.saturate();
@@ -128,6 +134,19 @@ public class TransitiveReachabilityTest {
         Set<Reachability> singleThreadedResults = singleThreadedClosureComputation(initialAxioms);
         assertEquals(singleThreadedResults, distributedResults);
 
+        List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
+        ControlNodeStatistics controlNodeStatistics = saturation.getControlNodeStatistics();
+
+        System.out.println(ConsoleUtils.getSeparator());
+        System.out.println("Statistics");
+        System.out.println(ConsoleUtils.getSeparator());
+        System.out.println(WorkerStatistics.getWorkerStatsHeader());
+        workerStatistics.forEach(w -> System.out.println(w.getWorkerStatistics()));
+
+        System.out.println(ControlNodeStatistics.getControlNodeStatsHeader());
+        System.out.println(controlNodeStatistics.getControlNodeStatistics());
+        System.out.println(ConsoleUtils.getSeparator());
+
         saturationWorkers.forEach(SaturationWorker::terminate);
     }
 
@@ -138,8 +157,10 @@ public class TransitiveReachabilityTest {
         ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
         distributedClosureComputation(generator.generateGraph(), 4);
 
-        generator = new ReachabilityBinaryTreeGenerator(8);
-        distributedClosureComputation(generator.generateGraph(), 20);
+        for (int i = 0; i < 5; i++) {
+            generator = new ReachabilityBinaryTreeGenerator(8);
+            distributedClosureComputation(generator.generateGraph(), 20);
+        }
     }
 
     @Test

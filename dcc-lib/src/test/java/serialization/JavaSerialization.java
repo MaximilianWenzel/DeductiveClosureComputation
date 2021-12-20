@@ -13,7 +13,7 @@ public class JavaSerialization {
 
     @Test
     void testJavaSerializationWithLength() throws IOException, ClassNotFoundException {
-        ByteBuffer buffer = ByteBuffer.allocate(8192);
+        ByteBuffer buffer = ByteBuffer.allocateDirect(8192);
 
         JavaSerializer javaSerializer = new JavaSerializer();
         List<TestObject> list = new ArrayList<>();

@@ -15,6 +15,11 @@ public class DefaultClosure<A extends Serializable> extends UnifiedSet<A> implem
     }
 
     @Override
+    public boolean contains(A e) {
+        return super.contains(e);
+    }
+
+    @Override
     public boolean remove(A o) {
         return super.remove(o);
     }

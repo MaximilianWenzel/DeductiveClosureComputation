@@ -2,6 +2,7 @@ package reasoning.saturation.distributed.states.controlnode;
 
 import data.Closure;
 import enums.SaturationStatusMessage;
+import enums.StatisticsComponent;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.AxiomCount;
@@ -11,7 +12,8 @@ import reasoning.saturation.distributed.SaturationControlNode;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Serializable, T extends Serializable> extends ControlNodeState<C, A, T> {
+public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Serializable, T extends Serializable>
+        extends ControlNodeState<C, A, T> {
 
     protected AtomicInteger convergedWorkers = new AtomicInteger();
     protected int numberOfWorkers;
@@ -40,27 +42,35 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
 
     @Override
     public void visit(AxiomCount message) {
-        boolean messageFromLatestSaturationStage = message.getStage() == communicationChannel.getSaturationStage().get();
+        if (config.collectStatistics()) {
+            stats.getNumberOfReceivedAxiomCountMessages().getAndIncrement();
+        }
+
+        boolean messageFromLatestSaturationStage = message.getStage() == communicationChannel.getSaturationStage()
+                .get();
 
         AtomicInteger sumOfAllReceivedAxioms = communicationChannel.getSumOfAllReceivedAxioms();
         AtomicInteger sumOfAllSentAxioms = communicationChannel.getSumOfAllSentAxioms();
 
-        if (saturationConvergedVerificationStage && messageFromLatestSaturationStage) {
-            if (message.getReceivedAxioms() > 0 || message.getSentAxioms() > 0) {
-                log.info("Worker " + message.getSenderID() + " is running again.");
-                saturationConvergedVerificationStage = false;
-                convergedWorkers.set(0);
-            } else {
+        sumOfAllReceivedAxioms.addAndGet(message.getReceivedAxioms());
+        sumOfAllSentAxioms.addAndGet(message.getSentAxioms());
+
+        if (!messageFromLatestSaturationStage) {
+            return;
+        }
+
+        if (saturationConvergedVerificationStage) {
+            if (message.getReceivedAxioms() == 0 || message.getSentAxioms() == 0) {
                 log.info("Worker " + message.getSenderID() + " converged.");
                 convergedWorkers.getAndIncrement();
             }
         }
 
-        sumOfAllReceivedAxioms.addAndGet(message.getReceivedAxioms());
-        sumOfAllSentAxioms.addAndGet(message.getSentAxioms());
-
-        if (messageFromLatestSaturationStage && sumOfAllReceivedAxioms.get() == sumOfAllSentAxioms.get()) {
+        if (sumOfAllReceivedAxioms.get() == sumOfAllSentAxioms.get()) {
             if (!saturationConvergedVerificationStage) {
+                if (config.collectStatistics()) {
+                    stats.getSumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent().getAndIncrement();
+                }
                 log.info("Sum of received axioms equals sum of sent axioms. Entering verification stage: requesting all axiom message counts.");
                 saturationConvergedVerificationStage = true;
                 communicationChannel.requestAxiomCountsFromAllWorkers();
@@ -70,6 +80,7 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
             }
         } else if (saturationConvergedVerificationStage && sumOfAllReceivedAxioms.get() != sumOfAllSentAxioms.get()) {
             log.info("Sum of received axioms does not equal sum of sent axioms anymore.");
+            log.info("Worker " + message.getSenderID() + " is running again.");
             saturationConvergedVerificationStage = false;
             convergedWorkers.set(0);
         }
@@ -77,16 +88,23 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
     }
 
     private void onSaturationConverged() {
+        if (config.collectStatistics()) {
+            stats.stopStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
+            stats.startStopwatch(StatisticsComponent.CONTROL_NODE_WAITING_FOR_CLOSURE_RESULTS);
+        }
+
         log.info("All workers converged.");
         saturationControlNode.switchState(new CNSWaitingForClosureResults<>(saturationControlNode));
-        communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT, new Runnable() {
-            @Override
-            public void run() {
-                communicationChannel.getReceivedClosureResultsCounter().getAndIncrement();
-                log.info("(" + communicationChannel.getReceivedClosureResultsCounter().get() +  "/" + numberOfWorkers + ")" +
-                        " workers have sent their closure results.");
-            }
-        });
+        communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        communicationChannel.getReceivedClosureResultsCounter().getAndIncrement();
+                        log.info("(" + communicationChannel.getReceivedClosureResultsCounter()
+                                .get() + "/" + numberOfWorkers + ")" +
+                                " workers have sent their closure results.");
+                    }
+                });
     }
 
 }

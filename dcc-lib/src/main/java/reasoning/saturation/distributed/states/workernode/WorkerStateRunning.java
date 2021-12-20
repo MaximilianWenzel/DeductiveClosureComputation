@@ -1,13 +1,12 @@
 package reasoning.saturation.distributed.states.workernode;
 
 import data.Closure;
+import enums.StatisticsComponent;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.*;
-import nio2kryo.Axiom;
 import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
-import java.util.Collection;
 
 public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
 
@@ -19,8 +18,12 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     public void mainWorkerLoop() throws InterruptedException {
         if (!communicationChannel.hasMoreMessages()) {
-            boolean axiomsSent = this.communicationChannel.sendAllBufferedAxioms();
-            if (!lastMessageWasAxiomCountRequest || axiomsSent) {
+            if (config.collectStatistics()) {
+                stats.getTodoIsEmptyEvent().incrementAndGet();
+                stats.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
+                stats.startStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
+            }
+            if (!lastMessageWasAxiomCountRequest) {
                 communicationChannel.sendAxiomCountToControlNode();
             }
             this.worker.switchState(new WorkerStateConverged<>(worker));
@@ -60,18 +63,8 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
     }
 
     @Override
-    public void visit(SaturationAxiomsMessage<C, A, T> message) {
-        communicationChannel.getReceivedAxiomMessages().getAndIncrement();
-
-        Collection<A> axioms = message.getAxioms();
-        for (A axiom : axioms) {
-            incrementalReasoner.processAxiom(axiom);
-        }
-    }
-
-    @Override
     public void visit(AcknowledgementMessage message) {
-        // ignore
+        acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
     }
 
     @Override
@@ -80,5 +73,9 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
         communicationChannel.sendAxiomCountToControlNode();
     }
 
+    @Override
+    public void visit(A axiom) {
+        incrementalReasoner.processAxiom(axiom);
+    }
 }
 

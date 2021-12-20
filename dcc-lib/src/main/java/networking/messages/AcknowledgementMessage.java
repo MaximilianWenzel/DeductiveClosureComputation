@@ -4,6 +4,10 @@ public class AcknowledgementMessage extends MessageModel {
 
     private long acknowledgedMessageID;
 
+    protected AcknowledgementMessage() {
+
+    }
+
     public AcknowledgementMessage(long senderID, long acknowledgedMessageID) {
         super(senderID);
         this.acknowledgedMessageID = acknowledgedMessageID;

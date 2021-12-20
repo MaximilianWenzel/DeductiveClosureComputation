@@ -39,7 +39,7 @@ public class NIOSocketManager implements SocketManager {
      * Returns whether all messages could be transmitted.
      */
     public boolean sendMessages() throws IOException {
-        return this.messageWriter.readFromBufferAndWriteToSocket();
+        return this.messageWriter.sendMessages();
     }
 
     public void readMessages() throws IOException, ClassNotFoundException {
