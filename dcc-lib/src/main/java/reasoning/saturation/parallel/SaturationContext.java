@@ -2,34 +2,38 @@ package reasoning.saturation.parallel;
 
 import data.Closure;
 import data.ParallelToDo;
-import enums.SaturationStatusMessage;
+import networking.messages.AxiomCount;
+import networking.messages.RequestAxiomMessageCount;
 import reasoning.reasoner.IncrementalReasonerImpl;
-import reasoning.rules.InferenceProcessor;
 import reasoning.rules.ParallelSaturationInferenceProcessor;
 import reasoning.rules.Rule;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SaturationContext<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Runnable {
+public class SaturationContext<C extends Closure<A>, A extends Serializable, T extends Serializable>
+        implements Runnable {
 
     private static final AtomicLong workerIDCounter = new AtomicLong(1L);
 
     private final long id = workerIDCounter.getAndIncrement();
     private final Collection<? extends Rule<C, A>> rules;
     private final C closure;
-    private final ParallelToDo<A> toDo;
-    private final ParallelSaturation<C, A ,T> controlNode;
+    private final ParallelToDo toDo;
+    private final ParallelSaturation<C, A, T> controlNode;
     private final IncrementalReasonerImpl<C, A> incrementalReasoner;
 
-    private boolean saturationConverged = false;
+    private AtomicInteger receivedAxioms = new AtomicInteger(0);
+    private AtomicInteger sentAxioms = new AtomicInteger(0);
+    private AtomicInteger saturationStage = new AtomicInteger(0);
+    private boolean lastMessageWasAxiomCountRequest = false;
 
     public SaturationContext(ParallelSaturation<C, A, T> controlNode, Collection<? extends Rule<C, A>> rules,
                              C closure,
-                             ParallelToDo<A> toDo) {
+                             ParallelToDo toDo) {
         this.controlNode = controlNode;
         this.closure = closure;
         this.toDo = toDo;
@@ -42,16 +46,25 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     public void run() {
         try {
             while (!controlNode.allWorkersConverged()) {
-                synchronized (toDo) {
-                    if (toDo.isEmpty()) {
-                        sendStatusToControlNode(SaturationStatusMessage.WORKER_INFO_SATURATION_CONVERGED);
-                        saturationConverged = true;
+                if (toDo.isEmpty()) {
+                    if (!this.lastMessageWasAxiomCountRequest) {
+                        sendAxiomCountToControlNode();
                     }
                 }
+                Serializable message = toDo.take();
 
-
-                A axiom = toDo.take();
-                incrementalReasoner.processAxiom(axiom);
+                if (message instanceof RequestAxiomMessageCount) {
+                    RequestAxiomMessageCount axiomCountRequest = (RequestAxiomMessageCount) message;
+                    this.saturationStage.set(axiomCountRequest.getStage());
+                    sendAxiomCountToControlNode();
+                    this.lastMessageWasAxiomCountRequest = true;
+                } else {
+                    if (this.lastMessageWasAxiomCountRequest) {
+                        this.lastMessageWasAxiomCountRequest = false;
+                    }
+                    receivedAxioms.incrementAndGet();
+                    incrementalReasoner.processAxiom((A) message);
+                }
             }
 
         } catch (InterruptedException e) {
@@ -76,8 +89,12 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
         return id == that.id;
     }
 
-    public void sendStatusToControlNode(SaturationStatusMessage statusMessage) {
-        controlNode.getStatusMessages().add(statusMessage);
+    public void sendAxiomCountToControlNode() {
+        controlNode.getStatusMessages()
+                .add(new AxiomCount(this.id,
+                        this.saturationStage.get(),
+                        this.sentAxioms.getAndSet(0),
+                        this.receivedAxioms.getAndSet(0)));
     }
 
     public void setInferenceProcessor(ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor) {
@@ -87,15 +104,11 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
         });
     }
 
-    public ParallelToDo<A> getToDo() {
+    public ParallelToDo getToDo() {
         return toDo;
     }
 
-    public boolean isSaturationConverged() {
-        return saturationConverged;
-    }
-
-    public void setSaturationConverged(boolean saturationConverged) {
-        this.saturationConverged = saturationConverged;
+    public AtomicInteger getSentAxioms() {
+        return sentAxioms;
     }
 }

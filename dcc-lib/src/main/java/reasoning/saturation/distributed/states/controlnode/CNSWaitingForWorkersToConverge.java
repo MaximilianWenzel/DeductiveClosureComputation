@@ -46,8 +46,7 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
             stats.getNumberOfReceivedAxiomCountMessages().getAndIncrement();
         }
 
-        boolean messageFromLatestSaturationStage = message.getStage() == communicationChannel.getSaturationStage()
-                .get();
+        boolean messageFromLatestSaturationStage = message.getStage() == communicationChannel.getSaturationStage().get();
 
         AtomicInteger sumOfAllReceivedAxioms = communicationChannel.getSumOfAllReceivedAxioms();
         AtomicInteger sumOfAllSentAxioms = communicationChannel.getSumOfAllSentAxioms();
@@ -61,8 +60,12 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
 
         if (saturationConvergedVerificationStage) {
             if (message.getReceivedAxioms() == 0 || message.getSentAxioms() == 0) {
-                log.info("Worker " + message.getSenderID() + " converged.");
                 convergedWorkers.getAndIncrement();
+                log.info("Worker " + message.getSenderID() + " converged (" + convergedWorkers.get() + "/" + numberOfWorkers + ")");
+            } else if (message.getReceivedAxioms() > 0 || message.getSentAxioms() > 0) {
+                log.info("Worker " + message.getSenderID() + " is running again.");
+                saturationConvergedVerificationStage = false;
+                convergedWorkers.set(0);
             }
         }
 
@@ -80,7 +83,8 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
             }
         } else if (saturationConvergedVerificationStage && sumOfAllReceivedAxioms.get() != sumOfAllSentAxioms.get()) {
             log.info("Sum of received axioms does not equal sum of sent axioms anymore.");
-            log.info("Worker " + message.getSenderID() + " is running again.");
+            log.info("Received: " + sumOfAllReceivedAxioms.get());
+            log.info("Sent: " + sumOfAllSentAxioms.get());
             saturationConvergedVerificationStage = false;
             convergedWorkers.set(0);
         }

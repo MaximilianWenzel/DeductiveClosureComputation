@@ -2,6 +2,7 @@ package reasoning.saturation.distributed.communication;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
@@ -13,6 +14,7 @@ import networking.connectors.ServerConnector;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.*;
+import org.eclipse.collections.impl.bimap.mutable.SynchronizedBiMap;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
@@ -39,6 +41,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final BlockingQueue<Object> toDo = new LinkedBlockingQueue<>();
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
+
     private final AtomicLong establishedConnections = new AtomicLong(0);
     private NetworkingComponent networkingComponent;
     private long workerID = -1L;
@@ -53,7 +56,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private AcknowledgementEventManager acknowledgementEventManager;
     private long initializationMessageID = -1;
     private List<A> initialAxioms;
-    private int saturationStage = 0;
+    private AtomicInteger saturationStage = new AtomicInteger(0);
 
     private SaturationConfiguration config;
     private WorkerStatistics stats;
@@ -64,7 +67,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     private void init() {
-        this.socketIDToWorkerID = HashBiMap.create();
+        this.socketIDToWorkerID = Maps.synchronizedBiMap(HashBiMap.create());
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
@@ -101,10 +104,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     public void sendAxiomCountToControlNode() {
-        AxiomCount axiomCount = new AxiomCount(this.workerID, this.saturationStage, this.sentAxiomMessages.get(),
-                this.receivedAxiomMessages.get());
-        this.sentAxiomMessages.set(0);
-        this.receivedAxiomMessages.set(0);
+        AxiomCount axiomCount = new AxiomCount(
+                this.workerID,
+                this.saturationStage.get(),
+                this.sentAxiomMessages.getAndUpdate(count -> 0),
+                this.receivedAxiomMessages.getAndUpdate(count -> 0));
         send(controlNodeSocketID, axiomCount);
     }
 
@@ -237,8 +241,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         return receivedAxiomMessages;
     }
 
-    public void setSaturationStage(int saturationStage) {
-        this.saturationStage = saturationStage;
+    public AtomicInteger getSaturationStageCounter() {
+        return saturationStage;
     }
 
     public void setConfig(SaturationConfiguration config) {

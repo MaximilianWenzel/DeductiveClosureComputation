@@ -40,9 +40,14 @@ public class NIOMessageReader {
         this.messageBuffer.flip();
         while (readBytes > 0) {
             // read messages from buffer
-            if (newMessageStarts && readBytes >= MESSAGE_SIZE_BYTES) {
-                // first read message size in bytes
-                onNewMessageSizeHasBeenRead();
+            if (newMessageStarts) {
+                if (messageBuffer.remaining() >= MESSAGE_SIZE_BYTES) {
+                    // first read message size in bytes
+                    onNewMessageSizeHasBeenRead();
+                } else {
+                    // more bytes required
+                    break;
+                }
             }
             if (messageSizeInBytes != -1 && moreCompletedMessagesInBuffer()) {
                 // if message size is known

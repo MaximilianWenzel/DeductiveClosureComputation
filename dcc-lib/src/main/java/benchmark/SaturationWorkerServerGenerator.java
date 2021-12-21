@@ -1,4 +1,4 @@
-package benchmark.transitiveclosure;
+package benchmark;
 
 import data.Closure;
 import networking.ServerData;
@@ -15,13 +15,11 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
     private Callable<C> closureFactory;
-    private int numberOfAxiomsToBuffer;
 
     public SaturationWorkerServerGenerator(int numberOfWorkers,
-                                           int numberOfAxiomsToBuffer, Callable<C> closureFactory) {
+                                           Callable<C> closureFactory) {
         this.numberOfWorkers = numberOfWorkers;
         this.closureFactory = closureFactory;
-        this.numberOfAxiomsToBuffer = numberOfAxiomsToBuffer;
         init();
     }
 

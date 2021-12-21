@@ -21,6 +21,7 @@ public class NIO2MessageReader {
     protected boolean endOfStreamReached = false;
     // TODO user defined buffer size
     private final int BUFFER_SIZE = 2 << 20;
+    private final int MESSAGE_SIZE_BYTES = 4;
     protected ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private final Serializer serializer = new KryoSerializer();
 
@@ -66,9 +67,14 @@ public class NIO2MessageReader {
         this.messageBuffer.flip();
         while (readBytes > 0) {
             // read messages from buffer
-            if (newMessageStarts && messageBuffer.remaining() >= 4) {
-                // first read message size in bytes
-                onNewMessageSizeHasBeenRead();
+            if (newMessageStarts) {
+                if (messageBuffer.remaining() >= MESSAGE_SIZE_BYTES) {
+                    // first read message size in bytes
+                    onNewMessageSizeHasBeenRead();
+                } else {
+                    // more bytes required
+                    break;
+                }
             }
             if (messageSizeInBytes != -1 && moreCompletedMessagesInBuffer()) {
                 // if message size is known

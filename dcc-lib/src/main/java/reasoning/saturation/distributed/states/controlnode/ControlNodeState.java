@@ -56,6 +56,7 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
 
     @Override
     public void visit(AxiomCount message) {
+        System.err.println(message);
         throw new MessageProtocolViolationException("Axiom count message received in state " + this.getClass());
     }
 

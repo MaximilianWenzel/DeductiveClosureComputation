@@ -1,5 +1,6 @@
 package transitiveclosure;
 
+import benchmark.SaturationWorkerServerGenerator;
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
 import benchmark.transitiveclosure.*;
 import networking.ServerData;
@@ -68,9 +69,15 @@ public class TransitiveReachabilityTest {
     }
 
     Set<Reachability> singleThreadedClosureComputation(List<? extends Reachability> initialAxioms) {
+        ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
+                initialAxioms,
+                1,
+                0
+        );
+
         SingleThreadedSaturation<ReachabilityClosure, Reachability> saturation = new SingleThreadedSaturation<>(
                 initialAxioms.iterator(),
-                ReachabilityWorkerFactory.getReachabilityRules(0),
+                initializationFactory.generateRules(),
                 new ReachabilityClosure()
         );
 
@@ -100,7 +107,7 @@ public class TransitiveReachabilityTest {
     void distributedClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
         SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
         workerServerFactory = new SaturationWorkerServerGenerator<>(
-                numberOfWorkers, 10, (Callable) ReachabilityClosure::new);
+                numberOfWorkers, (Callable) ReachabilityClosure::new);
 
         List<SaturationWorker<ReachabilityClosure, Reachability, RoaringBitmap>> saturationWorkers;
         saturationWorkers = workerServerFactory.generateWorkers();
@@ -108,13 +115,14 @@ public class TransitiveReachabilityTest {
         threads.forEach(Thread::start);
 
         List<ServerData> serverDataList = workerServerFactory.getServerDataList();
-        ReachabilityWorkerFactory workerFactory = new ReachabilityWorkerFactory(
+        ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
                 initialAxioms,
-                serverDataList,
+                numberOfWorkers,
                 0
         );
 
-        List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = workerFactory.generateDistributedWorkers();
+        List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = initializationFactory.getDistributedWorkerModels(
+                serverDataList);
         SaturationConfiguration configuration = new SaturationConfiguration(true);
         DistributedSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new DistributedSaturation<>(
                 workers,
@@ -157,10 +165,8 @@ public class TransitiveReachabilityTest {
         ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
         distributedClosureComputation(generator.generateGraph(), 4);
 
-        for (int i = 0; i < 5; i++) {
-            generator = new ReachabilityBinaryTreeGenerator(8);
-            distributedClosureComputation(generator.generateGraph(), 20);
-        }
+        generator = new ReachabilityBinaryTreeGenerator(8);
+        distributedClosureComputation(generator.generateGraph(), 20);
     }
 
     @Test
@@ -178,6 +184,7 @@ public class TransitiveReachabilityTest {
 
         generator = new ReachabilityBinaryTreeGenerator(12);
         parallelClosureComputation(generator.generateGraph(), 20);
+
     }
 
     @Test

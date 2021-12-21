@@ -10,7 +10,7 @@ import java.util.List;
 public class ReachabilityWorkloadDistributor extends WorkloadDistributor<ReachabilityClosure, Reachability, RoaringBitmap> {
 
     protected ReachabilityWorkloadDistributor() {
-        super();
+
     }
 
     public ReachabilityWorkloadDistributor(List<? extends WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workerModels) {
@@ -28,7 +28,6 @@ public class ReachabilityWorkloadDistributor extends WorkloadDistributor<Reachab
         return result;
     }
 
-    @Override
     public boolean isRelevantAxiomToWorker(WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap> worker, Reachability axiom) {
         RoaringBitmap responsibleNodeIDs = worker.getWorkerTerms();
         if (responsibleNodeIDs.contains(axiom.getSourceNode())

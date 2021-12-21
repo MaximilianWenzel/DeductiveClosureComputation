@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -75,7 +76,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         this.socketIDToWorkerID = Maps.synchronizedBiMap(HashBiMap.create());
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
 
-        this.workerIDToWorker = new HashMap<>();
+        this.workerIDToWorker = new ConcurrentHashMap<>();
         workers.forEach(p -> workerIDToWorker.put(p.getID(), p));
 
         initialAxiomsDistributor = new InitialAxiomsDistributor<>(initialAxioms, workloadDistributor);
@@ -143,8 +144,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     }
 
     public void requestAxiomCountsFromAllWorkers() {
-        saturationStage.getAndIncrement();
-
+        this.saturationStage.incrementAndGet();
         for (Long socketID : this.socketIDToWorkerID.keySet()) {
             RequestAxiomMessageCount requestAxiomMessageCount = new RequestAxiomMessageCount(controlNodeID,
                     this.saturationStage.get());

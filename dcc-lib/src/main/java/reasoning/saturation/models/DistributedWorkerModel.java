@@ -13,6 +13,13 @@ public class DistributedWorkerModel<C extends Closure<A>, A extends Serializable
     protected ServerData serverData;
 
     protected DistributedWorkerModel() {
+
+    }
+
+    public DistributedWorkerModel(WorkerModel<C, A, T> worker, ServerData serverData) {
+        super(worker.rules, worker.workerTerms);
+        this.serverData = serverData;
+        this.id = worker.id;
     }
 
     public DistributedWorkerModel(List<? extends Rule<C, A>> rules, T workerTerms, ServerData serverData) {

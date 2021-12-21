@@ -9,7 +9,7 @@ import java.util.List;
 
 public abstract class WorkloadDistributor<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Serializable {
 
-    protected Collection<? extends WorkerModel<C, A, T>> workerModels;
+    protected List<? extends WorkerModel<C, A, T>> workerModels;
 
     protected WorkloadDistributor() {
     }
@@ -19,6 +19,4 @@ public abstract class WorkloadDistributor<C extends Closure<A>, A extends Serial
     }
 
     public abstract List<Long> getRelevantWorkerIDsForAxiom(A axiom);
-
-    public abstract boolean isRelevantAxiomToWorker(WorkerModel<C, A, T> worker, A axiom);
 }

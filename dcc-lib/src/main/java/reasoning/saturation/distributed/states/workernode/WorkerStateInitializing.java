@@ -83,7 +83,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
 
     @Override
     public void visit(RequestAxiomMessageCount message) {
-        communicationChannel.setSaturationStage(message.getStage());
+        communicationChannel.getSaturationStageCounter().set(message.getStage());
     }
 
     @Override

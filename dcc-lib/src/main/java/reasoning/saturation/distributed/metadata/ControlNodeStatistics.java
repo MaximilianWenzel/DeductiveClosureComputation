@@ -2,7 +2,11 @@ package reasoning.saturation.distributed.metadata;
 
 import com.google.common.base.Stopwatch;
 import enums.StatisticsComponent;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;

@@ -18,6 +18,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     public void mainWorkerLoop() throws InterruptedException {
         if (!communicationChannel.hasMoreMessages()) {
+            this.worker.switchState(new WorkerStateConverged<>(worker));
             if (config.collectStatistics()) {
                 stats.getTodoIsEmptyEvent().incrementAndGet();
                 stats.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
@@ -26,7 +27,6 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
             if (!lastMessageWasAxiomCountRequest) {
                 communicationChannel.sendAxiomCountToControlNode();
             }
-            this.worker.switchState(new WorkerStateConverged<>(worker));
             return;
         }
 
@@ -37,7 +37,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
             incrementalReasoner.processAxiom((A) obj);
         }
 
-        if (obj instanceof AxiomCount) {
+        if (obj instanceof RequestAxiomMessageCount) {
             lastMessageWasAxiomCountRequest = true;
         } else {
             lastMessageWasAxiomCountRequest = false;
@@ -57,6 +57,8 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
             case WORKER_CLIENT_HELLO:
                 communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
                 break;
+            case CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT:
+
             default:
                 messageProtocolViolation(message);
         }
@@ -69,7 +71,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     @Override
     public void visit(RequestAxiomMessageCount message) {
-        communicationChannel.setSaturationStage(message.getStage());
+        communicationChannel.getSaturationStageCounter().set(message.getStage());
         communicationChannel.sendAxiomCountToControlNode();
     }
 

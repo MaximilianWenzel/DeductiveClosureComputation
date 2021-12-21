@@ -66,7 +66,7 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
 
     @Override
     public void visit(RequestAxiomMessageCount message) {
-        communicationChannel.setSaturationStage(message.getStage());
+        communicationChannel.getSaturationStageCounter().set(message.getStage());
         communicationChannel.sendAxiomCountToControlNode();
     }
 }

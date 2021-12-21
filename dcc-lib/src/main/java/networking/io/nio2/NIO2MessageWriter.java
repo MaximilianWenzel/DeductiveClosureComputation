@@ -1,6 +1,6 @@
 package networking.io.nio2;
 
-import util.serialization.JavaSerializer;
+import util.CSVUtils;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -18,12 +18,11 @@ public class NIO2MessageWriter {
     private final AsynchronousSocketChannel socketChannel;
     // TODO user defined buffer size
     private final int BUFFER_SIZE = 2 << 20;
-    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.2);
+    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.4);
+    private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
     private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-
     private int numBytesForLength = 4;
     private Serializer serializer = new KryoSerializer();
-    private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
     private BlockingQueue<Serializable> messagesToSend = new LinkedBlockingQueue<>();
 
     public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {

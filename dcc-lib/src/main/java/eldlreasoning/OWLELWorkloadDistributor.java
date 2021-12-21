@@ -29,7 +29,6 @@ public class OWLELWorkloadDistributor extends WorkloadDistributor<DefaultClosure
         return workerIDs;
     }
 
-    @Override
     public boolean isRelevantAxiomToWorker(WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> worker,
                                            ELConceptInclusion axiom) {
         Set<?> workerTerms = worker.getWorkerTerms();

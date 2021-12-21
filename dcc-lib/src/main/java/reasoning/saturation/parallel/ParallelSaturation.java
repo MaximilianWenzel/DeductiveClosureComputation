@@ -2,22 +2,28 @@ package reasoning.saturation.parallel;
 
 import data.Closure;
 import data.ParallelToDo;
-import enums.SaturationStatusMessage;
+import networking.messages.AxiomCount;
+import networking.messages.RequestAxiomMessageCount;
 import reasoning.rules.ParallelSaturationInferenceProcessor;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
+import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Logger;
 
 public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
+    private final BlockingQueue<AxiomCount> statusMessages = new LinkedBlockingQueue<>();
     private SaturationInitializationFactory<C, A, T> factory;
-
-    private final BlockingQueue<SaturationStatusMessage> statusMessages = new LinkedBlockingQueue<>();
+    private Logger log = ConsoleUtils.getLogger();
     private List<SaturationContext<C, A, T>> contexts;
     private Collection<WorkerModel<C, A, T>> workerModels;
     private volatile boolean allWorkersConverged = false;
@@ -27,7 +33,12 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
     private InitialAxiomsDistributor<A> initialAxiomsDistributor;
     private Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext = new HashMap<>();
 
-    private int convergedWorkers = 0;
+    private AtomicLong sumOfAllReceivedAxioms = new AtomicLong(0);
+    private AtomicLong sumOfAllSentAxioms = new AtomicLong(0);
+    private AtomicInteger saturationStage = new AtomicInteger(0);
+    private AtomicInteger convergedWorkers = new AtomicInteger(0);
+    private boolean saturationConvergedVerificationStage = false;
+
 
     public ParallelSaturation(SaturationInitializationFactory<C, A, T> factory) {
         this.factory = factory;
@@ -43,12 +54,13 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
 
     protected SaturationContext<C, A, T> generateSaturationContext(WorkerModel<C, A, T> worker) {
         C workerClosure = factory.getNewClosure();
-        ParallelToDo<A> workerToDo = new ParallelToDo<>();
+        ParallelToDo workerToDo = new ParallelToDo();
         SaturationContext<C, A, T> saturationContext = new SaturationContext<>(
                 this,
                 worker.getRules(),
                 workerClosure,
-                workerToDo);
+                workerToDo
+        );
 
         this.workerIDToSaturationContext.put(worker.getID(), saturationContext);
         return saturationContext;
@@ -63,9 +75,9 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
             this.contexts.add(generateSaturationContext(p));
         });
 
-        ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor = new ParallelSaturationInferenceProcessor<>(
-                workloadDistributor, workerIDToSaturationContext);
         for (SaturationContext<C, A, T> context : this.contexts) {
+            ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor = new ParallelSaturationInferenceProcessor<>(
+                    workloadDistributor, workerIDToSaturationContext, context.getClosure(), context.getSentAxioms());
             context.setInferenceProcessor(inferenceProcessor);
         }
 
@@ -73,6 +85,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         for (A axiom : initialAxioms) {
             List<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
             for (Long workerID : workerIDs) {
+                sumOfAllSentAxioms.incrementAndGet();
                 this.workerIDToSaturationContext.get(workerID).getToDo().add(axiom);
             }
         }
@@ -83,21 +96,48 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
 
         try {
             while (!allWorkersConverged) {
-                SaturationStatusMessage message = statusMessages.take();
+                AxiomCount message = statusMessages.take();
 
-                switch (message) {
-                    case WORKER_INFO_SATURATION_CONVERGED:
-                        convergedWorkers++;
-                        break;
-                    case WORKER_INFO_SATURATION_RUNNING:
-                        convergedWorkers--;
-                        break;
+                boolean messageFromLatestSaturationStage = message.getStage() == saturationStage.get();
+
+                sumOfAllReceivedAxioms.addAndGet(message.getReceivedAxioms());
+                sumOfAllSentAxioms.addAndGet(message.getSentAxioms());
+
+                if (!messageFromLatestSaturationStage) {
+                    continue;
                 }
 
-                if (convergedWorkers == contexts.size()) {
-                    allWorkersConverged = true;
+                if (saturationConvergedVerificationStage) {
+                    if (message.getReceivedAxioms() == 0 || message.getSentAxioms() == 0) {
+                        convergedWorkers.getAndIncrement();
+                        log.info(
+                                "Worker " + message.getSenderID() + " converged (" + convergedWorkers.get() + "/" + workerModels.size() + ")");
+                    } else if (message.getReceivedAxioms() > 0 || message.getSentAxioms() > 0) {
+                        log.info("Worker " + message.getSenderID() + " is running again.");
+                        saturationConvergedVerificationStage = false;
+                        convergedWorkers.set(0);
+                    }
+                }
+
+                if (sumOfAllReceivedAxioms.get() == sumOfAllSentAxioms.get()) {
+                    if (!saturationConvergedVerificationStage) {
+                        log.info(
+                                "Sum of received axioms equals sum of sent axioms. Entering verification stage: requesting all axiom message counts.");
+                        saturationConvergedVerificationStage = true;
+                        requestAxiomCountsFromAllWorkers();
+                    } else if (convergedWorkers.get() == workerModels.size()) {
+                        // all workers converged
+                        break;
+                    }
+                } else if (saturationConvergedVerificationStage && sumOfAllReceivedAxioms.get() != sumOfAllSentAxioms.get()) {
+                    log.info("Sum of received axioms does not equal sum of sent axioms anymore.");
+                    log.info("Received: " + sumOfAllReceivedAxioms.get());
+                    log.info("Sent: " + sumOfAllSentAxioms.get());
+                    saturationConvergedVerificationStage = false;
+                    convergedWorkers.set(0);
                 }
             }
+            allWorkersConverged = true;
 
             // all workers converged
             for (Thread t : threadPool) {
@@ -114,6 +154,13 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         return closure;
     }
 
+    private void requestAxiomCountsFromAllWorkers() {
+        this.saturationStage.incrementAndGet();
+        for (SaturationContext<C, A, T> context : contexts) {
+            context.getToDo().add(new RequestAxiomMessageCount(0, this.saturationStage.get()));
+        }
+    }
+
     private void initAndStartThreads() {
         this.threadPool = new ArrayList<>();
         for (SaturationContext<C, A, T> worker : this.contexts) {
@@ -126,7 +173,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         return allWorkersConverged;
     }
 
-    public BlockingQueue<SaturationStatusMessage> getStatusMessages() {
+    public BlockingQueue<AxiomCount> getStatusMessages() {
         return statusMessages;
     }
 }

@@ -31,4 +31,13 @@ public class AxiomCount extends MessageModel {
     public void accept(MessageModelVisitor visitor) {
         visitor.visit(this);
     }
+
+    @Override
+    public String toString() {
+        return "sender=" + this.senderID + ", AxiomCount{" +
+                "stage=" + stage +
+                ", sentAxioms=" + sentAxioms +
+                ", receivedAxioms=" + receivedAxioms +
+                '}';
+    }
 }

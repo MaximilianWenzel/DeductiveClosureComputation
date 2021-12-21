@@ -1,6 +1,6 @@
 package owl;
 
-import benchmark.transitiveclosure.SaturationWorkerServerGenerator;
+import benchmark.SaturationWorkerServerGenerator;
 import data.Closure;
 import data.DefaultClosure;
 import data.IndexedELOntology;
@@ -124,7 +124,7 @@ public class OWLELSaturationTest {
     void testDistributedSaturation() {
         SaturationWorkerServerGenerator<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerFactory;
         workerFactory = new SaturationWorkerServerGenerator<>(
-                3, 10,
+                3,
                 DefaultClosure::new
         );
 
