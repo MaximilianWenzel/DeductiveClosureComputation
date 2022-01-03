@@ -1,7 +1,7 @@
 package benchmark.jmh;
 
 
-import benchmark.transitiveclosure.ToldReachability;
+import nio2kryo.Edge;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -25,8 +25,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @Measurement(iterations = 3, time = 2000, timeUnit = MILLISECONDS)
 public class SerializationBenchmark {
 
-    ByteBuffer byteBuffer = ByteBuffer.allocateDirect(2 << 20);
-    TestObject testObjectWithFields = new TestObjectWithFields(10);
+    ByteBuffer byteBuffer = ByteBuffer.allocateDirect(2 << 10);
     KryoSerializer kryoSerializer;
     JavaSerializer javaSerializer;
     Random rnd = new Random();
@@ -45,6 +44,7 @@ public class SerializationBenchmark {
     public void setUp() {
         kryoSerializer = new KryoSerializer();
         javaSerializer = new JavaSerializer();
+
     }
 
     @TearDown(Level.Iteration)
@@ -52,19 +52,22 @@ public class SerializationBenchmark {
     }
 
 
-    @Benchmark
     public void javaSerialization() throws IOException {
-        javaSerializer.serializeToByteBuffer(new ToldReachability(rnd.nextInt(100000),
+        javaSerializer.serializeToByteBuffer(new Edge(rnd.nextInt(100000),
                 rnd.nextInt(100000)), byteBuffer);
         assert byteBuffer.position() > 0;
-        byteBuffer.position(0);
+        if (byteBuffer.position() > 0.9 * byteBuffer.capacity()) {
+            byteBuffer.position(0);
+        }
     }
 
     @Benchmark
     public void kryoSerialization() {
-        kryoSerializer.serializeToByteBuffer(new ToldReachability(rnd.nextInt(100000),
+        kryoSerializer.serializeToByteBuffer(new Edge(rnd.nextInt(100000),
                 rnd.nextInt(100000)), byteBuffer);
         assert byteBuffer.position() > 0;
-        byteBuffer.position(0);
+        if (byteBuffer.position() > 0.9 * byteBuffer.capacity()) {
+            byteBuffer.position(0);
+        }
     }
 }

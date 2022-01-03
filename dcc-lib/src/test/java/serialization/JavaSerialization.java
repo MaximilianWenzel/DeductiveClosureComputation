@@ -1,6 +1,8 @@
 package serialization;
 
 import benchmark.jmh.TestObject;
+import com.esotericsoftware.kryo.io.ByteBufferInput;
+import com.esotericsoftware.kryo.io.ByteBufferOutput;
 import org.junit.jupiter.api.Test;
 import util.serialization.JavaSerializer;
 

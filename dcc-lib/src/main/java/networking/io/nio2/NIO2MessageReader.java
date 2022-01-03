@@ -1,5 +1,6 @@
 package networking.io.nio2;
 
+import com.esotericsoftware.kryo.io.ByteBufferInput;
 import networking.io.MessageHandler;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
@@ -64,7 +65,7 @@ public class NIO2MessageReader {
 
     public void deserializeMessagesFromBuffer() throws IOException, ClassNotFoundException, ExecutionException,
             InterruptedException {
-        this.messageBuffer.flip();
+        messageBuffer.flip();
         while (readBytes > 0) {
             // read messages from buffer
             if (newMessageStarts) {

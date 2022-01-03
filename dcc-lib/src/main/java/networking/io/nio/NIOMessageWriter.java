@@ -1,5 +1,7 @@
 package networking.io.nio;
 
+import com.esotericsoftware.kryo.io.ByteBufferOutput;
+import data.DefaultToDo;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -8,20 +10,17 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class NIOMessageWriter {
     private final SocketChannel socketChannel;
-
-    // TODO user defined buffer size
-    private BlockingQueue<Serializable> messagesToSend = new LinkedBlockingQueue<>();
-
     private final int BUFFER_SIZE = 2 << 20;
-    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.2);
-
-    private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.9);
+    // TODO user defined buffer size
+    private BlockingQueue<Serializable> messagesToSend = new DefaultToDo<>();
     private int numBytesForLength = 4;
+
     private Serializer serializer = new KryoSerializer();
+    private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     public NIOMessageWriter(SocketChannel socketChannel) {
         this.socketChannel = socketChannel;
@@ -31,13 +30,13 @@ public class NIOMessageWriter {
      * Returns whether all messages have been transmitted.
      */
     public boolean send(Serializable message) {
-        messagesToSend.add(message);
+        messagesToSend.offer(message);
         return false;
     }
 
     public boolean sendMessages() throws IOException {
         serializeMessagesToBuffer();
-        return readFromBufferAndWriteToSocket();
+        return readFromBufferAndWriteToSocket() && messagesToSend.isEmpty();
     }
 
     public void serializeMessagesToBuffer() throws IOException {
@@ -78,7 +77,7 @@ public class NIOMessageWriter {
         do {
             bytesWritten = this.socketChannel.write(byteBuffer);
             totalBytesWritten += bytesWritten;
-        } while (bytesWritten > 0 && byteBuffer.hasRemaining());
+        } while (bytesWritten > 0);
 
         byteBuffer.compact();
         return totalBytesWritten;

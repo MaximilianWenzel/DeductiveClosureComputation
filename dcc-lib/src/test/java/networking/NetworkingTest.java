@@ -1,5 +1,6 @@
 package networking;
 
+import data.DefaultToDo;
 import enums.NetworkingComponentType;
 import benchmark.jmh.ReceiverStub;
 import benchmark.jmh.SenderStub;
@@ -8,12 +9,14 @@ import networking.connectors.ServerConnector;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import org.junit.jupiter.api.Test;
+import util.NetworkingUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -24,7 +27,7 @@ public class NetworkingTest {
 
     @Test
     public void testNIOServerCommunication() {
-        int serverPort = 6066;
+        int serverPort = NetworkingUtils.getFreePort();
 
         List<Long> socketIDs = new ArrayList<>();
 
@@ -108,32 +111,25 @@ public class NetworkingTest {
 
     @Test
     public void testSenderReceiverStubs() {
-        LinkedBlockingQueue<Object> arrayBlockingQueue = new LinkedBlockingQueue<>();
+        ArrayBlockingQueue<Object> arrayBlockingQueue = new DefaultToDo<>();
         ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue, NetworkingComponentType.ASYNC_NIO);
         SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()), NetworkingComponentType.ASYNC_NIO);
 
-        try {
-            int numResults = 100;
-            List<String> results = new ArrayList<>();
-            for (int i = 0; i < numResults; i++) {
-                senderStub.sendMessage("Test");
-                results.add((String) arrayBlockingQueue.take());
-            }
-            assertEquals(numResults, results.size());
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        int numResults = 100;
+        for (int i = 0; i < numResults; i++) {
+            senderStub.sendMessage("Test");
         }
     }
 
     @Test
     void testNIO2NetworkCommunication() {
-        int serverPort = 6066;
+        int serverPort = NetworkingUtils.getFreePort();
         List<Long> socketIDs = new ArrayList<>();
-        BlockingQueue<String> receivedMessages = new LinkedBlockingQueue<>();
+        BlockingQueue<String> receivedMessages = new DefaultToDo<>();
         MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
-                receivedMessages.add((String) message);
+                receivedMessages.offer((String) message);
                 System.out.println(LocalDateTime.now() + " - Received message: " + message);
             }
         };

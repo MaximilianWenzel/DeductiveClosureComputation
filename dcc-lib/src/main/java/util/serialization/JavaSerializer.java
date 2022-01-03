@@ -6,6 +6,10 @@ import java.io.*;
 import java.nio.ByteBuffer;
 
 public class JavaSerializer implements Serializer {
+
+    private ByteBufferInput bbi = new ByteBufferInput();
+    private ByteBufferOutput bbo = new ByteBufferOutput();
+
     @Override
     public byte[] serialize(Serializable object) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();

@@ -1,6 +1,7 @@
 package reasoning.saturation.parallel;
 
 import data.Closure;
+import data.DefaultToDo;
 import data.ParallelToDo;
 import networking.messages.AxiomCount;
 import networking.messages.RequestAxiomMessageCount;
@@ -14,14 +15,13 @@ import util.ConsoleUtils;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
-    private final BlockingQueue<AxiomCount> statusMessages = new LinkedBlockingQueue<>();
+    private final BlockingQueue<AxiomCount> statusMessages = new DefaultToDo<>();
     private SaturationInitializationFactory<C, A, T> factory;
     private Logger log = ConsoleUtils.getLogger();
     private List<SaturationContext<C, A, T>> contexts;

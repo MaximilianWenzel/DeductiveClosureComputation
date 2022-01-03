@@ -14,12 +14,18 @@ import java.util.Queue;
 
 public class ReceiverStub {
 
-    int serverPort;
-    NetworkingComponent networkingComponent;
-    NetworkingComponentType type;
+    private int serverPort = -1;
+    private NetworkingComponent networkingComponent;
+    private NetworkingComponentType type;
 
     public ReceiverStub(Queue<Object> queue, NetworkingComponentType type) {
         this.type = type;
+        init(queue);
+    }
+
+    public ReceiverStub(Queue<Object> queue, NetworkingComponentType type, int port) {
+        this.type = type;
+        this.serverPort = port;
         init(queue);
     }
 
@@ -29,10 +35,13 @@ public class ReceiverStub {
             public void process(long socketID, Object message) {
                 assert message != null;
                 queue.add(message);
+                queue.remove();
             }
         };
 
-        serverPort = NetworkingUtils.getFreePort();
+        if (serverPort == -1) {
+            serverPort = NetworkingUtils.getFreePort();
+        }
         PortListener portListener = new PortListener(serverPort, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {

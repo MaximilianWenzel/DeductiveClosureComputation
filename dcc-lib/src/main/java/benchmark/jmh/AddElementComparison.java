@@ -1,5 +1,6 @@
 package benchmark.jmh;
 
+import data.DefaultToDo;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
@@ -23,7 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 @Measurement(iterations = 3, time = 2000, timeUnit = MILLISECONDS)
 public class AddElementComparison {
 
-    public static int SIZE = 10_000_000;
+    public static int SIZE = 10;
     UnifiedSet<TestObject> unifiedSet;
     BlockingQueue<TestObject> linkedBlockingQueue;
     BlockingQueue<TestObject> arrayBlockingQueue;
@@ -44,33 +45,27 @@ public class AddElementComparison {
     public void setUp() {
         unifiedSet = new UnifiedSet<>(SIZE);
         linkedBlockingQueue = new LinkedBlockingQueue<>();
-        arrayBlockingQueue = new ArrayBlockingQueue<>(SIZE);
+        arrayBlockingQueue = new DefaultToDo<>();
         array = new TestObject[SIZE];
         arrayPosition = new AtomicInteger(0);
     }
 
     @Benchmark
     public void addElementUnifiedSet() {
-        int sizeBefore = unifiedSet.size();
         unifiedSet.add(new TestObject());
-        int sizeAfter = unifiedSet.size();
-        assert sizeBefore > sizeAfter;
+        unifiedSet.clear();
     }
 
     @Benchmark
     public void addElementLinkedBlockingQueue() {
-        int sizeBefore = linkedBlockingQueue.size();
-        linkedBlockingQueue.add(new TestObject());
-        int sizeAfter = linkedBlockingQueue.size();
-        assert sizeBefore > sizeAfter;
+        linkedBlockingQueue.offer(new TestObject());
+        linkedBlockingQueue.clear();
     }
 
     @Benchmark
     public void addElementArrayBlockingQueue() {
-        int sizeBefore = arrayBlockingQueue.size();
         arrayBlockingQueue.add(new TestObject());
-        int sizeAfter = arrayBlockingQueue.size();
-        assert sizeBefore > sizeAfter;
+        arrayBlockingQueue.clear();
     }
 
     @Benchmark

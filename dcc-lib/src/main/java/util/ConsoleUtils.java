@@ -15,10 +15,9 @@ public class ConsoleUtils {
 
         ConsoleHandler handler = new ConsoleHandler();
         handler.setFormatter(new LogFormatter());
-        handler.setLevel(Level.ALL);
 
         log.addHandler(handler);
-
+        log.setLevel(Level.ALL);
     }
 
     public static Logger getLogger() {

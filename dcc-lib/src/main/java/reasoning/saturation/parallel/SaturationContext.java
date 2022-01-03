@@ -90,8 +90,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     }
 
     public void sendAxiomCountToControlNode() {
-        controlNode.getStatusMessages()
-                .add(new AxiomCount(this.id,
+        controlNode.getStatusMessages().offer(new AxiomCount(this.id,
                         this.saturationStage.get(),
                         this.sentAxioms.getAndSet(0),
                         this.receivedAxioms.getAndSet(0)));

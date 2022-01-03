@@ -4,9 +4,9 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
+import data.DefaultToDo;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
-import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -23,12 +23,10 @@ import util.ConsoleUtils;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -43,7 +41,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected BiMap<Long, Long> socketIDToWorkerID;
     protected BiMap<Long, Long> workerIDToSocketID;
     protected long controlNodeID = 0L;
-    protected BlockingQueue<Object> receivedMessages = new LinkedBlockingQueue<>();
+    protected BlockingQueue<Object> receivedMessages = new DefaultToDo<>();
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected List<? extends A> initialAxioms;
 
@@ -188,7 +186,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
             super(serverData, new MessageHandler() {
                 @Override
                 public void process(long socketID, Object message) {
-                    receivedMessages.add(message);
+                    receivedMessages.offer(message);
                 }
             });
             this.workerModel = workerModel;

@@ -7,6 +7,7 @@ import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import data.Closure;
+import data.DefaultToDo;
 import networking.messages.MessageEnvelope;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
@@ -17,12 +18,9 @@ import util.NetworkingUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -38,7 +36,7 @@ public class KryoNetBenchmark {
     Server server;
     Client client;
     int serverPort;
-    private BlockingQueue<Object> queue = new LinkedBlockingQueue<>();
+    private BlockingQueue<Object> queue = new DefaultToDo<>();
     private ArrayList objects = new ArrayList(Arrays.asList(new Object[1]));
 
     public static void main(String[] args) throws RunnerException {
@@ -84,7 +82,7 @@ public class KryoNetBenchmark {
         server.addListener(new Listener() {
             @Override
             public void received(Connection connection, Object object) {
-                queue.add(object);
+                assert object.hashCode() > 0;
             }
         });
     }
@@ -110,17 +108,13 @@ public class KryoNetBenchmark {
 
 
     @Benchmark
-    public void sendString() throws InterruptedException {
+    public void sendString() {
         client.sendTCP("Hello World!");
-        Object o = queue.take();
-        assert o.getClass() != null;
     }
 
     @Benchmark
-    public void sendObject() throws InterruptedException {
+    public void sendObject() {
         client.sendTCP(new TestObjectWithFields(10));
-        Object o = queue.take();
-        assert o.getClass() != null;
     }
 
 }

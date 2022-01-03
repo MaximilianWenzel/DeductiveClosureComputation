@@ -12,11 +12,15 @@ public final class Edge implements Axiom {
 	 */
 	private static final long serialVersionUID = -504271189081157024L;
 
-	private final int from_, to_;
+	private int from_, to_;
 
-	Edge(int first, int second) {
+	public Edge(int first, int second) {
 		this.from_ = first;
 		this.to_ = second;
+	}
+
+	public Edge() {
+
 	}
 
 	@Override

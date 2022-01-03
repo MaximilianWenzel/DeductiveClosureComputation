@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
+import data.DefaultToDo;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
 import networking.NetworkingComponent;
@@ -14,7 +15,6 @@ import networking.connectors.ServerConnector;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.*;
-import org.eclipse.collections.impl.bimap.mutable.SynchronizedBiMap;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
@@ -38,7 +37,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final Logger log = ConsoleUtils.getLogger();
 
     private final int portToListen;
-    private final BlockingQueue<Object> toDo = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Object> toDo = new DefaultToDo<>();
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
 
@@ -160,7 +159,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 sendAxiom(receiverWorkerID, axiom);
             } else {
                 // add axioms from this worker directly to the queue
-                toDo.add(axiom);
+                toDo.offer(axiom);
             }
         }
     }
@@ -195,7 +194,13 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     public void addInitialAxiomsToQueue() {
         if (initialAxioms != null) {
-            this.toDo.addAll(initialAxioms);
+            initialAxioms.forEach(a -> {
+                if (!toDo.offer(a)) {
+                    throw new IllegalStateException(
+                            "To-Do capacity is too small for initial axioms. Capacity: " + toDo.size());
+                }
+            });
+
             this.initialAxioms = null;
         }
     }
@@ -213,7 +218,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     public void addAxiomsToQueue(List<A> axioms) {
-        this.toDo.addAll(axioms);
+        for (A a : axioms) {
+            this.toDo.offer(a);
+        }
     }
 
     public AcknowledgementEventManager getAcknowledgementEventManager() {
@@ -262,7 +269,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 if (config.collectStatistics()) {
                     stats.getNumberOfReceivedAxioms().incrementAndGet();
                 }
-                toDo.add(message);
+                toDo.offer(message);
                 return;
             }
             MessageModel messageModel = (MessageModel) message;
@@ -281,8 +288,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                     initializationMessageID = messageModel.getMessageID();
                 }
             }
-
-            WorkerNodeCommunicationChannel.this.toDo.add(message);
+            toDo.offer(message);
         }
     }
 

@@ -1,6 +1,6 @@
 package networking.io.nio2;
 
-import util.CSVUtils;
+import data.DefaultToDo;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -10,7 +10,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NIO2MessageWriter {
@@ -18,12 +17,12 @@ public class NIO2MessageWriter {
     private final AsynchronousSocketChannel socketChannel;
     // TODO user defined buffer size
     private final int BUFFER_SIZE = 2 << 20;
-    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.4);
+    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.9);
     private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
-    private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private int numBytesForLength = 4;
     private Serializer serializer = new KryoSerializer();
-    private BlockingQueue<Serializable> messagesToSend = new LinkedBlockingQueue<>();
+    private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    private BlockingQueue<Serializable> messagesToSend = new DefaultToDo<>();
 
     public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {
         this.socketChannel = socketChannel;
@@ -34,29 +33,26 @@ public class NIO2MessageWriter {
      * Returns whether all messages have been transmitted.
      */
     public boolean send(Serializable message) {
-        messagesToSend.add(message);
+        messagesToSend.offer(message);
 
         writeMessagesIfRequired();
         return true;
     }
 
     private void writeMessagesIfRequired() {
-        synchronized (currentlyWritingMessage) {
-            if (!currentlyWritingMessage.get()) {
-                currentlyWritingMessage.set(true);
-                if (this.messagesToSend.isEmpty() && messageBuffer.position() == 0) {
-                    // no messages to send
-                    currentlyWritingMessage.set(false);
-                    return;
-                }
-                try {
-                    serializeMessagesToBuffer();
+        if (this.messagesToSend.isEmpty() && messageBuffer.position() == 0) {
+            // no messages to send
+            return;
+        }
 
-                } catch (InterruptedException | IOException e) {
-                    e.printStackTrace();
-                }
-                readFromBufferAndWriteToSocket();
+        if (currentlyWritingMessage.compareAndSet(false, true)) {
+            try {
+                serializeMessagesToBuffer();
+
+            } catch (InterruptedException | IOException e) {
+                e.printStackTrace();
             }
+            readFromBufferAndWriteToSocket();
         }
     }
 
@@ -91,15 +87,12 @@ public class NIO2MessageWriter {
             @Override
             public void completed(Integer result, Object attachment) {
                 messageBuffer.compact();
-                synchronized (currentlyWritingMessage) {
-                    currentlyWritingMessage.set(false);
-                }
+                currentlyWritingMessage.set(false);
                 writeMessagesIfRequired();
             }
 
             @Override
             public void failed(Throwable exc, Object attachment) {
-
             }
         });
     }

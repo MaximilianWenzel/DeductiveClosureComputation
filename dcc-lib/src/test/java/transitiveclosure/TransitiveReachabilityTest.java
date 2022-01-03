@@ -160,6 +160,7 @@ public class TransitiveReachabilityTest {
 
     @Test
     void testDistributedClosureComputation() {
+
         distributedClosureComputation(initialAxioms, 2);
 
         ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);

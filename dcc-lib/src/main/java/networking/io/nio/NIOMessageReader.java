@@ -1,7 +1,6 @@
 package networking.io.nio;
 
 import networking.io.MessageHandler;
-import util.serialization.JavaSerializer;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -11,14 +10,12 @@ import java.nio.channels.SocketChannel;
 
 public class NIOMessageReader {
 
-    protected SocketChannel socketChannel;
-
-    protected int messageSizeInBytes;
-    protected int readBytes = 0;
-
     // TODO user defined buffer size
     private final int BUFFER_SIZE = 2 << 20;
     private final int MESSAGE_SIZE_BYTES = 4;
+    protected SocketChannel socketChannel;
+    protected int messageSizeInBytes;
+    protected int readBytes = 0;
     protected ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     protected boolean newMessageStarts = true;

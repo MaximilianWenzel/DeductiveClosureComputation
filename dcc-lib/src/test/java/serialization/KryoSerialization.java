@@ -13,10 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KryoSerialization {
 
-    private KryoSerializer kryoSerializer = new KryoSerializer();
 
     @Test
     public void testKryoSerialization() {
+        KryoSerializer kryoSerializer = new KryoSerializer();
+
         String test = "Hello world!";
         byte[] bytes = kryoSerializer.serialize(test);
         String deserializedObject = (String) kryoSerializer.deserialize(bytes);
@@ -26,48 +27,33 @@ public class KryoSerialization {
 
     @Test
     public void testKryoByteBufferOutputStream() {
+        KryoSerializer kryoSerializer = new KryoSerializer();
+
         String test = "Hello world!";
-        ByteBuffer writeBuffer = ByteBuffer.allocateDirect(8192);
-        ByteBuffer messageSizeBuffer = ByteBuffer.allocateDirect(8192);
+        ByteBuffer buffer = ByteBuffer.allocateDirect(8192);
 
-        int lastOffset = 0;
-        for (int i = 0; i < 3; i++) {
-            // prepare buffer for reading
-            kryoSerializer.serializeToByteBuffer(test, writeBuffer);
-
-            // written bytes
-            messageSizeBuffer.putInt(writeBuffer.position() - lastOffset);
-            lastOffset = writeBuffer.position();
+        int numObjs = 3;
+        for (int i = 0; i < numObjs; i++) {
+            // serialize object
+            kryoSerializer.serializeToByteBuffer(test, buffer);
         }
-        writeBuffer.flip();
-        messageSizeBuffer.flip();
 
-        ByteBuffer readBuffer = ByteBuffer.allocateDirect(8192);
-        while (writeBuffer.hasRemaining()) {
-            int messageSize = messageSizeBuffer.getInt();
-            readBuffer.putInt(messageSize);
-            for (int i = 0; i < messageSize; i++) {
-                readBuffer.put(writeBuffer.get());
-            }
-        }
-        readBuffer.flip();
-
-        while (readBuffer.hasRemaining()) {
-            // read size of message
-            int messageSize = readBuffer.getInt();
-
+        buffer.flip();
+        for (int i = 0; i < numObjs; i++) {
             // read object
-            String deserializedObject = (String) kryoSerializer.deserializeFromByteBuffer(readBuffer);
-            System.out.println(deserializedObject + ", Size: " + messageSize);
+            String deserializedObject = (String) kryoSerializer.deserializeFromByteBuffer(buffer);
+            System.out.println(deserializedObject);
             assertEquals(test, deserializedObject);
+
         }
     }
 
     @Test
     void testKryoObjectRegistration() {
+        KryoSerializer kryoSerializer = new KryoSerializer();
         ByteBuffer messageBuffer = ByteBuffer.allocateDirect(8192);
 
-        ArrayList a = new ArrayList(Arrays.asList(new Object[1]));
+        ArrayList<Object> a = new ArrayList<>(Arrays.asList(new Object[1]));
         MessageEnvelope envelope = new MessageEnvelope(0, a);
 
         byte[] bytes = kryoSerializer.serialize(envelope);

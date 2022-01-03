@@ -1,6 +1,7 @@
 package benchmark.jmh;
 
 
+import data.DefaultToDo;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -8,9 +9,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -37,7 +36,7 @@ public class InterProcessCommunicationBenchmark {
 
     @Setup(Level.Iteration)
     public void setUp() {
-        receivedMessages = new LinkedBlockingQueue<>();
+        receivedMessages = new DefaultToDo<>();
         this.sender = new MessageSender(receivedMessages);
     }
 
@@ -56,7 +55,7 @@ public class InterProcessCommunicationBenchmark {
 
     private class MessageSender implements Runnable {
 
-        private BlockingQueue<Object> toSend = new LinkedBlockingQueue<>();
+        private BlockingQueue<Object> toSend = new DefaultToDo<>();
         private boolean running = true;
         private Thread t;
         private Queue<Object> receivedMessages;
@@ -70,7 +69,7 @@ public class InterProcessCommunicationBenchmark {
         public void run() {
             try {
                 while (running) {
-                    receivedMessages.add(toSend.take());
+                    receivedMessages.offer(toSend.take());
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -83,12 +82,12 @@ public class InterProcessCommunicationBenchmark {
         }
 
         public void sendMessage(Object m) {
-            toSend.add(m);
+            toSend.offer(m);
         }
 
         public void terminate() {
             running = false;
-            toSend.add(new Object());
+            toSend.offer(new Object());
             try {
                 t.join();
             } catch (InterruptedException e) {

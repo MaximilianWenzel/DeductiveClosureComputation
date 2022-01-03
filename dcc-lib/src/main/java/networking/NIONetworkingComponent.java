@@ -169,7 +169,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     @Override
     public void connectToServer(ServerConnector serverConnector) throws IOException {
-        serversToConnectTo.add(serverConnector);
+        serversToConnectTo.offer(serverConnector);
         // finish connection establishment by NIO thread
         selector.wakeup();
     }
@@ -215,6 +215,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
                 if ((key.interestOps() & SelectionKey.OP_WRITE) == 0) {
                     // write is not set yet
                     key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+                    selector.wakeup();
                 }
             }
         } catch (IOException e) {
