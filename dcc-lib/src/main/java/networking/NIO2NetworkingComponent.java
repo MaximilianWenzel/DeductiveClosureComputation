@@ -81,9 +81,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
             socketManager.startReading();
             serverConnector.onConnectionEstablished(socketManager);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
     }

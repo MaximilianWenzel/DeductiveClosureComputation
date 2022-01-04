@@ -16,10 +16,10 @@ public class NIO2MessageWriter {
 
     private final AsynchronousSocketChannel socketChannel;
     // TODO user defined buffer size
-    private final int BUFFER_SIZE = 2 << 20;
-    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.9);
+    private final int BUFFER_SIZE = 512 << 10;
+    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.95);
     private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
-    private int numBytesForLength = 4;
+    private int MESSAGE_SIZE_BYTES = 4;
     private Serializer serializer = new KryoSerializer();
     private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private BlockingQueue<Serializable> messagesToSend = new DefaultToDo<>();
@@ -27,7 +27,6 @@ public class NIO2MessageWriter {
     public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {
         this.socketChannel = socketChannel;
     }
-
 
     /**
      * Returns whether all messages have been transmitted.
@@ -61,7 +60,7 @@ public class NIO2MessageWriter {
             Serializable message = messagesToSend.poll();
 
             // reserve bytes for length
-            messageBuffer.position(messageBuffer.position() + numBytesForLength);
+            messageBuffer.position(messageBuffer.position() + MESSAGE_SIZE_BYTES);
 
             // write object to buffer
             int start = messageBuffer.position();
@@ -70,7 +69,7 @@ public class NIO2MessageWriter {
 
             // write length to buffer
             int numBytesObject = end - start;
-            messageBuffer.position(messageBuffer.position() - numBytesObject - numBytesForLength);
+            messageBuffer.position(messageBuffer.position() - numBytesObject - MESSAGE_SIZE_BYTES);
             messageBuffer.putInt(numBytesObject);
 
             // set position to end of object
@@ -78,9 +77,6 @@ public class NIO2MessageWriter {
         }
     }
 
-    /**
-     * Returns whether all messages have been written to the socket from the buffer.
-     */
     public void readFromBufferAndWriteToSocket() {
         messageBuffer.flip();
         this.socketChannel.write(messageBuffer, null, new CompletionHandler<Integer, Object>() {

@@ -16,7 +16,6 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
     private List<DistributedWorkerModel<C, A, T>> workers;
     private WorkloadDistributor<C, A, T> workloadDistributor;
     private List<? extends Rule<C, A>> rules;
-    private List<A> initialAxioms;
     private SaturationConfiguration config;
 
     protected InitializeWorkerMessage() {
@@ -25,14 +24,13 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
     public InitializeWorkerMessage(long senderID, long workerID,
                                    List<DistributedWorkerModel<C, A, T>> workers,
                                    WorkloadDistributor<C, A, T> workloadDistributor,
-                                   List<? extends Rule<C, A>> rules, List<A> initialAxioms,
+                                   List<? extends Rule<C, A>> rules,
                                    SaturationConfiguration config) {
         super(senderID);
         this.workerID = workerID;
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.rules = rules;
-        this.initialAxioms = initialAxioms;
         this.config = config;
     }
 
@@ -51,10 +49,6 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
 
     public WorkloadDistributor<C, A, T> getWorkloadDistributor() {
         return workloadDistributor;
-    }
-
-    public List<A> getInitialAxioms() {
-        return initialAxioms;
     }
 
     public Collection<? extends Rule<C, A>> getRules() {

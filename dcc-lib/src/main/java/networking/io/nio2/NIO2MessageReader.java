@@ -21,7 +21,7 @@ public class NIO2MessageReader {
     protected boolean newMessageStarts = true;
     protected boolean endOfStreamReached = false;
     // TODO user defined buffer size
-    private final int BUFFER_SIZE = 2 << 20;
+    private final int BUFFER_SIZE = 512 << 10;
     private final int MESSAGE_SIZE_BYTES = 4;
     protected ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private final Serializer serializer = new KryoSerializer();
@@ -69,21 +69,22 @@ public class NIO2MessageReader {
         while (readBytes > 0) {
             // read messages from buffer
             if (newMessageStarts) {
-                if (messageBuffer.remaining() >= MESSAGE_SIZE_BYTES) {
+                if (readBytes >= MESSAGE_SIZE_BYTES) {
                     // first read message size in bytes
                     onNewMessageSizeHasBeenRead();
                 } else {
                     // more bytes required
                     break;
                 }
-            }
-            if (messageSizeInBytes != -1 && moreCompletedMessagesInBuffer()) {
-                // if message size is known
-                onCompleteMessageHasBeenRead();
-            }
-
-            if (!moreCompletedMessagesInBuffer()) {
-                break;
+            } else {
+                if (readBytes >= messageSizeInBytes) {
+                    // if message size is known
+                    Object message = serializer.deserializeFromByteBuffer(messageBuffer);
+                    prepareBufferForNewMessage();
+                    messageHandler.process(socketID, message);
+                } else {
+                    break;
+                }
             }
         }
         messageBuffer.compact();
@@ -92,17 +93,7 @@ public class NIO2MessageReader {
     protected void onNewMessageSizeHasBeenRead() {
         newMessageStarts = false;
         messageSizeInBytes = messageBuffer.getInt();
-        readBytes -= 4;
-    }
-
-    protected void onCompleteMessageHasBeenRead() throws IOException, ClassNotFoundException {
-        messageHandler.process(socketID, getCompletedMessageAndClearBuffer());
-    }
-
-    protected Object getCompletedMessageAndClearBuffer() throws IOException, ClassNotFoundException {
-        Object obj = serializer.deserializeFromByteBuffer(messageBuffer);
-        prepareBufferForNewMessage();
-        return obj;
+        readBytes -= MESSAGE_SIZE_BYTES;
     }
 
     protected void prepareBufferForNewMessage() {
@@ -115,11 +106,8 @@ public class NIO2MessageReader {
         return readBytes > 0 || messageSizeInBytes != -1 || !newMessageStarts;
     }
 
-    public boolean isEndOfStreamReached() {
+    public boolean endOfStreamReached() {
         return endOfStreamReached;
     }
 
-    protected boolean moreCompletedMessagesInBuffer() {
-        return readBytes >= messageSizeInBytes;
-    }
 }

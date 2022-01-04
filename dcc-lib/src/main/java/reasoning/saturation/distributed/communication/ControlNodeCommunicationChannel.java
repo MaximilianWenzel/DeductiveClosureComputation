@@ -127,9 +127,9 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         send(receiverSocketID, ack);
     }
 
-    public void send(long receiverSocketID, SaturationStatusMessage status) {
+    public void send(long receiverSocketID, SaturationStatusMessage status, Runnable onAcknowledgement) {
         StateInfoMessage stateInfoMessage = new StateInfoMessage(controlNodeID, status);
-        send(receiverSocketID, stateInfoMessage);
+        send(receiverSocketID, stateInfoMessage, onAcknowledgement);
     }
 
     public void send(long receiverSocketID, MessageModel<C, A, T> message, Runnable onAcknowledgement) {
@@ -137,7 +137,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         networkingComponent.sendMessage(receiverSocketID, message);
     }
 
-    public void send(long receiverSocketID, MessageModel<C, A, T> message) {
+    public void send(long receiverSocketID, Serializable message) {
         networkingComponent.sendMessage(receiverSocketID, message);
     }
 
@@ -202,8 +202,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                 allConnectionsEstablished = true;
             }
 
-            // send message
-            // TODO: send initial axioms in batches
+            // send initialization message
             log.info("Sending initialization message to worker " + workerModel.getID() + ".");
             InitializeWorkerMessage<C, A, T> initializeWorkerMessage = new InitializeWorkerMessage<>(
                     ControlNodeCommunicationChannel.this.controlNodeID,
@@ -211,7 +210,6 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                     ControlNodeCommunicationChannel.this.workers,
                     workloadDistributor,
                     workerModel.getRules(),
-                    initialAxiomsDistributor.getInitialAxioms(workerModel.getID()),
                     config
             );
 
@@ -219,8 +217,16 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                 @Override
                 public void run() {
                     initializedWorkers.getAndIncrement();
+
+                    // send initial axioms
+                    initialAxiomsDistributor.getInitialAxioms(workerModel.getID())
+                            .forEach(axiom -> {
+                                ControlNodeCommunicationChannel.this.getSumOfAllSentAxioms().incrementAndGet();
+                                send(socketManager.getSocketID(), axiom);
+                            });
                 }
             });
+
         }
 
     }

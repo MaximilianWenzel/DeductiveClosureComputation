@@ -71,10 +71,8 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         this.communicationChannel.setWorkerID(message.getWorkerID());
         this.communicationChannel.setWorkers(message.getWorkers());
         this.communicationChannel.setWorkloadDistributor(message.getWorkloadDistributor());
-        this.communicationChannel.setInitialAxioms(message.getInitialAxioms());
         this.communicationChannel.setConfig(message.getConfig());
         this.communicationChannel.setStats(this.stats);
-        this.communicationChannel.setInitialAxioms(message.getInitialAxioms());
 
         this.config = message.getConfig();
 

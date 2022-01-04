@@ -1,0 +1,5 @@
+WorkerInitializingConnectionsToOtherWorkersMS;WorkerWaitingTimeWhileSaturationMS;ApplyingRulesTimeWhileSaturationMS;ToDoIsEmptyEvent;NumberOfProcessedAxioms;NumberOfDerivedInferences;NumberOfSentAxioms;NumberOfReceivedAxioms
+27;51;69;18;50000;50000;50000;75000
+24;15;125;103;50000;50000;50000;75000
+13;25;132;1;50000;50000;50000;75000
+7;71;90;77;50000;50000;50000;75000

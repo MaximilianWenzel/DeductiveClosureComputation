@@ -29,7 +29,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
         this.config = this.worker.getConfig();
         this.stats = this.worker.getStats();
         log.info("Worker successfully initialized.");
-        this.communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
+        communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
     }
 
     @Override

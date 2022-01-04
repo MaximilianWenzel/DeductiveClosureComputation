@@ -49,16 +49,16 @@ public class NIO2NetworkingComponentBenchmark {
 
     public static void runExperiment() {
         Scanner scanner = new Scanner(System.in);
-        scanner.nextLine();
+        //scanner.nextLine();
 
         NIO2NetworkingComponentBenchmark benchmark = new NIO2NetworkingComponentBenchmark();
         benchmark.setUp();
-        int MESSAGE_COUNT = 10_000_000;
+        int MESSAGE_COUNT = 100_000_000;
         Stopwatch sw = Stopwatch.createStarted();
         for (int i = 0; i < MESSAGE_COUNT; i++) {
             benchmark.sendObjectNIO2();
         }
-        long objPerSec = MESSAGE_COUNT / sw.elapsed(MILLISECONDS) * 1000;
+        long objPerSec = MESSAGE_COUNT * 1000L / sw.elapsed(MILLISECONDS);
         benchmark.tearDown();
         System.out.println(objPerSec + " obj/s");
     }
