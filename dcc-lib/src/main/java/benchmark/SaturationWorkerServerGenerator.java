@@ -14,12 +14,9 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
 
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
-    private Callable<C> closureFactory;
 
-    public SaturationWorkerServerGenerator(int numberOfWorkers,
-                                           Callable<C> closureFactory) {
+    public SaturationWorkerServerGenerator(int numberOfWorkers) {
         this.numberOfWorkers = numberOfWorkers;
-        this.closureFactory = closureFactory;
         init();
     }
 
@@ -35,10 +32,8 @@ public class SaturationWorkerServerGenerator<C extends Closure<A>, A extends Ser
         List<SaturationWorker<C, A, T>> saturationWorkers = new ArrayList<>();
         for (ServerData serverData : serverDataList) {
             try {
-                C closure = closureFactory.call();
                 SaturationWorker<C, A, T> worker = new SaturationWorker<>(
                         serverData.getPortNumber(),
-                        closure,
                         SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
                 );
                 saturationWorkers.add(worker);

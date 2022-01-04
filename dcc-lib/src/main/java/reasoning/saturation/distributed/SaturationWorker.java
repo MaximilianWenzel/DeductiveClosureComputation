@@ -22,7 +22,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         implements Runnable {
 
     private final IncrementalReasonerType incrementalReasonerType;
-    private final C closure;
+    private C closure;
     private Collection<? extends Rule<C, A>> rules;
     private WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
     private WorkerState<C, A, T> state;
@@ -31,12 +31,21 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private WorkerStatistics stats = new WorkerStatistics();
 
     public SaturationWorker(int portToListen,
-                            C closure,
                             IncrementalReasonerType incrementalReasonerType) {
         this.communicationChannel = new WorkerNodeCommunicationChannel<>(portToListen);
         this.state = new WorkerStateInitializing<>(this);
-        this.closure = closure;
         this.incrementalReasonerType = incrementalReasonerType;
+    }
+
+    public static void main(String[] args) {
+        // args: <PORT-NUMBER>
+        System.out.println("Generating worker...");
+        int portNumber = Integer.parseInt(args[0]);
+        SaturationWorker<?, ?, ?> saturationWorker = new SaturationWorker<>(
+                portNumber,
+                IncrementalReasonerType.SINGLE_THREADED
+        );
+        saturationWorker.run();
     }
 
 
@@ -46,6 +55,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
             while (!(state instanceof WorkerStateFinished)) {
                 state.mainWorkerLoop();
             }
+            terminate();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -73,7 +83,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         this.communicationChannel.setWorkloadDistributor(message.getWorkloadDistributor());
         this.communicationChannel.setConfig(message.getConfig());
         this.communicationChannel.setStats(this.stats);
-
+        this.closure = message.getClosure();
         this.config = message.getConfig();
 
         this.setRules(message.getRules());

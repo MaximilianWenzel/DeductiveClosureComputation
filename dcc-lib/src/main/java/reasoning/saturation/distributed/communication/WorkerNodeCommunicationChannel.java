@@ -7,6 +7,7 @@ import data.Closure;
 import data.DefaultToDo;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -159,7 +160,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 sendAxiom(receiverWorkerID, axiom);
             } else {
                 // add axioms from this worker directly to the queue
-                toDo.offer(axiom);
+                try {
+                    toDo.put(axiom);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -195,9 +200,10 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     public void addInitialAxiomsToQueue() {
         if (initialAxioms != null) {
             initialAxioms.forEach(a -> {
-                if (!toDo.offer(a)) {
-                    throw new IllegalStateException(
-                            "To-Do capacity is too small for initial axioms. Capacity: " + toDo.size());
+                try {
+                    toDo.put(a);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             });
 
@@ -218,8 +224,13 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     public void addAxiomsToQueue(List<A> axioms) {
-        for (A a : axioms) {
-            this.toDo.offer(a);
+        try {
+            for (A a : axioms) {
+                this.toDo.put(a);
+            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 

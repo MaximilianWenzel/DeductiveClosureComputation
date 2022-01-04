@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class NIO2NetworkingComponent implements NetworkingComponent {
 
@@ -98,8 +99,9 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     @Override
     public void terminate() {
         try {
-            threadPool.shutdownNow();
-        } catch (IOException e) {
+            threadPool.shutdown();
+            threadPool.awaitTermination(1000, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }

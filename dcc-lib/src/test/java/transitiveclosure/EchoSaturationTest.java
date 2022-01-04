@@ -55,8 +55,7 @@ public class EchoSaturationTest {
                 numWorkers, 1000);
 
         SaturationWorkerServerGenerator<EchoClosure, EchoAxiom, Integer> serverGen = new SaturationWorkerServerGenerator<>(
-                numWorkers,
-                EchoClosure::new
+                numWorkers
         );
 
         List<SaturationWorker<EchoClosure, EchoAxiom, Integer>> workers = serverGen.generateWorkers();

@@ -34,6 +34,7 @@ public class EchoSaturationInitializationFactory
         List<WorkerModel<EchoClosure, EchoAxiom, Integer>> workerModels = new ArrayList<>();
         for (int i = 0; i < numberOfWorkers; i++) {
             WorkerModel<EchoClosure, EchoAxiom, Integer> workerModel = new WorkerModel<>(
+                    getNewClosure(),
                     generateRules(),
                     i
             );

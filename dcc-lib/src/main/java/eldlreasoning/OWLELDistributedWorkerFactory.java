@@ -31,8 +31,7 @@ public class OWLELDistributedWorkerFactory {
         Iterator<ServerData> serverDataIt = workerServerData.iterator();
         for (WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerModel : workerModels) {
             DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> distributedWorkerModel = new DistributedWorkerModel<>(
-                    workerModel.getRules(),
-                    workerModel.getWorkerTerms(),
+                    workerModel,
                     serverDataIt.next());
             distributedWorkerModels.add(distributedWorkerModel);
         }

@@ -57,8 +57,8 @@ public class AddElementComparison {
     }
 
     @Benchmark
-    public void addElementLinkedBlockingQueue() {
-        linkedBlockingQueue.offer(new TestObject());
+    public void addElementLinkedBlockingQueue() throws InterruptedException {
+        linkedBlockingQueue.put(new TestObject());
         linkedBlockingQueue.clear();
     }
 

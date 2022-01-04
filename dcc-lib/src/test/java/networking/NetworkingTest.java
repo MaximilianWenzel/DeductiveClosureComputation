@@ -111,7 +111,7 @@ public class NetworkingTest {
 
     @Test
     public void testSenderReceiverStubs() {
-        ArrayBlockingQueue<Object> arrayBlockingQueue = new DefaultToDo<>();
+        BlockingQueue<Object> arrayBlockingQueue = new DefaultToDo<>();
         ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue, NetworkingComponentType.ASYNC_NIO);
         SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()), NetworkingComponentType.ASYNC_NIO);
 
@@ -129,7 +129,11 @@ public class NetworkingTest {
         MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
-                receivedMessages.offer((String) message);
+                try {
+                    receivedMessages.put((String) message);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 System.out.println(LocalDateTime.now() + " - Received message: " + message);
             }
         };
@@ -176,7 +180,7 @@ public class NetworkingTest {
 
         int numMessages = 0;
         for (long id : socketIDs) {
-            for (int i = 0; i < 50; i++) {
+            for (int i = 0; i < 100; i++) {
                 networkingComponent.sendMessage(id, "Hello socket " + id + "! - " + LocalDateTime.now());
                 numMessages++;
             }
@@ -199,7 +203,7 @@ public class NetworkingTest {
         }
 
         try {
-            Thread.sleep(2000);
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

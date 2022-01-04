@@ -4,9 +4,10 @@ import data.Closure;
 import org.roaringbitmap.IntConsumer;
 import org.roaringbitmap.RoaringBitmap;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class ReachabilityClosure implements Closure<Reachability> {
+public class ReachabilityClosure implements Closure<Reachability>, Serializable {
 
     private final HashMap<Integer, RoaringBitmap> nodeToOutgoingConnectedNodesMap = new HashMap<>();
     private final HashMap<Integer, RoaringBitmap> nodeToIncomingConnectedNodesMap = new HashMap<>();

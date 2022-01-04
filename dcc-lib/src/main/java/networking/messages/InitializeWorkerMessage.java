@@ -10,13 +10,15 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializable, T extends Serializable> extends MessageModel<C, A, T> {
+public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializable, T extends Serializable>
+        extends MessageModel<C, A, T> {
 
     private long workerID;
     private List<DistributedWorkerModel<C, A, T>> workers;
     private WorkloadDistributor<C, A, T> workloadDistributor;
     private List<? extends Rule<C, A>> rules;
     private SaturationConfiguration config;
+    private C closure;
 
     protected InitializeWorkerMessage() {
     }
@@ -24,12 +26,13 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
     public InitializeWorkerMessage(long senderID, long workerID,
                                    List<DistributedWorkerModel<C, A, T>> workers,
                                    WorkloadDistributor<C, A, T> workloadDistributor,
-                                   List<? extends Rule<C, A>> rules,
+                                   C closure, List<? extends Rule<C, A>> rules,
                                    SaturationConfiguration config) {
         super(senderID);
         this.workerID = workerID;
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
+        this.closure = closure;
         this.rules = rules;
         this.config = config;
     }
@@ -57,5 +60,9 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
 
     public SaturationConfiguration getConfig() {
         return config;
+    }
+
+    public C getClosure() {
+        return closure;
     }
 }

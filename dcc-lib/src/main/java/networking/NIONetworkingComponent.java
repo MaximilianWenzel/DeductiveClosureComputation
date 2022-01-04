@@ -169,7 +169,11 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     @Override
     public void connectToServer(ServerConnector serverConnector) throws IOException {
-        serversToConnectTo.offer(serverConnector);
+        try {
+            serversToConnectTo.put(serverConnector);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         // finish connection establishment by NIO thread
         selector.wakeup();
     }

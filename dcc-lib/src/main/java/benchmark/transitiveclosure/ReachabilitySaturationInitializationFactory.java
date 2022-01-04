@@ -1,6 +1,7 @@
 package benchmark.transitiveclosure;
 
 import org.roaringbitmap.RoaringBitmap;
+import reasoning.rules.DistributedSaturationInferenceProcessor;
 import reasoning.rules.Rule;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.models.DistributedWorkerModel;
@@ -57,6 +58,7 @@ public class ReachabilitySaturationInitializationFactory extends SaturationIniti
         List<WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = new ArrayList<>();
         for (RoaringBitmap nodeIDsForWorker : nodeIDsForWorkers) {
             WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap> workerModel = new WorkerModel<>(
+                    getNewClosure(),
                     generateRules(),
                     nodeIDsForWorker
             );
@@ -86,6 +88,7 @@ public class ReachabilitySaturationInitializationFactory extends SaturationIniti
         List<Rule<ReachabilityClosure, Reachability>> reachabilityRules = new ArrayList<>();
         reachabilityRules.add(new InitRule());
         reachabilityRules.add(new DeriveReachabilityRule(ruleDelayInNanoSec));
+
         return reachabilityRules;
     }
 

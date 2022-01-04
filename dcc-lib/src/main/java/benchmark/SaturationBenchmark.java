@@ -1,6 +1,7 @@
 package benchmark;
 
 
+import com.esotericsoftware.kryonet.Server;
 import com.google.common.base.Stopwatch;
 import data.Closure;
 import enums.SaturationApproach;
@@ -97,9 +98,15 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 initializationFactory.resetFactory();
             }
 
-            // distributed
-            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED)) {
-                runDistributedSaturationBenchmark();
+            // distributed - each worker in separate thread
+            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_MULTITHREADED)) {
+                runDistributedSaturationBenchmark(false);
+                initializationFactory.resetFactory();
+            }
+
+            // distributed - each worker in separate JVM
+            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_JVM)) {
+                runDistributedSaturationBenchmark(true);
                 initializationFactory.resetFactory();
             }
         }
@@ -157,12 +164,12 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     }
 
-    public void runDistributedSaturationBenchmark() {
+    public void runDistributedSaturationBenchmark(boolean workersInSeparateJVM) {
         DescriptiveStatistics runtime = null;
         log.info("Distributed");
         log.info("# Initial Axioms: " + initialAxioms.size());
         log.info("# Workers: " + workers.size());
-        runtime = distributedClosureComputation();
+        runtime = distributedClosureComputation(workersInSeparateJVM);
 
         CSVRow row = new CSVRow(
                 "distributed",
@@ -179,7 +186,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     }
 
-    private DescriptiveStatistics distributedClosureComputation() {
+    private DescriptiveStatistics distributedClosureComputation(boolean workersInSeparateJVM) {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
 
         for (int i = 1; i <= this.numberOfExperimentRepetitions; i++) {
@@ -187,25 +194,15 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
 
             // initialize workers
-            SaturationWorkerServerGenerator<C, A, T> workerServerFactory;
-
-            workerServerFactory = new SaturationWorkerServerGenerator<>(workers.size(), () -> initializationFactory.getNewClosure());
-
-            List<SaturationWorker<C, A, T>> saturationWorkers;
-            saturationWorkers = workerServerFactory.generateWorkers();
-            List<Thread> threads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
-            threads.forEach(Thread::start);
-
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            List<ServerData> serverDataList;
+            if (workersInSeparateJVM) {
+                serverDataList = generateWorkersInSeparateJVM();
+            } else {
+                serverDataList = generateWorkersInSeparateThread();
             }
 
 
             // initialize control node
-            List<ServerData> serverDataList = workerServerFactory.getServerDataList();
-
             DistributedSaturation<C, A, T> saturation = new DistributedSaturation<>(
                     initializationFactory.getDistributedWorkerModels(serverDataList),
                     initializationFactory.getWorkloadDistributor(),
@@ -217,7 +214,6 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             // run saturation
             C closure = saturation.saturate();
             assert closure.getClosureResults().size() > 0;
-            saturationWorkers.forEach(SaturationWorker::terminate);
 
             ControlNodeStatistics controlNodeStatistics = saturation.getControlNodeStatistics();
             List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
@@ -253,6 +249,38 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         }
 
         return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
+    }
+
+    private List<ServerData> generateWorkersInSeparateThread() {
+        SaturationWorkerServerGenerator<C, A, T> workerServerFactory;
+
+        workerServerFactory = new SaturationWorkerServerGenerator<>(workers.size());
+
+        List<SaturationWorker<C, A, T>> saturationWorkers;
+        saturationWorkers = workerServerFactory.generateWorkers();
+        List<Thread> threads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
+        threads.forEach(Thread::start);
+
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return workerServerFactory.getServerDataList();
+    }
+
+    private List<ServerData> generateWorkersInSeparateJVM() {
+        SaturationJVMWorkerGenerator<C, A, T> workerServerFactory;
+
+        workerServerFactory = new SaturationJVMWorkerGenerator<>(workers.size());
+        workerServerFactory.startWorkersInSeparateJVMs();
+
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return workerServerFactory.getServerDataList();
     }
 
     private DescriptiveStatistics singleThreadedClosureComputation() {

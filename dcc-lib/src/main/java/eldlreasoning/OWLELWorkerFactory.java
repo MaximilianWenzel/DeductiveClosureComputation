@@ -57,6 +57,7 @@ public class OWLELWorkerFactory {
         for (UnifiedSet<ELConcept> conceptWorker : conceptWorkers) {
             List<OWLELRule> rules = getOWL2ELRules(elOntology);
             WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> pm = new WorkerModel<>(
+                    new DefaultClosure<>(),
                     rules,
                     conceptWorker
             );

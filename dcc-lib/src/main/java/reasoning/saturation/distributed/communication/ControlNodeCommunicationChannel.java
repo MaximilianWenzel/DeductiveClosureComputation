@@ -7,6 +7,7 @@ import data.Closure;
 import data.DefaultToDo;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -186,7 +187,11 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
             super(serverData, new MessageHandler() {
                 @Override
                 public void process(long socketID, Object message) {
-                    receivedMessages.offer(message);
+                    try {
+                        receivedMessages.put(message);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
             this.workerModel = workerModel;
@@ -209,6 +214,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                     workerModel.getID(),
                     ControlNodeCommunicationChannel.this.workers,
                     workloadDistributor,
+                    workerModel.getClosure(),
                     workerModel.getRules(),
                     config
             );

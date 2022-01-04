@@ -124,8 +124,7 @@ public class OWLELSaturationTest {
     void testDistributedSaturation() {
         SaturationWorkerServerGenerator<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerFactory;
         workerFactory = new SaturationWorkerServerGenerator<>(
-                3,
-                DefaultClosure::new
+                3
         );
 
         List<SaturationWorker<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> saturationWorkers;

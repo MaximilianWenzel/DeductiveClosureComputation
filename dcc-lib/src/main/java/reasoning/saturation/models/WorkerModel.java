@@ -15,11 +15,13 @@ public class WorkerModel<C extends Closure<A>, A extends Serializable, T extends
     protected long id = workerIDCounter.getAndIncrement();
     protected List<? extends Rule<C, A>> rules;
     protected T workerTerms;
+    protected C closure;
 
     protected WorkerModel() {
     }
 
-    public WorkerModel(List<? extends Rule<C, A>> rules, T workerTerms) {
+    public WorkerModel(C closure, List<? extends Rule<C, A>> rules, T workerTerms) {
+        this.closure = closure;
         this.rules = rules;
         this.workerTerms = workerTerms;
     }
@@ -35,5 +37,9 @@ public class WorkerModel<C extends Closure<A>, A extends Serializable, T extends
 
     public T getWorkerTerms() {
         return workerTerms;
+    }
+
+    public C getClosure() {
+        return closure;
     }
 }

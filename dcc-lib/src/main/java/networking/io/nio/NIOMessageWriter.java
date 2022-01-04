@@ -30,7 +30,11 @@ public class NIOMessageWriter {
      * Returns whether all messages have been transmitted.
      */
     public boolean send(Serializable message) {
-        messagesToSend.offer(message);
+        try {
+            messagesToSend.put(message);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         return false;
     }
 

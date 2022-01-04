@@ -90,10 +90,14 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     }
 
     public void sendAxiomCountToControlNode() {
-        controlNode.getStatusMessages().offer(new AxiomCount(this.id,
-                        this.saturationStage.get(),
-                        this.sentAxioms.getAndSet(0),
-                        this.receivedAxioms.getAndSet(0)));
+        try {
+            controlNode.getStatusMessages().put(new AxiomCount(this.id,
+                            this.saturationStage.get(),
+                            this.sentAxioms.getAndSet(0),
+                            this.receivedAxioms.getAndSet(0)));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void setInferenceProcessor(ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor) {

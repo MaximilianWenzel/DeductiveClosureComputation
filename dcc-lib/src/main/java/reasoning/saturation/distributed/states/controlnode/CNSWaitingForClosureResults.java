@@ -28,6 +28,7 @@ public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Seriali
 
     @Override
     public void visit(AcknowledgementMessage message) {
+
         // 'closure result' requests of control node are acknowledged if all results have been transmitted
         acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
 

@@ -1,6 +1,7 @@
 package networking.io.nio2;
 
 import data.DefaultToDo;
+import networking.messages.AcknowledgementMessage;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -32,7 +33,11 @@ public class NIO2MessageWriter {
      * Returns whether all messages have been transmitted.
      */
     public boolean send(Serializable message) {
-        messagesToSend.offer(message);
+        try {
+            messagesToSend.put(message);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         writeMessagesIfRequired();
         return true;

@@ -58,9 +58,9 @@ public class InterProcessCommunicationBenchmark {
         private BlockingQueue<Object> toSend = new DefaultToDo<>();
         private boolean running = true;
         private Thread t;
-        private Queue<Object> receivedMessages;
+        private BlockingQueue<Object> receivedMessages;
 
-        public MessageSender(Queue<Object> receivedMessages) {
+        public MessageSender(BlockingQueue<Object> receivedMessages) {
             this.receivedMessages = receivedMessages;
             start();
         }
@@ -81,14 +81,14 @@ public class InterProcessCommunicationBenchmark {
             t.start();
         }
 
-        public void sendMessage(Object m) {
-            toSend.offer(m);
+        public void sendMessage(Object m) throws InterruptedException {
+            toSend.put(m);
         }
 
         public void terminate() {
             running = false;
-            toSend.offer(new Object());
             try {
+                toSend.put(new Object());
                 t.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();

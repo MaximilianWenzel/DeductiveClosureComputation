@@ -1,5 +1,6 @@
 package transitiveclosure;
 
+import benchmark.SaturationJVMWorkerGenerator;
 import benchmark.SaturationWorkerServerGenerator;
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
 import benchmark.transitiveclosure.*;
@@ -21,7 +22,6 @@ import util.ConsoleUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -104,17 +104,31 @@ public class TransitiveReachabilityTest {
     }
 
 
-    void distributedClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
-        SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
-        workerServerFactory = new SaturationWorkerServerGenerator<>(
-                numberOfWorkers, (Callable) ReachabilityClosure::new);
+    void distributedClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers,
+                                       boolean workersInSeparateJVMs) {
+        List<ServerData> serverDataList = null;
 
-        List<SaturationWorker<ReachabilityClosure, Reachability, RoaringBitmap>> saturationWorkers;
-        saturationWorkers = workerServerFactory.generateWorkers();
-        List<Thread> threads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
-        threads.forEach(Thread::start);
+        if (workersInSeparateJVMs) {
+            SaturationJVMWorkerGenerator<?, ?, ?> workerGenerator = new SaturationJVMWorkerGenerator<>(numberOfWorkers);
+            workerGenerator.startWorkersInSeparateJVMs();
+            serverDataList = workerGenerator.getServerDataList();
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } else {
+            SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
+            workerServerFactory = new SaturationWorkerServerGenerator<>(
+                    numberOfWorkers);
 
-        List<ServerData> serverDataList = workerServerFactory.getServerDataList();
+            List<SaturationWorker<ReachabilityClosure, Reachability, RoaringBitmap>> saturationWorkers;
+            saturationWorkers = workerServerFactory.generateWorkers();
+            List<Thread> threads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
+            threads.forEach(Thread::start);
+            serverDataList = workerServerFactory.getServerDataList();
+        }
+
         ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
                 initialAxioms,
                 numberOfWorkers,
@@ -154,20 +168,25 @@ public class TransitiveReachabilityTest {
         System.out.println(ControlNodeStatistics.getControlNodeStatsHeader());
         System.out.println(controlNodeStatistics.getControlNodeStatistics());
         System.out.println(ConsoleUtils.getSeparator());
-
-        saturationWorkers.forEach(SaturationWorker::terminate);
     }
 
     @Test
     void testDistributedClosureComputation() {
+        boolean workersInSeparateJVM = false;
+        for (int i = 0; i < 2; i++) {
+            if (i == 1) {
+                workersInSeparateJVM = true;
+            }
+            distributedClosureComputation(initialAxioms, 2, workersInSeparateJVM);
 
-        distributedClosureComputation(initialAxioms, 2);
+            ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
+            distributedClosureComputation(generator.generateGraph(), 4, workersInSeparateJVM);
 
-        ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
-        distributedClosureComputation(generator.generateGraph(), 4);
-
-        generator = new ReachabilityBinaryTreeGenerator(8);
-        distributedClosureComputation(generator.generateGraph(), 20);
+            if (!workersInSeparateJVM) {
+                generator = new ReachabilityBinaryTreeGenerator(7);
+                distributedClosureComputation(generator.generateGraph(), 20, workersInSeparateJVM);
+            }
+        }
     }
 
     @Test
