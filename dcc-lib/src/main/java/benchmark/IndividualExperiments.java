@@ -66,14 +66,15 @@ public class IndividualExperiments {
 
         List<Integer> numberOfWorkersList = new ArrayList<>();
         //numberOfWorkersList.add(1);
-        //numberOfWorkersList.add(2);
-        numberOfWorkersList.add(4);
+        numberOfWorkersList.add(2);
+        //numberOfWorkersList.add(4);
 
         Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
         //includedApproaches.add(SaturationApproach.SINGLE_THREADED);
         //includedApproaches.add(SaturationApproach.PARALLEL);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
-        includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
+        //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
+        includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
 
         //binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
         //chainGraphBenchmark(outputDirectory, includedApproaches, chainDepthList, numberOfWorkersList);

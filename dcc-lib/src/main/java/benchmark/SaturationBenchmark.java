@@ -1,7 +1,6 @@
 package benchmark;
 
 
-import com.esotericsoftware.kryonet.Server;
 import com.google.common.base.Stopwatch;
 import data.Closure;
 import enums.SaturationApproach;
@@ -100,13 +99,19 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
             // distributed - each worker in separate thread
             if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_MULTITHREADED)) {
-                runDistributedSaturationBenchmark(false);
+                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_MULTITHREADED);
                 initializationFactory.resetFactory();
             }
 
             // distributed - each worker in separate JVM
             if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_JVM)) {
-                runDistributedSaturationBenchmark(true);
+                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
+                initializationFactory.resetFactory();
+            }
+
+            // distributed - each worker in separate docker container
+            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER)) {
+                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
                 initializationFactory.resetFactory();
             }
         }
@@ -164,12 +169,13 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     }
 
-    public void runDistributedSaturationBenchmark(boolean workersInSeparateJVM) {
+    public void runDistributedSaturationBenchmark(SaturationApproach distributedApproach) {
         DescriptiveStatistics runtime = null;
         log.info("Distributed");
         log.info("# Initial Axioms: " + initialAxioms.size());
         log.info("# Workers: " + workers.size());
-        runtime = distributedClosureComputation(workersInSeparateJVM);
+        log.info("Approach: " + distributedApproach.toString());
+        runtime = distributedClosureComputation(distributedApproach);
 
         CSVRow row = new CSVRow(
                 "distributed",
@@ -186,7 +192,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     }
 
-    private DescriptiveStatistics distributedClosureComputation(boolean workersInSeparateJVM) {
+    private DescriptiveStatistics distributedClosureComputation(SaturationApproach distributedApproach) {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
 
         for (int i = 1; i <= this.numberOfExperimentRepetitions; i++) {
@@ -195,10 +201,19 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
             // initialize workers
             List<ServerData> serverDataList;
-            if (workersInSeparateJVM) {
-                serverDataList = generateWorkersInSeparateJVM();
-            } else {
-                serverDataList = generateWorkersInSeparateThread();
+
+            switch (distributedApproach) {
+                case DISTRIBUTED_SEPARATE_JVM:
+                    serverDataList = generateWorkersInSeparateJVM();
+                    break;
+                case DISTRIBUTED_MULTITHREADED:
+                    serverDataList = generateWorkersInSeparateThread();
+                    break;
+                case DISTRIBUTED_SEPARATE_DOCKER_CONTAINER:
+                    serverDataList = generateWorkersInSeparateDockerContainer();
+                    break;
+                default:
+                    throw new IllegalArgumentException();
             }
 
 
@@ -249,6 +264,12 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         }
 
         return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
+    }
+
+    private List<ServerData> generateWorkersInSeparateDockerContainer() {
+        SaturationDockerWorkerGenerator dockerWorkerGenerator = new SaturationDockerWorkerGenerator(workers.size());
+        dockerWorkerGenerator.runWorkerDockerContainers();
+        return dockerWorkerGenerator.getServerDataList();
     }
 
     private List<ServerData> generateWorkersInSeparateThread() {

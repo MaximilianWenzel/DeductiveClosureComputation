@@ -77,6 +77,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
 
          */
         try {
+            System.out.println(hostAddress);
             client.connect(hostAddress).get();
             NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor());
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);

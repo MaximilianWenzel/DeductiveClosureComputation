@@ -14,6 +14,7 @@ import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.distributed.states.workernode.WorkerState;
 import reasoning.saturation.distributed.states.workernode.WorkerStateFinished;
 import reasoning.saturation.distributed.states.workernode.WorkerStateInitializing;
+import util.NetworkingUtils;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -39,8 +40,25 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
 
     public static void main(String[] args) {
         // args: <PORT-NUMBER>
+
+        // for port number range
+        // args: <PORT-NUMBER-FROM-INCLUSIVE>-<PORT-NUMBER-TO-INCLUSIVE>
         System.out.println("Generating worker...");
-        int portNumber = Integer.parseInt(args[0]);
+
+        String[] portsStrArr = args[0].split("-");
+        int portNumber;
+        if (portsStrArr.length == 1) {
+            // single port
+            portNumber = Integer.parseInt(args[0]);
+            System.out.println("Worker port: " + portNumber);
+        } else if (portsStrArr.length == 2) {
+            // port range
+            int fromPortIncl = Integer.parseInt(portsStrArr[0]);
+            int toPortIncl = Integer.parseInt(portsStrArr[1]);
+            portNumber = NetworkingUtils.getFreePortInPredefinedRange(fromPortIncl, toPortIncl);
+        } else {
+            throw new IllegalArgumentException("arguments: <PORT-NUMBER-FROM-INCLUSIVE>-<PORT-NUMBER-TO-INCLUSIVE>");
+        }
         SaturationWorker<?, ?, ?> saturationWorker = new SaturationWorker<>(
                 portNumber,
                 IncrementalReasonerType.SINGLE_THREADED
