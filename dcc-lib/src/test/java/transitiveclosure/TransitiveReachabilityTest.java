@@ -1,7 +1,8 @@
 package transitiveclosure;
 
-import benchmark.SaturationJVMWorkerGenerator;
-import benchmark.SaturationWorkerServerGenerator;
+import benchmark.workergeneration.SaturationJVMWorkerGenerator;
+import benchmark.workergeneration.SaturationWorkerGenerator;
+import benchmark.workergeneration.SaturationWorkerThreadGenerator;
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
 import benchmark.transitiveclosure.*;
 import networking.ServerData;
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.roaringbitmap.RoaringBitmap;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
-import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
@@ -22,7 +22,6 @@ import util.ConsoleUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -107,27 +106,24 @@ public class TransitiveReachabilityTest {
     void distributedClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers,
                                        boolean workersInSeparateJVMs) {
         List<ServerData> serverDataList = null;
+        SaturationWorkerGenerator workerGenerator;
 
         if (workersInSeparateJVMs) {
-            SaturationJVMWorkerGenerator<?, ?, ?> workerGenerator = new SaturationJVMWorkerGenerator<>(numberOfWorkers);
-            workerGenerator.startWorkersInSeparateJVMs();
-            serverDataList = workerGenerator.getServerDataList();
+            workerGenerator = new SaturationJVMWorkerGenerator(numberOfWorkers);
             try {
-                Thread.sleep(200);
+                workerGenerator.generateAndRunWorkers();
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        } else {
-            SaturationWorkerServerGenerator<ReachabilityClosure, Reachability, RoaringBitmap> workerServerFactory;
-            workerServerFactory = new SaturationWorkerServerGenerator<>(
-                    numberOfWorkers);
 
-            List<SaturationWorker<ReachabilityClosure, Reachability, RoaringBitmap>> saturationWorkers;
-            saturationWorkers = workerServerFactory.generateWorkers();
-            List<Thread> threads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
-            threads.forEach(Thread::start);
-            serverDataList = workerServerFactory.getServerDataList();
+        } else {
+            workerGenerator = new SaturationWorkerThreadGenerator(
+                    numberOfWorkers);
+            workerGenerator.generateAndRunWorkers();
         }
+        serverDataList = workerGenerator.getWorkerServerDataList();
+
 
         ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
                 initialAxioms,
@@ -168,6 +164,16 @@ public class TransitiveReachabilityTest {
         System.out.println(ControlNodeStatistics.getControlNodeStatsHeader());
         System.out.println(controlNodeStatistics.getControlNodeStatistics());
         System.out.println(ConsoleUtils.getSeparator());
+
+        workerGenerator.stopWorkers();
+
+        if (workersInSeparateJVMs) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Test

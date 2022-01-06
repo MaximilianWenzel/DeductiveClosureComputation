@@ -15,7 +15,7 @@ public class ServerData implements Serializable {
         this.portNumber = portNumber;
     }
 
-    public String getServerName() {
+    public String getHostname() {
         return serverName;
     }
 

@@ -55,25 +55,25 @@ public class IndividualExperiments {
         }
 
         List<Integer> initialEchoAxioms = new ArrayList<>();
-        initialEchoAxioms.add(10_000);
+        //initialEchoAxioms.add(10_000);
         //initialEchoAxioms.add(20_000);
-        //initialEchoAxioms.add(50_000);
-        //initialEchoAxioms.add(100_000);
-        //initialEchoAxioms.add(200_000);
-        //initialEchoAxioms.add(500_000);
-        //initialEchoAxioms.add(1_000_000);
+        initialEchoAxioms.add(50_000);
+        initialEchoAxioms.add(100_000);
+        initialEchoAxioms.add(200_000);
+        initialEchoAxioms.add(500_000);
+        initialEchoAxioms.add(1_000_000);
         //initialEchoAxioms.add(10_000_000);
 
         List<Integer> numberOfWorkersList = new ArrayList<>();
-        //numberOfWorkersList.add(1);
+        numberOfWorkersList.add(1);
         numberOfWorkersList.add(2);
-        //numberOfWorkersList.add(4);
+        numberOfWorkersList.add(4);
 
         Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
-        //includedApproaches.add(SaturationApproach.SINGLE_THREADED);
-        //includedApproaches.add(SaturationApproach.PARALLEL);
-        //includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
-        //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
+        includedApproaches.add(SaturationApproach.SINGLE_THREADED);
+        includedApproaches.add(SaturationApproach.PARALLEL);
+        includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
+        includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
         includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
 
         //binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);

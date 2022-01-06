@@ -16,4 +16,8 @@ public interface NetworkingComponent {
     void terminate();
 
     boolean socketsCurrentlyReadMessages();
+
+    void closeSocket(long socketID);
+
+    void closeAllSockets();
 }

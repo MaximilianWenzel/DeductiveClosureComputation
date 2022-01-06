@@ -2,6 +2,7 @@ package networking;
 
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
+import networking.io.SocketManager;
 import networking.io.nio.NIOSocketManager;
 
 import java.io.IOException;
@@ -23,7 +24,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     protected List<ServerSocketChannel> serverSocketChannels = new ArrayList<>();
 
-    protected Map<Long, NIOSocketManager> socketIDToMessageManager = new HashMap<>();
+    protected Map<Long, NIOSocketManager> socketIDToSocketManager = new HashMap<>();
 
     protected boolean running = true;
 
@@ -51,7 +52,9 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         serverSocketChannel.configureBlocking(false);
         SelectionKey key = serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
         key.attach(portListener);
-        serverSocketChannel.bind(new InetSocketAddress(portListener.getPort()));
+
+        ServerData serverData = portListener.getServerData();
+        serverSocketChannel.bind(new InetSocketAddress(serverData.getHostname(), serverData.getPortNumber()));
         this.serverSocketChannels.add(serverSocketChannel);
     }
 
@@ -96,7 +99,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
                 serverSocketChannel.close();
             }
 
-            for (NIOSocketManager socketManager : this.socketIDToMessageManager.values()) {
+            for (NIOSocketManager socketManager : this.socketIDToSocketManager.values()) {
                 SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
                 if (key != null) {
                     key.cancel();
@@ -158,7 +161,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         socketChannel.configureBlocking(false);
 
         ServerData serverData = serverConnector.getServerData();
-        socketChannel.connect(new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber()));
+        socketChannel.connect(new InetSocketAddress(serverData.getHostname(), serverData.getPortNumber()));
         SelectionKey key = socketChannel.register(selector, SelectionKey.OP_CONNECT);
         key.attach(serverConnector);
         if (socketChannel.finishConnect()) {
@@ -179,7 +182,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     }
 
     private void initNewConnectedSocket(NIOSocketManager socketManager) throws IOException {
-        this.socketIDToMessageManager.put(socketManager.getSocketID(), socketManager);
+        this.socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
 
         SocketChannel socketChannel = socketManager.getSocketChannel();
         socketChannel.configureBlocking(false);
@@ -193,7 +196,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
         // connected socket is closed
         if (socketManager.endOfStreamReached()) {
-            this.socketIDToMessageManager.remove(socketManager.getSocketID());
+            this.socketIDToSocketManager.remove(socketManager.getSocketID());
             key.attach(null);
             key.cancel();
             key.channel().close();
@@ -211,7 +214,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     @Override
     public void sendMessage(long socketID, Serializable message) {
-        NIOSocketManager socketManager = this.socketIDToMessageManager.get(socketID);
+        NIOSocketManager socketManager = this.socketIDToSocketManager.get(socketID);
         try {
             if (!socketManager.sendMessage(message)) {
                 // has still messages to send - add write selector
@@ -257,11 +260,34 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     @Override
     public boolean socketsCurrentlyReadMessages() {
-        for (NIOSocketManager socketManager : this.socketIDToMessageManager.values()) {
+        for (NIOSocketManager socketManager : this.socketIDToSocketManager.values()) {
             if (socketManager.hasMessagesToRead()) {
                 return true;
             }
         }
         return false;
+    }
+
+    @Override
+    public void closeSocket(long socketID) {
+        SocketManager socketManager = this.socketIDToSocketManager.get(socketID);
+        try {
+            socketManager.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        socketIDToSocketManager.remove(socketID);
+    }
+
+    @Override
+    public void closeAllSockets() {
+        for (SocketManager socketManager : this.socketIDToSocketManager.values()) {
+            try {
+                socketManager.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        socketIDToSocketManager.clear();
     }
 }

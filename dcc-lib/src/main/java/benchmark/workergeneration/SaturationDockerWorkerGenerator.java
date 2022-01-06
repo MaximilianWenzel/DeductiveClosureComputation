@@ -1,7 +1,8 @@
-package benchmark;
+package benchmark.workergeneration;
 
 
 import networking.ServerData;
+import util.ConsoleUtils;
 import util.NetworkingUtils;
 
 import java.io.BufferedReader;
@@ -10,15 +11,17 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class SaturationDockerWorkerGenerator {
+public class SaturationDockerWorkerGenerator implements SaturationWorkerGenerator {
 
+    private static final Logger log = ConsoleUtils.getLogger();
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
     private List<String> containerNames;
     private List<Integer> portNumbers;
-
+    private String networkName = "saturation-worker-network";
 
     public SaturationDockerWorkerGenerator(int numberOfWorkers) {
         this.numberOfWorkers = numberOfWorkers;
@@ -38,7 +41,7 @@ public class SaturationDockerWorkerGenerator {
         }
     }
 
-    public void runWorkerDockerContainers() {
+    public void generateAndRunWorkers() {
         createUserDefinedDockerNetworkForContainerDNS();
         try {
             for (int i = 0; i < numberOfWorkers; i++) {
@@ -48,15 +51,16 @@ public class SaturationDockerWorkerGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         try {
-            Thread.sleep(1000);
+            log.info("Waiting until containers are initialized...");
+            Thread.sleep(8000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     private void createUserDefinedDockerNetworkForContainerDNS() {
-        String networkName = "my-network";
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "docker", "network", "create", networkName
         ).inheritIO();
@@ -67,7 +71,7 @@ public class SaturationDockerWorkerGenerator {
         }
     }
 
-    public List<ServerData> getServerDataList() {
+    public List<ServerData> getWorkerServerDataList() {
         return serverDataList;
     }
 
@@ -78,20 +82,16 @@ public class SaturationDockerWorkerGenerator {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "docker", "run",
                 "--publish", port + ":" + port,
-                //"--expose", port + "",
+                "--expose", port + "",
                 "--name", containerName,
+                "--net", networkName,
+                "--hostname", "0.0.0.0",
                 "-d", "saturation-worker",
-                port + "" // application args
+                "0.0.0.0", port + "" // application args: <HOSTNAME> <PORT>
         ).inheritIO();
         processBuilder.start();
 
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        return getDockerContainerIP(containerName);
+        return containerName;
     }
 
     private String getDockerContainerIP(String containerName) {
@@ -119,6 +119,25 @@ public class SaturationDockerWorkerGenerator {
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public void stopWorkers() {
+        log.info("Stopping docker containers...");
+        for (String containerName : this.containerNames) {
+            executeCommand("docker stop " + containerName);
+            executeCommand("docker rm " + containerName);
+        }
+    }
+
+    private void executeCommand(String cmd) {
+        List<String> args = Arrays.stream(cmd.split(" "))
+                .collect(Collectors.toList());
+        ProcessBuilder processBuilder = new ProcessBuilder(args).inheritIO();
+        try {
+            processBuilder.start().waitFor();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }

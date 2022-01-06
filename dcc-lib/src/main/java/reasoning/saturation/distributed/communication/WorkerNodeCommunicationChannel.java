@@ -37,7 +37,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     private final Logger log = ConsoleUtils.getLogger();
 
-    private final int portToListen;
+    private final ServerData serverData;
     private final BlockingQueue<Object> toDo = new DefaultToDo<>();
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
@@ -61,8 +61,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private SaturationConfiguration config;
     private WorkerStatistics stats;
 
-    public WorkerNodeCommunicationChannel(int portToListen) {
-        this.portToListen = portToListen;
+    public WorkerNodeCommunicationChannel(ServerData serverData) {
+        this.serverData = serverData;
         init();
     }
 
@@ -72,7 +72,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
         networkingComponent = new NIO2NetworkingComponent(
-                Collections.singletonList(new WorkerServerPortListener(portToListen)),
+                Collections.singletonList(new WorkerServerPortListener(serverData)),
                 Collections.emptyList()
         );
     }
@@ -271,6 +271,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.stats = stats;
     }
 
+    public void closeAllConnections() {
+        networkingComponent.closeAllSockets();
+    }
+
+
     private class MessageHandlerImpl implements MessageHandler {
         @Override
         public void process(long socketID, Object message) {
@@ -331,8 +336,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     private class WorkerServerPortListener extends PortListener {
 
-        public WorkerServerPortListener(int port) {
-            super(port, new MessageHandlerImpl());
+        public WorkerServerPortListener(ServerData serverData) {
+            super(serverData, new MessageHandlerImpl());
         }
 
         @Override

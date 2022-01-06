@@ -8,6 +8,7 @@ import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,9 +22,12 @@ public abstract class SaturationInitializationFactory<C extends Closure<A>, A ex
         if (workerModels.size() != serverData.size()) {
             throw new IllegalArgumentException();
         }
-        return workerModels.stream()
-                .map(w -> new DistributedWorkerModel<>(w, serverData.remove(0)))
-                .collect(Collectors.toList());
+        List<DistributedWorkerModel<C, A, T>> distributedWorkerModels = new ArrayList<>();
+
+        for (int i = 0; i < workerModels.size(); i++) {
+            distributedWorkerModels.add(new DistributedWorkerModel<>(workerModels.get(i), serverData.get(i)));
+        }
+        return distributedWorkerModels;
     }
 
 

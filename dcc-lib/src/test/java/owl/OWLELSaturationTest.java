@@ -1,6 +1,6 @@
 package owl;
 
-import benchmark.SaturationWorkerServerGenerator;
+import benchmark.workergeneration.SaturationWorkerThreadGenerator;
 import data.Closure;
 import data.DefaultClosure;
 import data.IndexedELOntology;
@@ -15,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
-import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.models.DistributedWorkerModel;
 
 import java.util.Collection;
@@ -122,14 +121,12 @@ public class OWLELSaturationTest {
 
 
     void testDistributedSaturation() {
-        SaturationWorkerServerGenerator<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> workerFactory;
-        workerFactory = new SaturationWorkerServerGenerator<>(
+        SaturationWorkerThreadGenerator workerFactory;
+        workerFactory = new SaturationWorkerThreadGenerator(
                 3
         );
 
-        List<SaturationWorker<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> saturationWorkers;
-        saturationWorkers = workerFactory.generateWorkers();
-        saturationWorkers.forEach(p -> new Thread(p).start());
+        workerFactory.generateAndRunWorkers();
 
         try {
             Thread.sleep(2000);
@@ -137,7 +134,7 @@ public class OWLELSaturationTest {
             e.printStackTrace();
         }
 
-        List<ServerData> workerServerData = workerFactory.getServerDataList();
+        List<ServerData> workerServerData = workerFactory.getWorkerServerDataList();
         OWLELDistributedWorkerFactory owlWorkerFactory = new OWLELDistributedWorkerFactory(elOntology,
                 workerServerData);
         List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workerModels =
@@ -168,6 +165,8 @@ public class OWLELSaturationTest {
 
         System.out.println(difference);
         assertEquals(singleThreadedClosure, distributedClosure);
+
+        workerFactory.stopWorkers();
 
     }
 }

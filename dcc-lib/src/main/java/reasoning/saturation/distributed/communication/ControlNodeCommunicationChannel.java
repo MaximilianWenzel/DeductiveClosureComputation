@@ -7,7 +7,6 @@ import data.Closure;
 import data.DefaultToDo;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
-import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -30,9 +29,13 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable>
         implements SaturationCommunicationChannel {
+
+    // TODO: adjust if workers are not running on localhost
+    private static final boolean WORKERS_ON_LOCALHOST = true;
 
     private final Logger log = ConsoleUtils.getLogger();
 
@@ -90,14 +93,31 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     }
 
     public void initializeConnectionToWorkerServers() {
-        workers.stream().map(p -> new WorkerServerConnector(p.getServerData(), p))
-                .forEach(s -> {
-                    try {
-                        networkingComponent.connectToServer(s);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
+
+        if (WORKERS_ON_LOCALHOST) {
+            List<ServerData> serverDataList = workers.stream()
+                    .map(w -> w.getServerData())
+                    .map(s -> new ServerData("localhost", s.getPortNumber()))
+                    .collect(Collectors.toList());
+
+            for (int i = 0; i < workers.size(); i++) {
+                WorkerServerConnector workerServerConnector = new WorkerServerConnector(serverDataList.get(i), workers.get(i));
+                try {
+                    networkingComponent.connectToServer(workerServerConnector);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            workers.stream().map(p -> new WorkerServerConnector(p.getServerData(), p))
+                    .forEach(s -> {
+                        try {
+                            networkingComponent.connectToServer(s);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+        }
     }
 
     @Override

@@ -1,16 +1,17 @@
 package networking.connectors;
 
+import networking.ServerData;
 import networking.io.MessageHandler;
 
 import java.util.Objects;
 
 public abstract class PortListener implements ConnectionEstablishmentListener {
 
-    private int port;
+    private ServerData serverData;
     private MessageHandler messageHandler;
 
-    public PortListener(int port, MessageHandler messageHandler) {
-        this.port = port;
+    public PortListener(ServerData serverData, MessageHandler messageHandler) {
+        this.serverData = serverData;
         this.messageHandler = messageHandler;
     }
 
@@ -19,19 +20,15 @@ public abstract class PortListener implements ConnectionEstablishmentListener {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PortListener that = (PortListener) o;
-        return port == that.port;
+        return serverData.equals(that.serverData) && Objects.equals(messageHandler, that.messageHandler);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(port);
-    }
-
-    public int getPort() {
-        return port;
-    }
 
     public MessageHandler getMessageProcessor() {
         return messageHandler;
+    }
+
+    public ServerData getServerData() {
+        return serverData;
     }
 }

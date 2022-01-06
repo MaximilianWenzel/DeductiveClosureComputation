@@ -15,6 +15,7 @@ nio2kryo\Nio2KryoServer.class
 benchmark\SaturationBenchmark.class
 benchmark\echoclosure\EchoAxiom.class
 benchmark\jmh\jmh_generated\AddElementComparison_jmhType_B1.class
+benchmark\DockerSaturationBenchmark$2.class
 reasoning\rules\SingleThreadedSaturationInferenceProcessor.class
 reasoning\saturation\distributed\states\workernode\WorkerStateFinished.class
 networking\NIO2NetworkingComponent$ServerSocketCompletionHandler.class
@@ -158,6 +159,7 @@ benchmark\jmh\jmh_generated\NIO2NetworkingComponentBenchmark_jmhType_B2.class
 reasoning\saturation\distributed\communication\SaturationCommunicationChannel.class
 networking\messages\MessageType.class
 nio2kryo\NioObjectChannel.class
+benchmark\SaturationBenchmark$1.class
 reasoning\saturation\distributed\communication\ControlNodeCommunicationChannel$WorkerServerConnector$2.class
 benchmark\jmh\jmh_generated\AddElementComparison_addElementUnifiedSet_jmhTest.class
 eldlsyntax\ELEntity$Visitor.class
@@ -182,6 +184,7 @@ benchmark\jmh\InterProcessCommunicationBenchmark.class
 benchmark\jmh\jmh_generated\NIO2NetworkingComponentBenchmark_sendObjectNIO2_jmhTest.class
 nio2kryo\NioKryoServer.class
 reasoning\saturation\distributed\states\workernode\WorkerStateRunning.class
+benchmark\DockerSaturationBenchmark.class
 eldlsyntax\ELConcept.class
 benchmark\echoclosure\EchoBToARule.class
 reasoning\saturation\distributed\states\AxiomVisitor.class
@@ -232,6 +235,7 @@ nio2kryo\Edge.class
 util\serialization\KryoSerializer.class
 reasoning\saturation\distributed\metadata\SaturationConfiguration.class
 eldlreasoning\rules\UnfoldSubsumptionRule.class
+benchmark\DockerSaturationBenchmark$1.class
 benchmark\transitiveclosure\ReachabilityClosure$2.class
 benchmark\jmh\jmh_generated\KryoNetBenchmark_sendString_jmhTest.class
 eldlsyntax\ELObject$Visitor.class
@@ -281,5 +285,6 @@ benchmark\jmh\SimpleServer.class
 eldlsyntax\ELIndividual$Visitor.class
 eldlsyntax\ELSignature.class
 networking\messages\AcknowledgementMessage.class
+benchmark\DockerSaturationBenchmark$3.class
 reasoning\saturation\distributed\metadata\ControlNodeStatistics$1.class
 data\IndexedELOntology.class

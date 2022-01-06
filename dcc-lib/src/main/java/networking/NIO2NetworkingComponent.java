@@ -3,11 +3,14 @@ package networking;
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageHandler;
+import networking.io.SocketManager;
 import networking.io.nio2.NIO2SocketManager;
+import util.ConsoleUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -17,8 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 public class NIO2NetworkingComponent implements NetworkingComponent {
+
+    private Logger log = ConsoleUtils.getLogger();
 
     protected List<PortListener> portNumbersToListen;
     protected List<ServerConnector> serversToConnectTo;
@@ -52,14 +58,18 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     @Override
     public void listenToPort(PortListener portListener) throws IOException {
         AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open(threadPool);
-        server.bind(new InetSocketAddress("localhost", portListener.getPort()));
+
+        ServerData serverData = portListener.getServerData();
+        InetSocketAddress inetSocketAddress = new InetSocketAddress(serverData.getHostname(), serverData.getPortNumber());
+        log.info("Listening on " + inetSocketAddress + "...");
+        server.bind(inetSocketAddress);
         server.accept(portListener.getMessageProcessor(), new ServerSocketCompletionHandler(portListener, server));
     }
 
     public void connectToServer(ServerConnector serverConnector) throws IOException {
         AsynchronousSocketChannel client = AsynchronousSocketChannel.open(threadPool);
         ServerData serverData = serverConnector.getServerData();
-        InetSocketAddress hostAddress = new InetSocketAddress(serverData.getServerName(), serverData.getPortNumber());
+        InetSocketAddress hostAddress = new InetSocketAddress(serverData.getHostname(), serverData.getPortNumber());
         /*
         client.connect(hostAddress, serverConnector.getMessageProcessor(),
                 new CompletionHandler<Void, MessageProcessor>() {
@@ -77,7 +87,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
 
          */
         try {
-            System.out.println(hostAddress);
+            log.info("Connecting to server: " + hostAddress);
             client.connect(hostAddress).get();
             NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor());
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
@@ -101,9 +111,11 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     public void terminate() {
         try {
             threadPool.shutdown();
-            threadPool.awaitTermination(1000, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            threadPool.awaitTermination(500, TimeUnit.MILLISECONDS);
+            if (!threadPool.isTerminated()) {
+                threadPool.shutdownNow();
+            }
+        } catch (InterruptedException | IOException ignored) {
         }
     }
 
@@ -115,6 +127,29 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
             }
         }
         return false;
+    }
+
+    @Override
+    public void closeSocket(long socketID) {
+        SocketManager socketManager = this.socketIDToSocketManager.get(socketID);
+        try {
+            socketManager.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        socketIDToSocketManager.remove(socketID);
+    }
+
+    @Override
+    public void closeAllSockets() {
+        for (SocketManager socketManager : this.socketIDToSocketManager.values()) {
+            try {
+                socketManager.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        socketIDToSocketManager.clear();
     }
 
     private class ServerSocketCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {

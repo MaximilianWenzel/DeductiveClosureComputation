@@ -27,7 +27,7 @@ public class NetworkingTest {
 
     @Test
     public void testNIOServerCommunication() {
-        int serverPort = NetworkingUtils.getFreePort();
+        ServerData serverData = new ServerData("localhost", NetworkingUtils.getFreePort());
 
         List<Long> socketIDs = new ArrayList<>();
 
@@ -43,14 +43,14 @@ public class NetworkingTest {
             }
         };
 
-        PortListener portListener = new PortListener(serverPort, messageHandler) {
+        PortListener portListener = new PortListener(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
 
-        ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort),
+        ServerConnector serverConnector1 = new ServerConnector(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -58,7 +58,7 @@ public class NetworkingTest {
             }
         };
 
-        ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort),
+        ServerConnector serverConnector2 = new ServerConnector(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -88,7 +88,7 @@ public class NetworkingTest {
             }
         }
 
-        ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort),
+        ServerConnector serverConnector3 = new ServerConnector(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -123,7 +123,7 @@ public class NetworkingTest {
 
     @Test
     void testNIO2NetworkCommunication() {
-        int serverPort = NetworkingUtils.getFreePort();
+        ServerData serverData = new ServerData("localhost", NetworkingUtils.getFreePort());
         List<Long> socketIDs = new ArrayList<>();
         BlockingQueue<String> receivedMessages = new DefaultToDo<>();
         MessageHandler messageHandler = new MessageHandler() {
@@ -138,14 +138,14 @@ public class NetworkingTest {
             }
         };
 
-        PortListener portListener = new PortListener(serverPort, messageHandler) {
+        PortListener portListener = new PortListener(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected to server socket.");
             }
         };
 
-        ServerConnector serverConnector1 = new ServerConnector(new ServerData("localhost", serverPort),
+        ServerConnector serverConnector1 = new ServerConnector(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -154,7 +154,7 @@ public class NetworkingTest {
             }
         };
 
-        ServerConnector serverConnector2 = new ServerConnector(new ServerData("localhost", serverPort),
+        ServerConnector serverConnector2 = new ServerConnector(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -186,7 +186,7 @@ public class NetworkingTest {
             }
         }
 
-        ServerConnector serverConnector3 = new ServerConnector(new ServerData("localhost", serverPort),
+        ServerConnector serverConnector3 = new ServerConnector(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {

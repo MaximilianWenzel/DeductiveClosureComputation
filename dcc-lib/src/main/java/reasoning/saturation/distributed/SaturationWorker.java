@@ -2,6 +2,7 @@ package reasoning.saturation.distributed;
 
 import data.Closure;
 import exceptions.NotImplementedException;
+import networking.ServerData;
 import networking.messages.InitializeWorkerMessage;
 import reasoning.reasoner.IncrementalReasoner;
 import reasoning.reasoner.IncrementalReasonerImpl;
@@ -14,14 +15,18 @@ import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.distributed.states.workernode.WorkerState;
 import reasoning.saturation.distributed.states.workernode.WorkerStateFinished;
 import reasoning.saturation.distributed.states.workernode.WorkerStateInitializing;
+import util.ConsoleUtils;
 import util.NetworkingUtils;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.logging.Logger;
 
 public class SaturationWorker<C extends Closure<A>, A extends Serializable, T extends Serializable>
         implements Runnable {
 
+    private static final Logger log = ConsoleUtils.getLogger();
+    private ServerData serverData;
     private final IncrementalReasonerType incrementalReasonerType;
     private C closure;
     private Collection<? extends Rule<C, A>> rules;
@@ -30,27 +35,37 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private IncrementalReasoner<C, A> incrementalReasoner;
     private SaturationConfiguration config;
     private WorkerStatistics stats = new WorkerStatistics();
+    private boolean terminateAfterSaturation = false;
 
-    public SaturationWorker(int portToListen,
+    public SaturationWorker(ServerData serverData,
                             IncrementalReasonerType incrementalReasonerType) {
-        this.communicationChannel = new WorkerNodeCommunicationChannel<>(portToListen);
+        this.serverData = serverData;
+        this.communicationChannel = new WorkerNodeCommunicationChannel<>(serverData);
         this.state = new WorkerStateInitializing<>(this);
         this.incrementalReasonerType = incrementalReasonerType;
     }
 
+    public SaturationWorker(ServerData serverData,
+                            IncrementalReasonerType incrementalReasonerType,
+                            boolean terminateAfterSaturation) {
+        this(serverData, incrementalReasonerType);
+        this.terminateAfterSaturation = terminateAfterSaturation;
+    }
+
     public static void main(String[] args) {
-        // args: <PORT-NUMBER>
+        // args: <HOSTNAME> <PORT-NUMBER>
 
         // for port number range
-        // args: <PORT-NUMBER-FROM-INCLUSIVE>-<PORT-NUMBER-TO-INCLUSIVE>
-        System.out.println("Generating worker...");
+        // args: <HOSTNAME> <PORT-NUMBER-FROM-INCLUSIVE>-<PORT-NUMBER-TO-INCLUSIVE>
+        log.info("Generating worker...");
 
-        String[] portsStrArr = args[0].split("-");
+        String[] portsStrArr = args[1].split("-");
         int portNumber;
+        String hostname = args[0];
         if (portsStrArr.length == 1) {
             // single port
-            portNumber = Integer.parseInt(args[0]);
-            System.out.println("Worker port: " + portNumber);
+            portNumber = Integer.parseInt(args[1]);
+            log.info("Worker port: " + portNumber);
         } else if (portsStrArr.length == 2) {
             // port range
             int fromPortIncl = Integer.parseInt(portsStrArr[0]);
@@ -59,9 +74,13 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         } else {
             throw new IllegalArgumentException("arguments: <PORT-NUMBER-FROM-INCLUSIVE>-<PORT-NUMBER-TO-INCLUSIVE>");
         }
+
+        ServerData serverData = new ServerData(hostname, portNumber);
+
         SaturationWorker<?, ?, ?> saturationWorker = new SaturationWorker<>(
-                portNumber,
-                IncrementalReasonerType.SINGLE_THREADED
+                serverData,
+                IncrementalReasonerType.SINGLE_THREADED,
+                false
         );
         saturationWorker.run();
     }
@@ -70,13 +89,32 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     @Override
     public void run() {
         try {
-            while (!(state instanceof WorkerStateFinished)) {
-                state.mainWorkerLoop();
-            }
-            terminate();
+            do {
+                while (!(state instanceof WorkerStateFinished)) {
+                    state.mainWorkerLoop();
+                }
+                log.info("Saturation finished.");
+                clearWorkerForNewSaturation();
+            } while (!terminateAfterSaturation);
+
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.info("Worker has been interrupted.");
+        } finally {
+            log.info("Terminating worker...");
+            terminate();
+            log.info("Worker terminated.");
         }
+    }
+
+    private void clearWorkerForNewSaturation() {
+        log.info("Restarting worker...");
+        communicationChannel.terminate();
+        communicationChannel = new WorkerNodeCommunicationChannel<>(serverData);
+        this.state = new WorkerStateInitializing<>(this);
+        this.rules = null;
+        this.config = null;
+        this.stats = new WorkerStatistics();
+        log.info("Worker successfully restarted.");
     }
 
     public C getClosure() {

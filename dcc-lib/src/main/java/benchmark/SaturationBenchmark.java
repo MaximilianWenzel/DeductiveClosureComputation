@@ -1,6 +1,10 @@
 package benchmark;
 
 
+import benchmark.workergeneration.SaturationDockerWorkerGenerator;
+import benchmark.workergeneration.SaturationJVMWorkerGenerator;
+import benchmark.workergeneration.SaturationWorkerGenerator;
+import benchmark.workergeneration.SaturationWorkerThreadGenerator;
 import com.google.common.base.Stopwatch;
 import data.Closure;
 import enums.SaturationApproach;
@@ -11,7 +15,6 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
-import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
@@ -49,6 +52,9 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     private SaturationInitializationFactory<C, A, T> initializationFactory;
     private List<? extends A> initialAxioms;
     private List<WorkerModel<C, A, T>> workers;
+
+    private SaturationWorkerGenerator workerGenerator;
+
 
     {
         csvHeader = new ArrayList<>();
@@ -175,7 +181,11 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         log.info("# Initial Axioms: " + initialAxioms.size());
         log.info("# Workers: " + workers.size());
         log.info("Approach: " + distributedApproach.toString());
-        runtime = distributedClosureComputation(distributedApproach);
+        try {
+            runtime = distributedClosureComputation(distributedApproach);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         CSVRow row = new CSVRow(
                 "distributed",
@@ -192,29 +202,35 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     }
 
-    private DescriptiveStatistics distributedClosureComputation(SaturationApproach distributedApproach) {
+    private DescriptiveStatistics distributedClosureComputation(SaturationApproach distributedApproach) throws
+            InterruptedException {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
+        // initialize workers
+        switch (distributedApproach) {
+            case DISTRIBUTED_MULTITHREADED:
+                workerGenerator = new SaturationWorkerThreadGenerator(workers.size());
+                break;
+            case DISTRIBUTED_SEPARATE_DOCKER_CONTAINER:
+                workerGenerator = new SaturationDockerWorkerGenerator(workers.size());
+                break;
+            case DISTRIBUTED_SEPARATE_JVM:
+                workerGenerator = new SaturationJVMWorkerGenerator(workers.size());
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+
+        List<ServerData> serverDataList = null;
+
 
         for (int i = 1; i <= this.numberOfExperimentRepetitions; i++) {
             log.info("Round " + i);
 
-
-            // initialize workers
-            List<ServerData> serverDataList;
-
-            switch (distributedApproach) {
-                case DISTRIBUTED_SEPARATE_JVM:
-                    serverDataList = generateWorkersInSeparateJVM();
-                    break;
-                case DISTRIBUTED_MULTITHREADED:
-                    serverDataList = generateWorkersInSeparateThread();
-                    break;
-                case DISTRIBUTED_SEPARATE_DOCKER_CONTAINER:
-                    serverDataList = generateWorkersInSeparateDockerContainer();
-                    break;
-                default:
-                    throw new IllegalArgumentException();
+            if (serverDataList == null) {
+                workerGenerator.generateAndRunWorkers();
+                serverDataList = workerGenerator.getWorkerServerDataList();
             }
+            Thread.sleep(1000);
 
 
             // initialize control node
@@ -263,45 +279,11 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             }
         }
 
+        // stop workers
+        workerGenerator.stopWorkers();
+        Thread.sleep(2000);
+
         return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
-    }
-
-    private List<ServerData> generateWorkersInSeparateDockerContainer() {
-        SaturationDockerWorkerGenerator dockerWorkerGenerator = new SaturationDockerWorkerGenerator(workers.size());
-        dockerWorkerGenerator.runWorkerDockerContainers();
-        return dockerWorkerGenerator.getServerDataList();
-    }
-
-    private List<ServerData> generateWorkersInSeparateThread() {
-        SaturationWorkerServerGenerator<C, A, T> workerServerFactory;
-
-        workerServerFactory = new SaturationWorkerServerGenerator<>(workers.size());
-
-        List<SaturationWorker<C, A, T>> saturationWorkers;
-        saturationWorkers = workerServerFactory.generateWorkers();
-        List<Thread> threads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
-        threads.forEach(Thread::start);
-
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return workerServerFactory.getServerDataList();
-    }
-
-    private List<ServerData> generateWorkersInSeparateJVM() {
-        SaturationJVMWorkerGenerator<C, A, T> workerServerFactory;
-
-        workerServerFactory = new SaturationJVMWorkerGenerator<>(workers.size());
-        workerServerFactory.startWorkersInSeparateJVMs();
-
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return workerServerFactory.getServerDataList();
     }
 
     private DescriptiveStatistics singleThreadedClosureComputation() {

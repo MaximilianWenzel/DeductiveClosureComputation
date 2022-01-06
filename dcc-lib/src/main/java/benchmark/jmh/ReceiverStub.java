@@ -4,6 +4,7 @@ import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
 import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
+import networking.ServerData;
 import networking.connectors.PortListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
@@ -15,6 +16,7 @@ import java.util.Queue;
 public class ReceiverStub {
 
     private int serverPort = -1;
+    private String hostname;
     private NetworkingComponent networkingComponent;
     private NetworkingComponentType type;
 
@@ -23,9 +25,10 @@ public class ReceiverStub {
         init(queue);
     }
 
-    public ReceiverStub(Queue<Object> queue, NetworkingComponentType type, int port) {
+    public ReceiverStub(Queue<Object> queue, NetworkingComponentType type, ServerData serverData) {
         this.type = type;
-        this.serverPort = port;
+        this.serverPort = serverData.getPortNumber();
+        this.hostname = serverData.getHostname();
         init(queue);
     }
 
@@ -42,7 +45,7 @@ public class ReceiverStub {
         if (serverPort == -1) {
             serverPort = NetworkingUtils.getFreePort();
         }
-        PortListener portListener = new PortListener(serverPort, messageHandler) {
+        PortListener portListener = new PortListener(new ServerData(hostname, serverPort), messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected.");

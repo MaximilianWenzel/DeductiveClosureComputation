@@ -1,13 +1,11 @@
-package benchmark;
+package benchmark.workergeneration;
 
-import data.Closure;
 import networking.ServerData;
 import reasoning.saturation.distributed.SaturationWorker;
 import util.NetworkingUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Paths;
@@ -16,10 +14,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class SaturationJVMWorkerGenerator<C extends Closure<A>, A extends Serializable, T extends Serializable> {
+public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
 
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
+    private List<Process> workerProcesses = new ArrayList<>();
 
     public SaturationJVMWorkerGenerator(int numberOfWorkers) {
         this.numberOfWorkers = numberOfWorkers;
@@ -33,7 +32,7 @@ public class SaturationJVMWorkerGenerator<C extends Closure<A>, A extends Serial
         }
     }
 
-    public void startWorkersInSeparateJVMs() {
+    public void generateAndRunWorkers() {
         for (ServerData serverData : serverDataList) {
             try {
                 startWorkerJVM(serverData.getPortNumber());
@@ -53,12 +52,22 @@ public class SaturationJVMWorkerGenerator<C extends Closure<A>, A extends Serial
                 "-cp",
                 classpath,
                 SaturationWorker.class.getName(),
-                portNumber + ""
-        );
-        processBuilder.start();
+                "localhost", portNumber + "" // application args
+        ).inheritIO();
+        workerProcesses.add(processBuilder.start());
     }
 
-    public List<ServerData> getServerDataList() {
+    public List<ServerData> getWorkerServerDataList() {
         return serverDataList;
+    }
+
+    public void stopWorkers() {
+        for (Process p : workerProcesses) {
+            try {
+                p.destroyForcibly().waitFor();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
