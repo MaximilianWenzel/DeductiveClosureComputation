@@ -12,6 +12,7 @@ import util.NetworkingUtils;
 
 import java.util.Collections;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 
 public class ReceiverStub {
 
@@ -20,28 +21,26 @@ public class ReceiverStub {
     private NetworkingComponent networkingComponent;
     private NetworkingComponentType type;
 
-    public ReceiverStub(Queue<Object> queue, NetworkingComponentType type) {
+    public ReceiverStub(BlockingQueue<Object> queue, NetworkingComponentType type) {
         this.type = type;
         init(queue);
     }
 
-    public ReceiverStub(Queue<Object> queue, NetworkingComponentType type, ServerData serverData) {
-        this.type = type;
-        this.serverPort = serverData.getPortNumber();
-        this.hostname = serverData.getHostname();
-        init(queue);
-    }
-
-    private void init(Queue<Object> queue) {
+    private void init(BlockingQueue<Object> queue) {
         MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
                 assert message != null;
-                queue.add(message);
-                queue.remove();
+                try {
+                    queue.put(message);
+                    queue.remove();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         };
 
+        hostname = "localhost";
         if (serverPort == -1) {
             serverPort = NetworkingUtils.getFreePort();
         }

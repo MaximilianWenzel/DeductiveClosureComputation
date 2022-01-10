@@ -47,7 +47,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
             while (!(state instanceof CNSFinished)) {
                 state.mainControlNodeLoop();
             }
-            if (config.collectStatistics()) {
+            if (config.collectControlNodeStatistics()) {
                 stats.collectStopwatchTimes();
             }
             communicationChannel.terminate();

@@ -56,7 +56,6 @@ benchmark\jmh\jmh_generated\AddElementComparison_addElementArrayBlockingQueue_jm
 benchmark\transitiveclosure\DerivedReachability.class
 networking\io\nio2\NIO2MessageWriter$1.class
 util\LogFormatter.class
-benchmark\SaturationJVMWorkerGenerator.class
 eldlreasoning\rules\SubsumedByTopRule$1.class
 benchmark\transitiveclosure\Reachability.class
 networking\messages\DebugMessage.class
@@ -197,7 +196,6 @@ benchmark\jmh\jmh_generated\SerializationBenchmark_jmhType_B3.class
 benchmark\jmh\jmh_generated\AddElementComparison_jmhType_B3.class
 data\Dataset.class
 reasoning\saturation\models\WorkerModel.class
-benchmark\SaturationDockerWorkerGenerator.class
 util\CSVUtils.class
 eldlsyntax\ELOntology$1.class
 eldlsyntax\ELConceptBottom.class
@@ -240,7 +238,6 @@ benchmark\transitiveclosure\ReachabilityClosure$2.class
 benchmark\jmh\jmh_generated\KryoNetBenchmark_sendString_jmhTest.class
 eldlsyntax\ELObject$Visitor.class
 eldlreasoning\rules\OWLELRule.class
-benchmark\SaturationWorkerServerGenerator.class
 eldlreasoning\rules\ReflexiveSubsumptionRule$ConceptVisitor.class
 networking\io\nio\NIOMessageReader.class
 benchmark\jmh\ReceiverStub.class

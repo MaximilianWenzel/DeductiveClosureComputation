@@ -19,7 +19,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
     public void mainWorkerLoop() throws InterruptedException {
         if (!communicationChannel.hasMoreMessages()) {
             this.worker.switchState(new WorkerStateConverged<>(worker));
-            if (config.collectStatistics()) {
+            if (config.collectWorkerNodeStatistics()) {
                 stats.getTodoIsEmptyEvent().incrementAndGet();
                 stats.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
                 stats.startStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);

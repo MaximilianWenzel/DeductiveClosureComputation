@@ -133,7 +133,7 @@ public class TransitiveReachabilityTest {
 
         List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = initializationFactory.getDistributedWorkerModels(
                 serverDataList);
-        SaturationConfiguration configuration = new SaturationConfiguration(true);
+        SaturationConfiguration configuration = new SaturationConfiguration(true, false);
         DistributedSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new DistributedSaturation<>(
                 workers,
                 new ReachabilityWorkloadDistributor(workers),

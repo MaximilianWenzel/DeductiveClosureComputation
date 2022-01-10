@@ -99,6 +99,8 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
 
         } catch (InterruptedException e) {
             log.info("Worker has been interrupted.");
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             log.info("Terminating worker...");
             terminate();
@@ -160,7 +162,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
 
         switch (incrementalReasonerType) {
             case SINGLE_THREADED:
-                if (config.collectStatistics()) {
+                if (config.collectControlNodeStatistics()) {
                     this.incrementalReasoner = new IncrementalReasonerWithStatistics<>(rules, closure, config, stats);
                 } else {
                     this.incrementalReasoner = new IncrementalReasonerImpl<>(rules, closure);

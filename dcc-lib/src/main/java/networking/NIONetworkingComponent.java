@@ -4,6 +4,7 @@ import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.SocketManager;
 import networking.io.nio.NIOSocketManager;
+import util.ConsoleUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -12,9 +13,12 @@ import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Logger;
 
 public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
+
+    protected Logger log = ConsoleUtils.getLogger();
     protected Thread nioThread;
 
     protected Selector selector;
@@ -80,11 +84,9 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
             while (running) {
                 try {
                     mainNIOSelectorLoop();
-                } catch (ClosedSelectorException e) {
-                    // terminated
-                } catch (CancelledKeyException e) {
-                    // connection has been closed
-                } catch (Exception e) {
+                } catch (CancelledKeyException | IOException | ClosedSelectorException e) {
+                    log.info("Connection got closed.");
+                } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }

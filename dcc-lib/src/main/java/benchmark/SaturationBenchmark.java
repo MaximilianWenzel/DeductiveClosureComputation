@@ -48,6 +48,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     private List<List<String>> csvRows = new ArrayList<>();
     private List<String> csvHeader;
 
+    private boolean workerNodeStatistics = false;
 
     private SaturationInitializationFactory<C, A, T> initializationFactory;
     private List<? extends A> initialAxioms;
@@ -70,12 +71,14 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     public SaturationBenchmark(String benchmarkType,
                                Set<SaturationApproach> includedApproaches,
                                File outputDirectory,
-                               int numberOfExperimentRepetitions) {
+                               int numberOfExperimentRepetitions,
+                               boolean workerNodeStatistics) {
         this.benchmarkType = benchmarkType;
         this.includedApproaches = includedApproaches;
         this.numberOfExperimentRepetitions = numberOfExperimentRepetitions;
         this.outputDirectory = outputDirectory;
         this.outputDirectory.mkdir();
+        this.workerNodeStatistics = workerNodeStatistics;
     }
 
 
@@ -188,7 +191,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         }
 
         CSVRow row = new CSVRow(
-                "distributed",
+                distributedApproach.toString().toLowerCase(),
                 initialAxioms.size(),
                 workers.size(),
                 runtime.getMin(),
@@ -230,7 +233,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 workerGenerator.generateAndRunWorkers();
                 serverDataList = workerGenerator.getWorkerServerDataList();
             }
-            Thread.sleep(1000);
+            Thread.sleep(2000);
 
 
             // initialize control node
@@ -239,7 +242,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                     initializationFactory.getWorkloadDistributor(),
                     initialAxioms,
                     initializationFactory.getNewClosure(),
-                    new SaturationConfiguration(true)
+                    new SaturationConfiguration(true, workerNodeStatistics)
             );
 
             // run saturation
@@ -255,28 +258,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             runtimeInMSPerRound.add((double) runtimeInMS);
 
             // distributed saturation stats
-            String csvControlNodeStatsPath = Paths.get(this.outputDirectory.toString(), "distributed_controlNode"
-                    + "_" + benchmarkType
-                    + "_numMessages=" + initialAxioms.size()
-                    + "_numWorkers=" + workers.size())
-                    + ".csv";
-
-            String csvWorkerStatsPath = Paths.get(this.outputDirectory.toString(), "distributed_workers"
-                    + "_" + benchmarkType
-                    + "_numMessages=" + initialAxioms.size()
-                    + "_numWorkers=" + workers.size())
-                    + ".csv";
-            try {
-                CSVUtils.writeCSVFile(csvControlNodeStatsPath, ControlNodeStatistics.getControlNodeStatsHeader(),
-                        Collections.singletonList(controlNodeStatistics.getControlNodeStatistics()), ";");
-                CSVUtils.writeCSVFile(csvWorkerStatsPath,
-                        WorkerStatistics.getWorkerStatsHeader(),
-                        workerStatistics.stream().map(WorkerStatistics::getWorkerStatistics)
-                                .collect(Collectors.toList()),
-                        ";");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            createStatisticsCSVFiles(distributedApproach.toString().toLowerCase(), controlNodeStatistics,
+                    workerStatistics);
         }
 
         // stop workers
@@ -319,17 +302,51 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             log.info("Round " + i);
 
             ParallelSaturation<C, A, T> saturation = new ParallelSaturation<>(
+                    new SaturationConfiguration(true, workerNodeStatistics),
                     initializationFactory
             );
 
             // run saturation
-            this.stopwatch = Stopwatch.createStarted();
             C closure = saturation.saturate();
-            Duration runtime = this.stopwatch.elapsed();
             assert closure.getClosureResults().size() > 0;
-            runtimeInMSPerRound.add((double) runtime.toMillis());
+            ControlNodeStatistics controlNodeStatistics = saturation.getControlNodeStatistics();
+            List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
+
+            runtimeInMSPerRound.add((double) (controlNodeStatistics.getWorkerInitializationTimeMS()
+                    + controlNodeStatistics.getTotalSaturationTimeMS()));
+
+            createStatisticsCSVFiles("parallel", controlNodeStatistics,
+                    workerStatistics);
         }
         return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
+    }
+
+    public void createStatisticsCSVFiles(String approach, ControlNodeStatistics controlNodeStatistics,
+                                         List<WorkerStatistics> workerStatistics) {
+        String csvControlNodeStatsPath = Paths.get(this.outputDirectory.toString(),
+                approach + "_controlNode"
+                        + "_" + benchmarkType
+                        + "_numMessages=" + initialAxioms.size()
+                        + "_numWorkers=" + workers.size())
+                + ".csv";
+
+        String csvWorkerStatsPath = Paths.get(this.outputDirectory.toString(),
+                approach + "_workers"
+                        + "_" + benchmarkType
+                        + "_numMessages=" + initialAxioms.size()
+                        + "_numWorkers=" + workers.size())
+                + ".csv";
+        try {
+            CSVUtils.writeCSVFile(csvControlNodeStatsPath, ControlNodeStatistics.getControlNodeStatsHeader(),
+                    Collections.singletonList(controlNodeStatistics.getControlNodeStatistics()), ";");
+            CSVUtils.writeCSVFile(csvWorkerStatsPath,
+                    WorkerStatistics.getWorkerStatsHeader(),
+                    workerStatistics.stream().map(WorkerStatistics::getWorkerStatistics)
+                            .collect(Collectors.toList()),
+                    ";");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void createCSVFile() throws IOException {

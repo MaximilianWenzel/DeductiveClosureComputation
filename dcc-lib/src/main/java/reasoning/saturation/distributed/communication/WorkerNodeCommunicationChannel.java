@@ -7,7 +7,6 @@ import data.Closure;
 import data.DefaultToDo;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
-import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -176,7 +175,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
 
     private void sendAxiom(long receiverWorkerID, A axiom) {
-        if (config.collectStatistics()) {
+        if (config.collectWorkerNodeStatistics()) {
             stats.getNumberOfSentAxioms().getAndIncrement();
         }
 
@@ -282,7 +281,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
             if (!(message instanceof MessageModel)) {
                 // must be an axiom
                 receivedAxiomMessages.getAndIncrement();
-                if (config.collectStatistics()) {
+                if (config.collectWorkerNodeStatistics()) {
                     stats.getNumberOfReceivedAxioms().incrementAndGet();
                 }
                 toDo.offer(message);

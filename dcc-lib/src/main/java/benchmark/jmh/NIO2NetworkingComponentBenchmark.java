@@ -15,6 +15,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -65,7 +66,7 @@ public class NIO2NetworkingComponentBenchmark {
 
     @Setup(Level.Trial)
     public void setUp() {
-        queue = new DefaultToDo<>();
+        queue = new ArrayBlockingQueue<>(1);
         nio2ReceiverStub = new ReceiverStub(queue, NetworkingComponentType.ASYNC_NIO);
         nio2SenderStub = new SenderStub(new ServerData("localhost", nio2ReceiverStub.getServerPort()),
                 NetworkingComponentType.ASYNC_NIO);

@@ -2,6 +2,9 @@ package reasoning.rules;
 
 import data.Closure;
 import data.ToDoQueue;
+import enums.StatisticsComponent;
+import javafx.concurrent.Worker;
+import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.parallel.SaturationContext;
 import reasoning.saturation.workload.WorkloadDistributor;
 
@@ -17,6 +20,7 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
     private Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext;
     private C closure;
     private AtomicInteger sentAxiomsCount;
+    private WorkerStatistics statistics = null;
 
     public ParallelSaturationInferenceProcessor(WorkloadDistributor<C, A, T> distributor,
                                                 Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext,
@@ -28,19 +32,43 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
         this.sentAxiomsCount = sentAxiomsCount;
     }
 
+    public ParallelSaturationInferenceProcessor(WorkerStatistics statistics,
+                                                WorkloadDistributor<C, A, T> distributor,
+                                                Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext,
+                                                C closure,
+                                                AtomicInteger sentAxiomsCount) {
+        this.statistics = statistics;
+        this.distributor = distributor;
+        this.workerIDToSaturationContext = workerIDToSaturationContext;
+        this.closure = closure;
+        this.sentAxiomsCount = sentAxiomsCount;
+    }
+
     @Override
     public void processInference(A axiom) {
         // distribute axiom only if it is not contained in closure
-
-        if (closure.contains(axiom)) {
-            return;
+        if (statistics != null) {
+            statistics.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
+            statistics.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+            statistics.getNumberOfDerivedInferences().incrementAndGet();
         }
-        List<Long> workerIDs = distributor.getRelevantWorkerIDsForAxiom(axiom);
-        for (Long workerID : workerIDs) {
-            sentAxiomsCount.incrementAndGet();
-            SaturationContext<C, A, T> saturationContext = workerIDToSaturationContext.get(workerID);
-            ToDoQueue<Serializable> toDo = saturationContext.getToDo();
-            toDo.add(axiom);
+
+        if (!closure.contains(axiom)) {
+            List<Long> workerIDs = distributor.getRelevantWorkerIDsForAxiom(axiom);
+            for (Long workerID : workerIDs) {
+                sentAxiomsCount.incrementAndGet();
+                if (statistics != null) {
+                    statistics.getNumberOfSentAxioms().incrementAndGet();
+                }
+                SaturationContext<C, A, T> saturationContext = workerIDToSaturationContext.get(workerID);
+                ToDoQueue<Serializable> toDo = saturationContext.getToDo();
+                toDo.add(axiom);
+            }
+        }
+
+        if (statistics != null) {
+            statistics.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+            statistics.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
         }
     }
 }

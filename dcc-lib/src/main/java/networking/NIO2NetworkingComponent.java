@@ -110,12 +110,9 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     @Override
     public void terminate() {
         try {
-            threadPool.shutdown();
-            threadPool.awaitTermination(500, TimeUnit.MILLISECONDS);
-            if (!threadPool.isTerminated()) {
-                threadPool.shutdownNow();
-            }
-        } catch (InterruptedException | IOException ignored) {
+            threadPool.shutdownNow();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

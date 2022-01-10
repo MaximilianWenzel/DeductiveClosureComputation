@@ -3,10 +3,14 @@ package reasoning.saturation.parallel;
 import data.Closure;
 import data.DefaultToDo;
 import data.ParallelToDo;
+import enums.StatisticsComponent;
 import networking.messages.AxiomCount;
 import networking.messages.RequestAxiomMessageCount;
 import reasoning.rules.ParallelSaturationInferenceProcessor;
 import reasoning.saturation.SaturationInitializationFactory;
+import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
+import reasoning.saturation.distributed.metadata.SaturationConfiguration;
+import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
@@ -39,23 +43,35 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
     private AtomicInteger convergedWorkers = new AtomicInteger(0);
     private boolean saturationConvergedVerificationStage = false;
 
+    private SaturationConfiguration config;
+    private ControlNodeStatistics controlNodeStatistics = null;
 
     public ParallelSaturation(SaturationInitializationFactory<C, A, T> factory) {
         this.factory = factory;
         this.initialAxioms = factory.getInitialAxioms();
         this.workerModels = factory.getWorkerModels();
         this.workloadDistributor = factory.getWorkloadDistributor();
-        initContexts();
+        this.config = new SaturationConfiguration();
+        init();
     }
 
-    private void initContexts() {
-        initVariables();
+    public ParallelSaturation(SaturationConfiguration config, SaturationInitializationFactory<C, A, T> factory) {
+        this.factory = factory;
+        this.initialAxioms = factory.getInitialAxioms();
+        this.workerModels = factory.getWorkerModels();
+        this.workloadDistributor = factory.getWorkloadDistributor();
+        this.config = config;
+        if (config.collectControlNodeStatistics()) {
+            this.controlNodeStatistics = new ControlNodeStatistics();
+        }
+        init();
     }
 
     protected SaturationContext<C, A, T> generateSaturationContext(WorkerModel<C, A, T> worker) {
         C workerClosure = factory.getNewClosure();
         ParallelToDo workerToDo = new ParallelToDo();
         SaturationContext<C, A, T> saturationContext = new SaturationContext<>(
+                config,
                 this,
                 worker.getRules(),
                 workerClosure,
@@ -66,10 +82,14 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         return saturationContext;
     }
 
-    private void initVariables() {
+    private void init() {
         this.initialAxiomsDistributor = new InitialAxiomsDistributor<>(initialAxioms, workloadDistributor);
 
         // init workers
+        if (config.collectControlNodeStatistics()) {
+            controlNodeStatistics.startStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
+        }
+
         this.contexts = new ArrayList<>();
         workerModels.forEach(p -> {
             this.contexts.add(generateSaturationContext(p));
@@ -77,7 +97,12 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
 
         for (SaturationContext<C, A, T> context : this.contexts) {
             ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor = new ParallelSaturationInferenceProcessor<>(
-                    workloadDistributor, workerIDToSaturationContext, context.getClosure(), context.getSentAxioms());
+                    context.getStatistics(),
+                    workloadDistributor,
+                    workerIDToSaturationContext,
+                    context.getClosure(),
+                    context.getSentAxioms()
+            );
             context.setInferenceProcessor(inferenceProcessor);
         }
 
@@ -89,15 +114,24 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
                 this.workerIDToSaturationContext.get(workerID).getToDo().add(axiom);
             }
         }
+
+        if (config.collectControlNodeStatistics()) {
+            controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
+        }
     }
 
     public C saturate() {
+        if (config.collectControlNodeStatistics()) {
+            controlNodeStatistics.startStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
+        }
         initAndStartThreads();
-
         try {
             while (!allWorkersConverged) {
-                AxiomCount message = statusMessages.take();
 
+                AxiomCount message = statusMessages.take();
+                if (config.collectControlNodeStatistics()) {
+                    controlNodeStatistics.getNumberOfReceivedAxiomCountMessages().incrementAndGet();
+                }
                 boolean messageFromLatestSaturationStage = message.getStage() == saturationStage.get();
 
                 sumOfAllReceivedAxioms.addAndGet(message.getReceivedAxioms());
@@ -119,10 +153,14 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
                     }
                 }
 
+
                 if (sumOfAllReceivedAxioms.get() == sumOfAllSentAxioms.get()) {
                     if (!saturationConvergedVerificationStage) {
                         log.info(
                                 "Sum of received axioms equals sum of sent axioms. Entering verification stage: requesting all axiom message counts.");
+                        if (config.collectControlNodeStatistics()) {
+                            controlNodeStatistics.getSumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent().incrementAndGet();
+                        }
                         saturationConvergedVerificationStage = true;
                         requestAxiomCountsFromAllWorkers();
                     } else if (convergedWorkers.get() == workerModels.size()) {
@@ -147,9 +185,19 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
             e.printStackTrace();
         }
 
+        if (config.collectControlNodeStatistics()) {
+            controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
+            controlNodeStatistics.startStopwatch(StatisticsComponent.CONTROL_NODE_WAITING_FOR_CLOSURE_RESULTS);
+        }
+
         C closure = factory.getNewClosure();
         for (SaturationContext<C, A, T> context : contexts) {
             context.getClosure().getClosureResults().forEach(closure::add);
+        }
+
+        if (config.collectControlNodeStatistics()) {
+            controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_WAITING_FOR_CLOSURE_RESULTS);
+            controlNodeStatistics.collectStopwatchTimes();
         }
         return closure;
     }
@@ -175,5 +223,15 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
 
     public BlockingQueue<AxiomCount> getStatusMessages() {
         return statusMessages;
+    }
+
+    public List<WorkerStatistics> getWorkerStatistics() {
+        List<WorkerStatistics> statisticsList = new ArrayList<>();
+        contexts.stream().map(SaturationContext::getStatistics).filter(Objects::nonNull).forEach(statisticsList::add);
+        return statisticsList;
+    }
+
+    public ControlNodeStatistics getControlNodeStatistics() {
+        return controlNodeStatistics;
     }
 }

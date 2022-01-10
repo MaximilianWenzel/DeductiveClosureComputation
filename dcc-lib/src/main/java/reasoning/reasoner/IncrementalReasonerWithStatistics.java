@@ -22,7 +22,7 @@ public class IncrementalReasonerWithStatistics<C extends Closure<A>, A extends S
     @Override
     public void processAxiom(A axiom) {
         if (closure.add(axiom)) {
-            if (config.collectStatistics()) {
+            if (config.collectWorkerNodeStatistics()) {
                 stats.getNumberOfProcessedAxioms().getAndIncrement();
             }
             for (Rule<C, A> rule : rules) {

@@ -2,6 +2,7 @@ package reasoning.reasoner;
 
 import data.Closure;
 import reasoning.rules.Rule;
+import reasoning.saturation.distributed.metadata.WorkerStatistics;
 
 import java.io.Serializable;
 import java.util.Collection;

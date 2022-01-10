@@ -42,7 +42,7 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
 
     @Override
     public void visit(AxiomCount message) {
-        if (config.collectStatistics()) {
+        if (config.collectControlNodeStatistics()) {
             stats.getNumberOfReceivedAxiomCountMessages().getAndIncrement();
         }
 
@@ -71,7 +71,7 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
 
         if (sumOfAllReceivedAxioms.get() == sumOfAllSentAxioms.get()) {
             if (!saturationConvergedVerificationStage) {
-                if (config.collectStatistics()) {
+                if (config.collectControlNodeStatistics()) {
                     stats.getSumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent().getAndIncrement();
                 }
                 log.info("Sum of received axioms equals sum of sent axioms. Entering verification stage: requesting all axiom message counts.");
@@ -92,7 +92,7 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
     }
 
     private void onSaturationConverged() {
-        if (config.collectStatistics()) {
+        if (config.collectControlNodeStatistics()) {
             stats.stopStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
             stats.startStopwatch(StatisticsComponent.CONTROL_NODE_WAITING_FOR_CLOSURE_RESULTS);
         }

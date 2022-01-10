@@ -14,9 +14,11 @@ public class WorkerStatistics implements Serializable {
     transient Stopwatch initializingConnectionsToOtherWorkersSW = Stopwatch.createUnstarted();
     transient Stopwatch waitingTimeWhileSaturationSW = Stopwatch.createUnstarted();
     transient Stopwatch applyingRulesTimeWhileSaturationSW = Stopwatch.createUnstarted();
+    transient Stopwatch distributingAxiomsTime = Stopwatch.createUnstarted();
     private long initializingConnectionsToOtherWorkersMS = -1L;
     private long waitingTimeWhileSaturationMS = -1L;
     private long applyingRulesTimeWhileSaturationMS = -1L;
+    private long distributingAxiomsTimeMS = -1L;
     private AtomicLong todoIsEmptyEvent = new AtomicLong(0);
     private AtomicLong numberOfProcessedAxioms = new AtomicLong(0);
     private AtomicLong numberOfDerivedInferences = new AtomicLong(0);
@@ -38,6 +40,9 @@ public class WorkerStatistics implements Serializable {
             case WORKER_APPLYING_RULES_TIME_SATURATION:
                 applyingRulesTimeWhileSaturationSW.start();
                 break;
+            case WORKER_DISTRIBUTING_AXIOMS_TIME:
+                distributingAxiomsTime.start();
+                break;
             default:
                 throw new IllegalArgumentException();
         }
@@ -54,10 +59,14 @@ public class WorkerStatistics implements Serializable {
             case WORKER_APPLYING_RULES_TIME_SATURATION:
                 applyingRulesTimeWhileSaturationSW.stop();
                 break;
+            case WORKER_DISTRIBUTING_AXIOMS_TIME:
+                distributingAxiomsTime.stop();
+                break;
             default:
                 throw new IllegalArgumentException();
         }
     }
+
 
     public AtomicLong getTodoIsEmptyEvent() {
         return todoIsEmptyEvent;
@@ -85,6 +94,7 @@ public class WorkerStatistics implements Serializable {
         waitingTimeWhileSaturationMS = waitingTimeWhileSaturationSW.elapsed(TimeUnit.MILLISECONDS);
         applyingRulesTimeWhileSaturationMS = applyingRulesTimeWhileSaturationSW.elapsed(
                 TimeUnit.MILLISECONDS);
+        distributingAxiomsTimeMS = distributingAxiomsTime.elapsed(TimeUnit.MILLISECONDS);
     }
 
 
@@ -93,6 +103,7 @@ public class WorkerStatistics implements Serializable {
         statsHeader.add("WorkerInitializingConnectionsToOtherWorkersMS");
         statsHeader.add("WorkerWaitingTimeWhileSaturationMS");
         statsHeader.add("ApplyingRulesTimeWhileSaturationMS");
+        statsHeader.add("DistributingAxiomsTimeMS");
         statsHeader.add("ToDoIsEmptyEvent");
         statsHeader.add("NumberOfProcessedAxioms");
         statsHeader.add("NumberOfDerivedInferences");
@@ -106,6 +117,7 @@ public class WorkerStatistics implements Serializable {
         stats.add(initializingConnectionsToOtherWorkersMS);
         stats.add(waitingTimeWhileSaturationMS);
         stats.add(applyingRulesTimeWhileSaturationMS);
+        stats.add(distributingAxiomsTimeMS);
         stats.add(todoIsEmptyEvent.get());
         stats.add(numberOfProcessedAxioms.get());
         stats.add(numberOfDerivedInferences.get());

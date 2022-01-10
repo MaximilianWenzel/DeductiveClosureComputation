@@ -38,7 +38,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
             case CONTROL_NODE_INFO_ALL_WORKERS_INITIALIZED:
                 log.info("Establishing connections to other workers...");
 
-                if (config.collectStatistics()) {
+                if (config.collectWorkerNodeStatistics()) {
                     stats.startStopwatch(StatisticsComponent.WORKER_INITIALIZING_OTHER_WORKER_CONNECTIONS);
                 }
 
@@ -65,7 +65,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
 
     private void checkIfAllConnectionsEstablished() {
         if (communicationChannel.allConnectionsEstablished() && allWorkersInitialized) {
-            if (config.collectStatistics()) {
+            if (config.collectWorkerNodeStatistics()) {
                 stats.stopStopwatch(StatisticsComponent.WORKER_INITIALIZING_OTHER_WORKER_CONNECTIONS);
             }
             log.info("All connections to other workers successfully initialized.");
@@ -73,7 +73,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
             this.communicationChannel.addAxiomsToQueue(bufferedAxiomMessages);
             this.worker.switchState(new WorkerStateRunning<>(worker));
 
-            if (config.collectStatistics()) {
+            if (config.collectWorkerNodeStatistics()) {
                 stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
             }
 

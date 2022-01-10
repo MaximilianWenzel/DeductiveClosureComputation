@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public class SaturationDockerWorkerGenerator implements SaturationWorkerGenerator {
 
     private static final Logger log = ConsoleUtils.getLogger();
+    private static final String containerPrefix = "saturation-worker-";
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
     private List<String> containerNames;
@@ -34,7 +35,7 @@ public class SaturationDockerWorkerGenerator implements SaturationWorkerGenerato
         containerNames = new ArrayList<>(numberOfWorkers);
 
         for (int i = 0; i < numberOfWorkers; i++) {
-            String containerName = "saturation-worker-" + i;
+            String containerName = containerPrefix + i;
             int port = NetworkingUtils.getFreePort();
             portNumbers.add(port);
             containerNames.add(containerName);
@@ -126,7 +127,7 @@ public class SaturationDockerWorkerGenerator implements SaturationWorkerGenerato
         log.info("Stopping docker containers...");
         for (String containerName : this.containerNames) {
             executeCommand("docker stop " + containerName);
-            executeCommand("docker rm " + containerName);
+            executeCommand("docker container rm " + containerName);
         }
     }
 
