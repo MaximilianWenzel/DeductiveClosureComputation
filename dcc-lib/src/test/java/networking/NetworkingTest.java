@@ -1,27 +1,24 @@
 package networking;
 
-import data.DefaultToDo;
-import enums.NetworkingComponentType;
 import benchmark.jmh.ReceiverStub;
 import benchmark.jmh.SenderStub;
+import enums.NetworkingComponentType;
 import networking.connectors.PortListener;
 import networking.connectors.ServerConnector;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import org.junit.jupiter.api.Test;
 import util.NetworkingUtils;
+import util.QueueFactory;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class NetworkingTest {
 
@@ -111,9 +108,10 @@ public class NetworkingTest {
 
     @Test
     public void testSenderReceiverStubs() {
-        BlockingQueue<Object> arrayBlockingQueue = new DefaultToDo<>();
+        BlockingQueue<Object> arrayBlockingQueue = QueueFactory.createSaturationToDo();
         ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue, NetworkingComponentType.ASYNC_NIO);
-        SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()), NetworkingComponentType.ASYNC_NIO);
+        SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()),
+                NetworkingComponentType.ASYNC_NIO);
 
         int numResults = 100;
         for (int i = 0; i < numResults; i++) {
@@ -125,7 +123,7 @@ public class NetworkingTest {
     void testNIO2NetworkCommunication() {
         ServerData serverData = new ServerData("localhost", NetworkingUtils.getFreePort());
         List<Long> socketIDs = new ArrayList<>();
-        BlockingQueue<String> receivedMessages = new DefaultToDo<>();
+        BlockingQueue<String> receivedMessages = QueueFactory.createSaturationToDo();
         MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {

@@ -4,7 +4,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
-import data.DefaultToDo;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
 import networking.NetworkingComponent;
@@ -20,6 +19,7 @@ import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
+import util.QueueFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -37,7 +37,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final Logger log = ConsoleUtils.getLogger();
 
     private final ServerData serverData;
-    private final BlockingQueue<Object> toDo = new DefaultToDo<>();
+    private final BlockingQueue<Object> toDo = QueueFactory.createSaturationToDo();
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
 

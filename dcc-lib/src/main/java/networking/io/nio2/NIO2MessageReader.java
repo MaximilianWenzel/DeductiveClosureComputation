@@ -1,6 +1,5 @@
 package networking.io.nio2;
 
-import com.esotericsoftware.kryo.io.ByteBufferInput;
 import networking.io.MessageHandler;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;

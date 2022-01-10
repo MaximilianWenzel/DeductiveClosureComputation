@@ -1,10 +1,8 @@
 package benchmark.transitiveclosure;
 
 import org.roaringbitmap.RoaringBitmap;
-import reasoning.rules.DistributedSaturationInferenceProcessor;
 import reasoning.rules.Rule;
 import reasoning.saturation.SaturationInitializationFactory;
-import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 

@@ -1,14 +1,13 @@
 package benchmark.jmh;
 
-import data.DefaultToDo;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import util.QueueFactory;
 
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +44,7 @@ public class AddElementComparison {
     public void setUp() {
         unifiedSet = new UnifiedSet<>(SIZE);
         linkedBlockingQueue = new LinkedBlockingQueue<>();
-        arrayBlockingQueue = new DefaultToDo<>();
+        arrayBlockingQueue = QueueFactory.createSaturationToDo();
         array = new TestObject[SIZE];
         arrayPosition = new AtomicInteger(0);
     }

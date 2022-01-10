@@ -1,8 +1,7 @@
 package nio2kryo;
 
-import org.objenesis.strategy.StdInstantiatorStrategy;
-
 import com.esotericsoftware.kryo.Kryo;
+import org.objenesis.strategy.StdInstantiatorStrategy;
 
 public class KryoConfig {
 

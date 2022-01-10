@@ -3,6 +3,7 @@ eldlsyntax\ELConceptExistentialRestriction.class
 nio2kryo\Writer.class
 reasoning\saturation\distributed\metadata\WorkerStatistics.class
 data\Closure.class
+benchmark\workergeneration\SaturationDockerWorkerGenerator.class
 benchmark\jmh\NIO2MicroBenchmark$NIO2Server$1.class
 reasoning\saturation\distributed\SaturationControlNode.class
 reasoning\saturation\workload\WorkloadDistributor.class
@@ -15,7 +16,6 @@ nio2kryo\Nio2KryoServer.class
 benchmark\SaturationBenchmark.class
 benchmark\echoclosure\EchoAxiom.class
 benchmark\jmh\jmh_generated\AddElementComparison_jmhType_B1.class
-benchmark\DockerSaturationBenchmark$2.class
 reasoning\rules\SingleThreadedSaturationInferenceProcessor.class
 reasoning\saturation\distributed\states\workernode\WorkerStateFinished.class
 networking\NIO2NetworkingComponent$ServerSocketCompletionHandler.class
@@ -53,9 +53,12 @@ data\IndexedELOntology$4.class
 benchmark\echoclosure\EchoWorkloadDistributor.class
 benchmark\jmh\jmh_generated\NIONetworkingComponentBenchmark_sendObjectNIO_jmhTest.class
 benchmark\jmh\jmh_generated\AddElementComparison_addElementArrayBlockingQueue_jmhTest.class
+benchmark\workergeneration\SaturationJVMWorkerGenerator.class
+util\QueueFactory.class
 benchmark\transitiveclosure\DerivedReachability.class
 networking\io\nio2\NIO2MessageWriter$1.class
 util\LogFormatter.class
+benchmark\workergeneration\SaturationWorkerGenerator.class
 eldlreasoning\rules\SubsumedByTopRule$1.class
 benchmark\transitiveclosure\Reachability.class
 networking\messages\DebugMessage.class
@@ -76,7 +79,6 @@ reasoning\saturation\distributed\states\controlnode\CNSInitializing$2.class
 benchmark\transitiveclosure\DeriveReachabilityRule.class
 reasoning\saturation\distributed\communication\WorkerNodeCommunicationChannel$WorkerServerConnector.class
 networking\messages\MessageModelVisitor.class
-data\DefaultToDo.class
 eldlsyntax\ELABoxAxiom.class
 benchmark\graphgeneration\ChainGraphGenerator.class
 reasoning\saturation\distributed\states\workernode\WorkerStateInitializing.class
@@ -233,7 +235,6 @@ nio2kryo\Edge.class
 util\serialization\KryoSerializer.class
 reasoning\saturation\distributed\metadata\SaturationConfiguration.class
 eldlreasoning\rules\UnfoldSubsumptionRule.class
-benchmark\DockerSaturationBenchmark$1.class
 benchmark\transitiveclosure\ReachabilityClosure$2.class
 benchmark\jmh\jmh_generated\KryoNetBenchmark_sendString_jmhTest.class
 eldlsyntax\ELObject$Visitor.class
@@ -248,6 +249,7 @@ nio2kryo\Nio2KryoServer$ReadWriteContext$2.class
 benchmark\jmh\NIO2MicroBenchmark$NIO2Server$2.class
 data\DefaultClosure.class
 networking\NIONetworkingComponent.class
+benchmark\workergeneration\SaturationWorkerThreadGenerator.class
 networking\messages\InitializeWorkerMessage.class
 benchmark\jmh\jmh_generated\AddElementComparison_jmhType_B2.class
 enums\SaturationApproach.class
@@ -282,6 +284,5 @@ benchmark\jmh\SimpleServer.class
 eldlsyntax\ELIndividual$Visitor.class
 eldlsyntax\ELSignature.class
 networking\messages\AcknowledgementMessage.class
-benchmark\DockerSaturationBenchmark$3.class
 reasoning\saturation\distributed\metadata\ControlNodeStatistics$1.class
 data\IndexedELOntology.class

@@ -10,7 +10,6 @@ import util.ConsoleUtils;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -19,7 +18,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class NIO2NetworkingComponent implements NetworkingComponent {

@@ -4,10 +4,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
-import data.DefaultToDo;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
-import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -20,6 +18,7 @@ import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
+import util.QueueFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -46,7 +45,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected BiMap<Long, Long> socketIDToWorkerID;
     protected BiMap<Long, Long> workerIDToSocketID;
     protected long controlNodeID = 0L;
-    protected BlockingQueue<Object> receivedMessages = new DefaultToDo<>();
+    protected BlockingQueue<Object> receivedMessages = QueueFactory.createSaturationToDo();
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected List<? extends A> initialAxioms;
 

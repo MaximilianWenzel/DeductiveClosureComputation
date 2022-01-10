@@ -5,8 +5,6 @@ import benchmark.transitiveclosure.DerivedReachability;
 import benchmark.transitiveclosure.Reachability;
 import benchmark.transitiveclosure.ReachabilityClosure;
 import benchmark.transitiveclosure.ToldReachability;
-import com.esotericsoftware.kryo.Kryo;
-import com.sun.javafx.UnmodifiableArrayList;
 import data.Closure;
 import networking.messages.AxiomCount;
 import networking.messages.MessageEnvelope;

@@ -1,7 +1,6 @@
 package benchmark.jmh;
 
 import benchmark.transitiveclosure.ToldReachability;
-import data.DefaultToDo;
 import enums.NetworkingComponentType;
 import networking.ServerData;
 import org.openjdk.jmh.annotations.*;
@@ -9,9 +8,9 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import util.QueueFactory;
 
 import java.util.Random;
-import java.util.Scanner;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +55,7 @@ public class NIONetworkingComponentBenchmark {
 
     @Setup(Level.Trial)
     public void setUp() {
-        queue = new DefaultToDo<>();
+        queue = QueueFactory.createSaturationToDo();
         nioReceiverStub = new ReceiverStub(queue, NetworkingComponentType.NIO);
         nioSenderStub = new SenderStub(new ServerData("localhost", nioReceiverStub.getServerPort()),
                 NetworkingComponentType.NIO);

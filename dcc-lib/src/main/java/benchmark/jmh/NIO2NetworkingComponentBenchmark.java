@@ -1,10 +1,7 @@
 package benchmark.jmh;
 
-import benchmark.transitiveclosure.ToldReachability;
 import com.google.common.base.Stopwatch;
-import data.DefaultToDo;
 import enums.NetworkingComponentType;
-import javafx.scene.paint.Stop;
 import networking.ServerData;
 import nio2kryo.Edge;
 import org.openjdk.jmh.annotations.*;

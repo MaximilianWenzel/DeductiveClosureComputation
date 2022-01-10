@@ -1,7 +1,6 @@
 package networking.io.nio;
 
-import com.esotericsoftware.kryo.io.ByteBufferOutput;
-import data.DefaultToDo;
+import util.QueueFactory;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -16,7 +15,7 @@ public class NIOMessageWriter {
     private final int BUFFER_SIZE = 2 << 20;
     private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.9);
     // TODO user defined buffer size
-    private BlockingQueue<Serializable> messagesToSend = new DefaultToDo<>();
+    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createSaturationToDo();
     private int numBytesForLength = 4;
 
     private Serializer serializer = new KryoSerializer();

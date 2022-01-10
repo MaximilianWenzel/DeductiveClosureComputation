@@ -1,7 +1,6 @@
 package networking.io.nio2;
 
-import data.DefaultToDo;
-import networking.messages.AcknowledgementMessage;
+import util.QueueFactory;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -23,7 +22,7 @@ public class NIO2MessageWriter {
     private int MESSAGE_SIZE_BYTES = 4;
     private Serializer serializer = new KryoSerializer();
     private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-    private BlockingQueue<Serializable> messagesToSend = new DefaultToDo<>();
+    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createSaturationToDo();
 
     public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {
         this.socketChannel = socketChannel;

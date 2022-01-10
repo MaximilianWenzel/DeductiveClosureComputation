@@ -7,7 +7,6 @@ import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import data.Closure;
-import data.DefaultToDo;
 import networking.messages.MessageEnvelope;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
@@ -15,6 +14,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import util.NetworkingUtils;
+import util.QueueFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -36,7 +36,7 @@ public class KryoNetBenchmark {
     Server server;
     Client client;
     int serverPort;
-    private BlockingQueue<Object> queue = new DefaultToDo<>();
+    private BlockingQueue<Object> queue = QueueFactory.createSaturationToDo();
     private ArrayList objects = new ArrayList(Arrays.asList(new Object[1]));
 
     public static void main(String[] args) throws RunnerException {

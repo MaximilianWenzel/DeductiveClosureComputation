@@ -9,9 +9,7 @@ import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public abstract class SaturationInitializationFactory<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 

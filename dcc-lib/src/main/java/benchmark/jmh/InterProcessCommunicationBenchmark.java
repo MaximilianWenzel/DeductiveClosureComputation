@@ -1,14 +1,13 @@
 package benchmark.jmh;
 
 
-import data.DefaultToDo;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import util.QueueFactory;
 
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +35,7 @@ public class InterProcessCommunicationBenchmark {
 
     @Setup(Level.Iteration)
     public void setUp() {
-        receivedMessages = new DefaultToDo<>();
+        receivedMessages = QueueFactory.createSaturationToDo();
         this.sender = new MessageSender(receivedMessages);
     }
 
@@ -55,7 +54,7 @@ public class InterProcessCommunicationBenchmark {
 
     private class MessageSender implements Runnable {
 
-        private BlockingQueue<Object> toSend = new DefaultToDo<>();
+        private BlockingQueue<Object> toSend = QueueFactory.createSaturationToDo();
         private boolean running = true;
         private Thread t;
         private BlockingQueue<Object> receivedMessages;

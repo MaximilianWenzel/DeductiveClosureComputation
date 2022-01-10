@@ -1,6 +1,7 @@
 package util.serialization;
 
-import com.esotericsoftware.kryo.io.*;
+import com.esotericsoftware.kryo.io.ByteBufferInput;
+import com.esotericsoftware.kryo.io.ByteBufferOutput;
 
 import java.io.*;
 import java.nio.ByteBuffer;

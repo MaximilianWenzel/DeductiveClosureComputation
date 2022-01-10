@@ -4,7 +4,6 @@ import data.Closure;
 import reasoning.rules.Rule;
 
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 

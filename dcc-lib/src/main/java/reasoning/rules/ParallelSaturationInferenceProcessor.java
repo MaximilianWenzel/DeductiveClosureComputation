@@ -3,7 +3,6 @@ package reasoning.rules;
 import data.Closure;
 import data.ToDoQueue;
 import enums.StatisticsComponent;
-import javafx.concurrent.Worker;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.parallel.SaturationContext;
 import reasoning.saturation.workload.WorkloadDistributor;

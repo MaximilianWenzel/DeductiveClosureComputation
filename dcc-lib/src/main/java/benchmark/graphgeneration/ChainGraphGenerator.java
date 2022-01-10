@@ -1,7 +1,5 @@
 package benchmark.graphgeneration;
 
-import benchmark.transitiveclosure.ToldReachability;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;

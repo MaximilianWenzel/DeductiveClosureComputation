@@ -8,7 +8,6 @@ import reasoning.saturation.distributed.SaturationControlNode;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
-import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.distributed.states.AxiomVisitor;
 import util.ConsoleUtils;
 

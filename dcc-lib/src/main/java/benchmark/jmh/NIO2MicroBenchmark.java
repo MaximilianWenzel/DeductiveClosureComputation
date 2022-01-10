@@ -1,10 +1,10 @@
 package benchmark.jmh;
 
 import com.google.common.base.Stopwatch;
-import data.DefaultToDo;
 import nio2kryo.Edge;
 import util.ConsoleUtils;
 import util.NetworkingUtils;
+import util.QueueFactory;
 import util.serialization.KryoSerializer;
 
 import java.io.IOException;
@@ -183,8 +183,8 @@ public class NIO2MicroBenchmark {
         AsynchronousChannelGroup threadPool;
         AsynchronousSocketChannel server;
 
-        BlockingQueue<Serializable> queue = new DefaultToDo<>();
-        BlockingQueue<Serializable> queue2 = new DefaultToDo<>();
+        BlockingQueue<Serializable> queue = QueueFactory.createSaturationToDo();
+        BlockingQueue<Serializable> queue2 = QueueFactory.createSaturationToDo();
 
         KryoSerializer kryoSerializer = new KryoSerializer();
         int BYTE_BUFFER_CAPACITY = BUFFER_SIZE;
