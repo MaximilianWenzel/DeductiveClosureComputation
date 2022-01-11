@@ -29,17 +29,15 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T extends Serializable> {
     private Logger log = ConsoleUtils.getLogger();
 
-    private int numberOfExperimentRepetitions = 1;
+    private int numberOfExperimentRepetitions = 2;
+    private int numberOfWarmUpRounds = 2;
     private Set<SaturationApproach> includedApproaches;
     private Stopwatch stopwatch;
     private File outputDirectory;
@@ -121,6 +119,12 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             // distributed - each worker in separate docker container
             if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER)) {
                 runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
+                initializationFactory.resetFactory();
+            }
+
+            // distributed - worker have been already started in separate docker container, only control node is started
+            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK)) {
+                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK);
                 initializationFactory.resetFactory();
             }
         }
@@ -208,6 +212,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     private DescriptiveStatistics distributedClosureComputation(SaturationApproach distributedApproach) throws
             InterruptedException {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
+        List<ServerData> serverDataList = null;
+
         // initialize workers
         switch (distributedApproach) {
             case DISTRIBUTED_MULTITHREADED:
@@ -219,22 +225,29 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             case DISTRIBUTED_SEPARATE_JVM:
                 workerGenerator = new SaturationJVMWorkerGenerator(workers.size());
                 break;
+            case DISTRIBUTED_DOCKER_BENCHMARK:
+                workerGenerator = null;
+                serverDataList = new ArrayList<>();
+                for (int i = 0; i < workers.size(); i++) {
+                    String serverName = "dcc-lib_worker_" + (i + 2);
+                    serverDataList.add(new ServerData(serverName, 30_000));
+                }
+                break;
             default:
                 throw new IllegalArgumentException();
         }
 
-        List<ServerData> serverDataList = null;
-
-
-        for (int i = 1; i <= this.numberOfExperimentRepetitions; i++) {
-            log.info("Round " + i);
+        for (int roundNumber = 1; roundNumber <= this.numberOfWarmUpRounds + this.numberOfExperimentRepetitions; roundNumber++) {
+            if (roundNumber <= numberOfWarmUpRounds) {
+                log.info("Warm-up Round " + roundNumber);
+            } else {
+                log.info("Round " + (roundNumber - numberOfWarmUpRounds));
+            }
 
             if (serverDataList == null) {
                 workerGenerator.generateAndRunWorkers();
                 serverDataList = workerGenerator.getWorkerServerDataList();
             }
-            Thread.sleep(2000);
-
 
             // initialize control node
             DistributedSaturation<C, A, T> saturation = new DistributedSaturation<>(
@@ -253,9 +266,11 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
 
             // runtime
-            long runtimeInMS = controlNodeStatistics.getWorkerInitializationTimeMS()
-                    + controlNodeStatistics.getTotalSaturationTimeMS();
-            runtimeInMSPerRound.add((double) runtimeInMS);
+            if (roundNumber > numberOfWarmUpRounds) {
+                long runtimeInMS = controlNodeStatistics.getWorkerInitializationTimeMS()
+                        + controlNodeStatistics.getTotalSaturationTimeMS();
+                runtimeInMSPerRound.add((double) runtimeInMS);
+            }
 
             // distributed saturation stats
             createStatisticsCSVFiles(distributedApproach.toString().toLowerCase(), controlNodeStatistics,
@@ -263,17 +278,24 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         }
 
         // stop workers
-        workerGenerator.stopWorkers();
-        Thread.sleep(2000);
+        if (!distributedApproach.equals(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK)) {
+            workerGenerator.stopWorkers();
+        }
 
         return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
     }
 
+
     private DescriptiveStatistics singleThreadedClosureComputation() {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
 
-        for (int i = 1; i <= this.numberOfExperimentRepetitions; i++) {
-            log.info("Round " + i);
+        for (int roundNumber = 1; roundNumber <= this.numberOfWarmUpRounds + this.numberOfExperimentRepetitions; roundNumber++) {
+            if (roundNumber <= numberOfWarmUpRounds) {
+                log.info("Warm-up Round " + roundNumber);
+            } else {
+                log.info("Round " + (roundNumber - numberOfWarmUpRounds));
+            }
+
 
             SingleThreadedSaturation<C, A> saturation = new SingleThreadedSaturation<>(
                     initialAxioms.iterator(),
@@ -286,8 +308,10 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             C closure = saturation.saturate();
             assert closure.getClosureResults().size() > 0;
 
-            Duration runtime = this.stopwatch.elapsed();
-            runtimeInMSPerRound.add((double) runtime.toMillis());
+            if (roundNumber > numberOfWarmUpRounds) {
+                Duration runtime = this.stopwatch.elapsed();
+                runtimeInMSPerRound.add((double) runtime.toMillis());
+            }
 
             assert closure.getClosureResults().size() > 0;
 
@@ -298,8 +322,12 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     private DescriptiveStatistics parallelClosureComputation() {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
 
-        for (int i = 1; i <= this.numberOfExperimentRepetitions; i++) {
-            log.info("Round " + i);
+        for (int roundNumber = 1; roundNumber <= this.numberOfWarmUpRounds + this.numberOfExperimentRepetitions; roundNumber++) {
+            if (roundNumber <= numberOfWarmUpRounds) {
+                log.info("Warm-up Round " + roundNumber);
+            } else {
+                log.info("Round " + (roundNumber - numberOfWarmUpRounds));
+            }
 
             ParallelSaturation<C, A, T> saturation = new ParallelSaturation<>(
                     new SaturationConfiguration(true, workerNodeStatistics),
@@ -312,11 +340,13 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             ControlNodeStatistics controlNodeStatistics = saturation.getControlNodeStatistics();
             List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
 
-            runtimeInMSPerRound.add((double) (controlNodeStatistics.getWorkerInitializationTimeMS()
-                    + controlNodeStatistics.getTotalSaturationTimeMS()));
+            if (roundNumber > numberOfWarmUpRounds) {
+                runtimeInMSPerRound.add((double) (controlNodeStatistics.getWorkerInitializationTimeMS()
+                        + controlNodeStatistics.getTotalSaturationTimeMS()));
 
-            createStatisticsCSVFiles("parallel", controlNodeStatistics,
-                    workerStatistics);
+                createStatisticsCSVFiles("parallel", controlNodeStatistics,
+                        workerStatistics);
+            }
         }
         return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
     }
@@ -354,7 +384,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 .setHeader(this.csvHeader.toArray(new String[csvHeader.size()]))
                 .setDelimiter(";")
                 .build();
-        FileWriter out = new FileWriter(benchmarkType + "_" + "benchmark.csv");
+        FileWriter out = new FileWriter(Paths.get(outputDirectory.toString(), benchmarkType + "_" + "benchmark.csv").toFile());
         try (CSVPrinter printer = new CSVPrinter(out, csvFormat)) {
             for (List<String> values : this.csvRows) {
                 printer.printRecord(values);

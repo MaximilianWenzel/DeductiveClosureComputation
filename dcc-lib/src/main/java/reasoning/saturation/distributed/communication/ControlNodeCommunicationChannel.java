@@ -9,7 +9,8 @@ import networking.NIO2NetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
-import networking.connectors.ServerConnector;
+import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.*;
@@ -35,7 +36,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         implements SaturationCommunicationChannel {
 
     // TODO: adjust if workers are not running on localhost
-    private static final boolean WORKERS_ON_LOCALHOST = true;
+    private static final boolean WORKERS_ON_LOCALHOST = false;
 
     private final Logger log = ConsoleUtils.getLogger();
 
@@ -91,25 +92,25 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         );
 
     }
-
+    
     public void initializeConnectionToWorkerServers() {
 
         if (WORKERS_ON_LOCALHOST) {
             List<ServerData> serverDataList = workers.stream()
-                    .map(w -> w.getServerData())
+                    .map(DistributedWorkerModel::getServerData)
                     .map(s -> new ServerData("localhost", s.getPortNumber()))
                     .collect(Collectors.toList());
 
             for (int i = 0; i < workers.size(); i++) {
-                WorkerServerConnector workerServerConnector = new WorkerServerConnector(serverDataList.get(i), workers.get(i));
+                WorkerConnectionEstablishmentListener workerConnectionEstablishmentListener = new WorkerConnectionEstablishmentListener(serverDataList.get(i), workers.get(i));
                 try {
-                    networkingComponent.connectToServer(workerServerConnector);
+                    networkingComponent.connectToServer(workerConnectionEstablishmentListener);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         } else {
-            workers.stream().map(p -> new WorkerServerConnector(p.getServerData(), p))
+            workers.stream().map(p -> new WorkerConnectionEstablishmentListener(p.getServerData(), p))
                     .forEach(s -> {
                         try {
                             networkingComponent.connectToServer(s);
@@ -131,8 +132,13 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     }
 
     @Override
-    public void terminate() {
+    public void terminateNow() {
         networkingComponent.terminate();
+    }
+
+    @Override
+    public void terminateAfterAllMessagesHaveBeenSent() {
+        networkingComponent.terminateAfterAllMessagesHaveBeenSent();
     }
 
     public void broadcast(SaturationStatusMessage statusMessage, Runnable onAcknowledgement) {
@@ -199,11 +205,11 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         return sumOfAllSentAxioms;
     }
 
-    private class WorkerServerConnector extends ServerConnector {
+    private class WorkerConnectionEstablishmentListener extends ConnectionEstablishmentListener {
 
         private final DistributedWorkerModel<C, A, T> workerModel;
 
-        public WorkerServerConnector(ServerData serverData, DistributedWorkerModel<C, A, T> workerModel) {
+        public WorkerConnectionEstablishmentListener(ServerData serverData, DistributedWorkerModel<C, A, T> workerModel) {
             super(serverData, new MessageHandler() {
                 @Override
                 public void process(long socketID, Object message) {

@@ -5,7 +5,7 @@ import networking.NIO2NetworkingComponent;
 import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.ServerConnector;
+import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 
@@ -42,7 +42,7 @@ public class SenderStub {
         }
 
         AtomicInteger connectionEstablished = new AtomicInteger(0);
-        ServerConnector serverConnector = new ServerConnector(serverData, messageHandler) {
+        ConnectionEstablishmentListener serverConnector = new ConnectionEstablishmentListener(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 destinationSocket = socketManager;

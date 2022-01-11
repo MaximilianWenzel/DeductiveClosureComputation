@@ -1,7 +1,7 @@
 package networking;
 
-import networking.connectors.PortListener;
-import networking.connectors.ServerConnector;
+import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.io.nio2.NIO2SocketManager;
@@ -18,20 +18,21 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class NIO2NetworkingComponent implements NetworkingComponent {
 
     private Logger log = ConsoleUtils.getLogger();
 
-    protected List<PortListener> portNumbersToListen;
-    protected List<ServerConnector> serversToConnectTo;
+    protected List<ConnectionEstablishmentListener> portNumbersToListen;
+    protected List<ConnectionEstablishmentListener> serversToConnectTo;
 
     protected ConcurrentMap<Long, NIO2SocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
     protected AsynchronousChannelGroup threadPool;
 
-    public NIO2NetworkingComponent(List<PortListener> portNumbersToListen,
-                                   List<ServerConnector> serversToConnectTo) {
+    public NIO2NetworkingComponent(List<ConnectionEstablishmentListener> portNumbersToListen,
+                                   List<ConnectionEstablishmentListener> serversToConnectTo) {
         this.portNumbersToListen = portNumbersToListen;
         this.serversToConnectTo = serversToConnectTo;
         try {
@@ -44,17 +45,17 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     private void init() throws IOException {
         threadPool = AsynchronousChannelGroup.withFixedThreadPool(1, Thread::new);
 
-        for (PortListener portListener : portNumbersToListen) {
+        for (ConnectionEstablishmentListener portListener : portNumbersToListen) {
             listenToPort(portListener);
         }
 
-        for (ServerConnector serverConnector : serversToConnectTo) {
+        for (ConnectionEstablishmentListener serverConnector : serversToConnectTo) {
             connectToServer(serverConnector);
         }
     }
 
     @Override
-    public void listenToPort(PortListener portListener) throws IOException {
+    public void listenToPort(ConnectionEstablishmentListener portListener) throws IOException {
         AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open(threadPool);
 
         ServerData serverData = portListener.getServerData();
@@ -64,7 +65,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         server.accept(portListener.getMessageProcessor(), new ServerSocketCompletionHandler(portListener, server));
     }
 
-    public void connectToServer(ServerConnector serverConnector) throws IOException {
+    public void connectToServer(ConnectionEstablishmentListener serverConnector) throws IOException {
         AsynchronousSocketChannel client = AsynchronousSocketChannel.open(threadPool);
         ServerData serverData = serverConnector.getServerData();
         InetSocketAddress hostAddress = new InetSocketAddress(serverData.getHostname(), serverData.getPortNumber());
@@ -147,12 +148,23 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         socketIDToSocketManager.clear();
     }
 
+    @Override
+    public void terminateAfterAllMessagesHaveBeenSent() {
+        try {
+            threadPool.shutdown();
+            threadPool.awaitTermination(5000, TimeUnit.MILLISECONDS);
+            threadPool.shutdownNow();
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private class ServerSocketCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {
 
-        private PortListener portListener;
+        private ConnectionEstablishmentListener portListener;
         private AsynchronousServerSocketChannel serverSocket;
 
-        public ServerSocketCompletionHandler(PortListener portListener,
+        public ServerSocketCompletionHandler(ConnectionEstablishmentListener portListener,
                                              AsynchronousServerSocketChannel serverSocket) {
             this.portListener = portListener;
             this.serverSocket = serverSocket;

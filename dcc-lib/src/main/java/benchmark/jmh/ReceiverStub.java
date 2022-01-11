@@ -5,7 +5,7 @@ import networking.NIO2NetworkingComponent;
 import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.PortListener;
+import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import util.NetworkingUtils;
@@ -43,7 +43,7 @@ public class ReceiverStub {
         if (serverPort == -1) {
             serverPort = NetworkingUtils.getFreePort();
         }
-        PortListener portListener = new PortListener(new ServerData(hostname, serverPort), messageHandler) {
+        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(new ServerData(hostname, serverPort), messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected.");

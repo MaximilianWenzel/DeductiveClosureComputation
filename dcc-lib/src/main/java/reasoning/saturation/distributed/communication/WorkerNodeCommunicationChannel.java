@@ -9,8 +9,8 @@ import networking.NIO2NetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
-import networking.connectors.PortListener;
-import networking.connectors.ServerConnector;
+import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.*;
@@ -71,7 +71,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
         networkingComponent = new NIO2NetworkingComponent(
-                Collections.singletonList(new WorkerServerPortListener(serverData)),
+                Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
                 Collections.emptyList()
         );
     }
@@ -82,9 +82,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         for (DistributedWorkerModel workerModel : this.workers) {
             if (workerModel.getID() > this.workerID) {
                 try {
-                    WorkerServerConnector workerServerConnector = new WorkerServerConnector(
+                    WorkerConnectionEstablishmentListener workerConnectionEstablishmentListener = new WorkerConnectionEstablishmentListener(
                             workerModel.getServerData(), workerModel.getID());
-                    networkingComponent.connectToServer(workerServerConnector);
+                    networkingComponent.connectToServer(workerConnectionEstablishmentListener);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -169,8 +169,13 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     @Override
-    public void terminate() {
+    public void terminateNow() {
         this.networkingComponent.terminate();
+    }
+
+    @Override
+    public void terminateAfterAllMessagesHaveBeenSent() {
+        networkingComponent.terminateAfterAllMessagesHaveBeenSent();
     }
 
 
@@ -307,11 +312,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         }
     }
 
-    private class WorkerServerConnector extends ServerConnector {
+    private class WorkerConnectionEstablishmentListener extends ConnectionEstablishmentListener {
 
         long workerID;
 
-        public WorkerServerConnector(ServerData serverData, long workerID) {
+        public WorkerConnectionEstablishmentListener(ServerData serverData, long workerID) {
             super(serverData, new MessageHandlerImpl());
             this.workerID = workerID;
         }
@@ -333,9 +338,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         }
     }
 
-    private class WorkerServerPortListener extends PortListener {
+    private class WorkerServerConnectionEstablishmentListener extends ConnectionEstablishmentListener {
 
-        public WorkerServerPortListener(ServerData serverData) {
+        public WorkerServerConnectionEstablishmentListener(ServerData serverData) {
             super(serverData, new MessageHandlerImpl());
         }
 

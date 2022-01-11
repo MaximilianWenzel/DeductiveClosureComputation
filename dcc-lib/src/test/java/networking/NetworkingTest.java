@@ -3,8 +3,7 @@ package networking;
 import benchmark.jmh.ReceiverStub;
 import benchmark.jmh.SenderStub;
 import enums.NetworkingComponentType;
-import networking.connectors.PortListener;
-import networking.connectors.ServerConnector;
+import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import org.junit.jupiter.api.Test;
@@ -40,14 +39,14 @@ public class NetworkingTest {
             }
         };
 
-        PortListener portListener = new PortListener(serverData, messageHandler) {
+        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
 
-        ServerConnector serverConnector1 = new ServerConnector(serverData,
+        ConnectionEstablishmentListener serverConnector1 = new ConnectionEstablishmentListener(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -55,14 +54,14 @@ public class NetworkingTest {
             }
         };
 
-        ServerConnector serverConnector2 = new ServerConnector(serverData,
+        ConnectionEstablishmentListener serverConnector2 = new ConnectionEstablishmentListener(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
-        List<ServerConnector> serverConnectors = new ArrayList<>();
+        List<ConnectionEstablishmentListener> serverConnectors = new ArrayList<>();
         serverConnectors.add(serverConnector1);
         serverConnectors.add(serverConnector2);
 
@@ -85,7 +84,7 @@ public class NetworkingTest {
             }
         }
 
-        ServerConnector serverConnector3 = new ServerConnector(serverData,
+        ConnectionEstablishmentListener serverConnector3 = new ConnectionEstablishmentListener(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -136,14 +135,14 @@ public class NetworkingTest {
             }
         };
 
-        PortListener portListener = new PortListener(serverData, messageHandler) {
+        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected to server socket.");
             }
         };
 
-        ServerConnector serverConnector1 = new ServerConnector(serverData,
+        ConnectionEstablishmentListener serverConnector1 = new ConnectionEstablishmentListener(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -152,14 +151,14 @@ public class NetworkingTest {
             }
         };
 
-        ServerConnector serverConnector2 = new ServerConnector(serverData,
+        ConnectionEstablishmentListener serverConnector2 = new ConnectionEstablishmentListener(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
-        List<ServerConnector> serverConnectors = new ArrayList<>();
+        List<ConnectionEstablishmentListener> serverConnectors = new ArrayList<>();
         serverConnectors.add(serverConnector1);
         serverConnectors.add(serverConnector2);
 
@@ -184,7 +183,7 @@ public class NetworkingTest {
             }
         }
 
-        ServerConnector serverConnector3 = new ServerConnector(serverData,
+        ConnectionEstablishmentListener serverConnector3 = new ConnectionEstablishmentListener(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {

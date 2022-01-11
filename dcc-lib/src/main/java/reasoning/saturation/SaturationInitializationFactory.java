@@ -18,7 +18,7 @@ public abstract class SaturationInitializationFactory<C extends Closure<A>, A ex
     public List<DistributedWorkerModel<C, A, T>> getDistributedWorkerModels(List<ServerData> serverData) {
         List<WorkerModel<C, A, T>> workerModels = getWorkerModels();
         if (workerModels.size() != serverData.size()) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("# workers: " + workerModels.size() + ", # server data: " + serverData.size());
         }
         List<DistributedWorkerModel<C, A, T>> distributedWorkerModels = new ArrayList<>();
 

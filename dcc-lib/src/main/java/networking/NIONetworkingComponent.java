@@ -1,7 +1,7 @@
 package networking;
 
-import networking.connectors.PortListener;
-import networking.connectors.ServerConnector;
+import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.SocketManager;
 import networking.io.nio.NIOSocketManager;
 import util.ConsoleUtils;
@@ -23,8 +23,8 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     protected Selector selector;
 
-    protected List<PortListener> portNumbersToListen;
-    protected BlockingQueue<ServerConnector> serversToConnectTo = new LinkedBlockingQueue<>();
+    protected List<ConnectionEstablishmentListener> portNumbersToListen;
+    protected BlockingQueue<ConnectionEstablishmentListener> serversToConnectTo = new LinkedBlockingQueue<>();
 
     protected List<ServerSocketChannel> serverSocketChannels = new ArrayList<>();
 
@@ -32,8 +32,8 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     protected boolean running = true;
 
-    public NIONetworkingComponent(List<PortListener> portNumbersToListen,
-                                  List<ServerConnector> serversToConnectTo) {
+    public NIONetworkingComponent(List<ConnectionEstablishmentListener> portNumbersToListen,
+                                  List<ConnectionEstablishmentListener> serversToConnectTo) {
         this.portNumbersToListen = portNumbersToListen;
         this.serversToConnectTo.addAll(serversToConnectTo);
         init();
@@ -51,7 +51,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     }
 
     @Override
-    public void listenToPort(PortListener portListener) throws IOException {
+    public void listenToPort(ConnectionEstablishmentListener portListener) throws IOException {
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(false);
         SelectionKey key = serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
@@ -73,7 +73,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     @Override
     public void run() {
         try {
-            for (PortListener portListener : portNumbersToListen) {
+            for (ConnectionEstablishmentListener portListener : portNumbersToListen) {
                 listenToPort(portListener);
             }
 
@@ -153,13 +153,13 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         socketChannel.finishConnect();
 
-        ServerConnector serverConnector = (ServerConnector) key.attachment();
+        ConnectionEstablishmentListener serverConnector = (ConnectionEstablishmentListener) key.attachment();
         NIOSocketManager socketManager = new NIOSocketManager(socketChannel, serverConnector.getMessageProcessor());
         initNewConnectedSocket(socketManager);
         serverConnector.onConnectionEstablished(socketManager);
     }
 
-    private void connectToServer(ServerConnector serverConnector, SocketChannel socketChannel) throws IOException {
+    private void connectToServer(ConnectionEstablishmentListener serverConnector, SocketChannel socketChannel) throws IOException {
         socketChannel.configureBlocking(false);
 
         ServerData serverData = serverConnector.getServerData();
@@ -173,7 +173,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
 
     @Override
-    public void connectToServer(ServerConnector serverConnector) throws IOException {
+    public void connectToServer(ConnectionEstablishmentListener serverConnector) throws IOException {
         try {
             serversToConnectTo.put(serverConnector);
         } catch (InterruptedException e) {
@@ -238,7 +238,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
         SocketChannel socketChannel = serverSocketChannel.accept();
         while (socketChannel != null) {
-            PortListener portListener = (PortListener) key.attachment();
+            ConnectionEstablishmentListener portListener = (ConnectionEstablishmentListener) key.attachment();
 
             NIOSocketManager socketManager = new NIOSocketManager(socketChannel, portListener.getMessageProcessor());
             initNewConnectedSocket(socketManager);
@@ -291,5 +291,16 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
             }
         }
         socketIDToSocketManager.clear();
+    }
+
+    @Override
+    public void terminateAfterAllMessagesHaveBeenSent() {
+        this.running = false;
+        try {
+            selector.close();
+            this.nioThread.join();
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
+        }
     }
 }

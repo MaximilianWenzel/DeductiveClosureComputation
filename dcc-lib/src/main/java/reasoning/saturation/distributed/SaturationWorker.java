@@ -110,7 +110,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
 
     private void clearWorkerForNewSaturation() {
         log.info("Restarting worker...");
-        communicationChannel.terminate();
+        communicationChannel.terminateNow();
         communicationChannel = new WorkerNodeCommunicationChannel<>(serverData);
         this.state = new WorkerStateInitializing<>(this);
         this.rules = null;
@@ -174,7 +174,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     public void terminate() {
-        communicationChannel.terminate();
+        communicationChannel.terminateNow();
     }
 
     public SaturationConfiguration getConfig() {

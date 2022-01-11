@@ -21,8 +21,39 @@ import java.util.Set;
 
 public class IndividualExperiments {
 
-    private static final boolean collectWorkerNodeStatistics = true;
-    private static final int EXPERIMENT_ROUNDS = 2;
+    private static final boolean collectWorkerNodeStatistics = false;
+
+    private static final int EXPERIMENT_ROUNDS = 3;
+
+    private static List<Integer> binaryTreeDepthList;
+    private static List<Integer> initialEchoAxioms;
+    private static List<Integer> chainDepthList;
+    private static List<Integer> numberOfWorkersList;
+
+    static {
+        binaryTreeDepthList = new ArrayList<>();
+        binaryTreeDepthList.add(18);
+
+        initialEchoAxioms = new ArrayList<>();
+        //initialEchoAxioms.add(10_000);
+        initialEchoAxioms.add(20_000);
+        //initialEchoAxioms.add(50_000);
+        //initialEchoAxioms.add(100_000);
+        //initialEchoAxioms.add(200_000);
+        //initialEchoAxioms.add(500_000);
+        //initialEchoAxioms.add(1_000_000);
+        //initialEchoAxioms.add(10_000_000);
+
+        chainDepthList = new ArrayList<>();
+        for (int i = 100; i <= 1000; i += 100) {
+            chainDepthList.add(i);
+        }
+
+        numberOfWorkersList = new ArrayList<>();
+        numberOfWorkersList.add(1);
+        numberOfWorkersList.add(2);
+        numberOfWorkersList.add(4);
+    }
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -43,37 +74,9 @@ public class IndividualExperiments {
     public static void benchmark(File outputDirectory) {
         List<Integer> binaryTreeDepthList = new ArrayList<>();
 
-        /*
-        for (int i = 10; i < 17; i++) {
-            binaryTreeDepthList.add(i);
-        }
-
-         */
-        binaryTreeDepthList.add(18);
-
-        List<Integer> chainDepthList = new ArrayList<>();
-        for (int i = 100; i <= 1000; i += 100) {
-            chainDepthList.add(i);
-        }
-
-        List<Integer> initialEchoAxioms = new ArrayList<>();
-        //initialEchoAxioms.add(10_000);
-        //initialEchoAxioms.add(20_000);
-        //initialEchoAxioms.add(50_000);
-        //initialEchoAxioms.add(100_000);
-        //initialEchoAxioms.add(200_000);
-        //initialEchoAxioms.add(500_000);
-        initialEchoAxioms.add(1_000_000);
-        //initialEchoAxioms.add(10_000_000);
-
-        List<Integer> numberOfWorkersList = new ArrayList<>();
-        numberOfWorkersList.add(1);
-        numberOfWorkersList.add(2);
-        //numberOfWorkersList.add(4);
-
         Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
-        includedApproaches.add(SaturationApproach.SINGLE_THREADED);
-        includedApproaches.add(SaturationApproach.PARALLEL);
+        //includedApproaches.add(SaturationApproach.SINGLE_THREADED);
+        //includedApproaches.add(SaturationApproach.PARALLEL);
         includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
         includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);

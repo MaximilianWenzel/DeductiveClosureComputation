@@ -1,24 +1,27 @@
 version: "3.9"
 services:
   control-node:
+    depends_on:
+      - worker
     image: saturation-control-node:latest
     networks:
       - saturation-network
     volumes:
-      - ~/:/saturation # read/write access to home directory
-    environment:
-      - NUM_WORKERS=${NUM_WORKERS}
-      - PORT=${CONTROL_NODE_PORT}
-      - BENCHMARK=${BENCHMARK}
-    command: ${NUM_WORKERS} ${PORT} ${BENCHMARK}
-#  workers:
-#    image: saturation-worker-node:latest
-#    depends_on:
-#      - control-node
-#    networks:
-#      - saturation-network
-#    environment:
-#      - PORT = ${CONTROL_NODE_PORT}
+      #- ~/:/saturation/ # read/write access to home directory
+      - ./:/saturation/ # directory of docker compose file
+    command: ${APPROACH} ${NUM_WORKERS} ${BENCHMARK}
+    ports:
+      - "30000"
+  worker:
+    image: saturation-worker:latest
+    networks:
+      - saturation-network
+    ports:
+      - "30000"
+    command: 0.0.0.0 30000
+    deploy:
+      mode: replicated
+      replicas: ${NUM_WORKERS}
 
 networks:
   saturation-network: { }

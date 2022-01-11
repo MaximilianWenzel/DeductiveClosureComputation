@@ -50,7 +50,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
             if (config.collectControlNodeStatistics()) {
                 stats.collectStopwatchTimes();
             }
-            communicationChannel.terminate();
+            communicationChannel.terminateAfterAllMessagesHaveBeenSent();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -6,5 +6,7 @@ public interface SaturationCommunicationChannel {
 
     boolean hasMoreMessages();
 
-    void terminate();
+    void terminateNow();
+
+    void terminateAfterAllMessagesHaveBeenSent();
 }

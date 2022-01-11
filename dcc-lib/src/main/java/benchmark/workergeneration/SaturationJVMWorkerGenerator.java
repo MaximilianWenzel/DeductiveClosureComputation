@@ -40,6 +40,12 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
                 e.printStackTrace();
             }
         }
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void startWorkerJVM(int portNumber) throws IOException, InterruptedException {
