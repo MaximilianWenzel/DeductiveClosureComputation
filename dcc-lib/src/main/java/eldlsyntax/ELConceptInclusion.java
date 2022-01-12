@@ -1,5 +1,6 @@
 package eldlsyntax;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -8,13 +9,13 @@ import java.util.Objects;
  *
  * Implementation taken from https://github.com/ykazakov/rw19-dl and adjusted to EL++ description logic (DL).
  */
-public class ELConceptInclusion extends ELTBoxAxiom {
+public class ELConceptInclusion extends ELTBoxAxiom implements Serializable {
 
     /**
      * The concepts involved in the construction of this axioms; all members of
      * {@link #subConcept_} must be included in {@link #superConcept_}
      */
-    private final ELConcept subConcept_, superConcept_;
+    private ELConcept subConcept_, superConcept_;
 
     /**
      * Creates a new axiom stating inclusion of objects of the given concepts
@@ -25,6 +26,10 @@ public class ELConceptInclusion extends ELTBoxAxiom {
     public ELConceptInclusion(ELConcept subConcept, ELConcept superConcept) {
         this.subConcept_ = Objects.requireNonNull(subConcept);
         this.superConcept_ = Objects.requireNonNull(superConcept);
+    }
+
+    ELConceptInclusion() {
+
     }
 
     /**

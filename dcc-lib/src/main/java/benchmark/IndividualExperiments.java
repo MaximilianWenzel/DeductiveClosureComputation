@@ -23,7 +23,7 @@ public class IndividualExperiments {
 
     private static final boolean collectWorkerNodeStatistics = false;
 
-    private static final int EXPERIMENT_ROUNDS = 3;
+    private static final int EXPERIMENT_ROUNDS = 1;
 
     private static List<Integer> binaryTreeDepthList;
     private static List<Integer> initialEchoAxioms;
@@ -32,7 +32,7 @@ public class IndividualExperiments {
 
     static {
         binaryTreeDepthList = new ArrayList<>();
-        binaryTreeDepthList.add(18);
+        binaryTreeDepthList.add(9);
 
         initialEchoAxioms = new ArrayList<>();
         //initialEchoAxioms.add(10_000);
@@ -52,14 +52,15 @@ public class IndividualExperiments {
         numberOfWorkersList = new ArrayList<>();
         numberOfWorkersList.add(1);
         numberOfWorkersList.add(2);
-        numberOfWorkersList.add(4);
+        //numberOfWorkersList.add(4);
     }
 
     public static void main(String[] args) {
+        /*
         Scanner scanner = new Scanner(System.in);
         System.out.println("Press ENTER to start benchmark...");
         scanner.nextLine();
-
+         */
 
         File outputDirectory;
         if (args.length > 0) {
@@ -72,18 +73,17 @@ public class IndividualExperiments {
     }
 
     public static void benchmark(File outputDirectory) {
-        List<Integer> binaryTreeDepthList = new ArrayList<>();
 
         Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
-        //includedApproaches.add(SaturationApproach.SINGLE_THREADED);
-        //includedApproaches.add(SaturationApproach.PARALLEL);
+        includedApproaches.add(SaturationApproach.SINGLE_THREADED);
+        includedApproaches.add(SaturationApproach.PARALLEL);
         includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
-        includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
+        //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
 
-        //binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
+        binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
         //chainGraphBenchmark(outputDirectory, includedApproaches, chainDepthList, numberOfWorkersList);
-        echoBenchmark(outputDirectory, includedApproaches, initialEchoAxioms, numberOfWorkersList);
+        //echoBenchmark(outputDirectory, includedApproaches, initialEchoAxioms, numberOfWorkersList);
     }
 
     public static void binaryTreeBenchmark(File outputDirectory,
@@ -105,7 +105,7 @@ public class IndividualExperiments {
                 ReachabilitySaturationInitializationFactory factory = new ReachabilitySaturationInitializationFactory(
                         initialAxioms,
                         numWorkers,
-                        0
+                        500_000
                 );
                 binaryTreeBenchmark.startBenchmark(factory);
             }

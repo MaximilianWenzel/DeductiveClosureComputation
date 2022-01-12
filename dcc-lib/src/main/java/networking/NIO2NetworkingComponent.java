@@ -1,7 +1,6 @@
 package networking;
 
 import networking.connectors.ConnectionEstablishmentListener;
-import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.io.nio2.NIO2SocketManager;
@@ -15,10 +14,7 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 public class NIO2NetworkingComponent implements NetworkingComponent {
@@ -29,7 +25,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     protected List<ConnectionEstablishmentListener> serversToConnectTo;
 
     protected ConcurrentMap<Long, NIO2SocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
-    protected AsynchronousChannelGroup threadPool;
+    protected AsynchronousChannelGroup asynchronousChannelGroup;
 
     public NIO2NetworkingComponent(List<ConnectionEstablishmentListener> portNumbersToListen,
                                    List<ConnectionEstablishmentListener> serversToConnectTo) {
@@ -43,7 +39,8 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     }
 
     private void init() throws IOException {
-        threadPool = AsynchronousChannelGroup.withFixedThreadPool(1, Thread::new);
+        asynchronousChannelGroup = AsynchronousChannelGroup.withFixedThreadPool(1, Thread::new);
+
 
         for (ConnectionEstablishmentListener portListener : portNumbersToListen) {
             listenToPort(portListener);
@@ -56,7 +53,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
 
     @Override
     public void listenToPort(ConnectionEstablishmentListener portListener) throws IOException {
-        AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open(threadPool);
+        AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open(asynchronousChannelGroup);
 
         ServerData serverData = portListener.getServerData();
         InetSocketAddress inetSocketAddress = new InetSocketAddress(serverData.getHostname(), serverData.getPortNumber());
@@ -66,7 +63,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     }
 
     public void connectToServer(ConnectionEstablishmentListener serverConnector) throws IOException {
-        AsynchronousSocketChannel client = AsynchronousSocketChannel.open(threadPool);
+        AsynchronousSocketChannel client = AsynchronousSocketChannel.open(asynchronousChannelGroup);
         ServerData serverData = serverConnector.getServerData();
         InetSocketAddress hostAddress = new InetSocketAddress(serverData.getHostname(), serverData.getPortNumber());
         /*
@@ -109,7 +106,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     @Override
     public void terminate() {
         try {
-            threadPool.shutdownNow();
+            asynchronousChannelGroup.shutdownNow();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -151,9 +148,9 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     @Override
     public void terminateAfterAllMessagesHaveBeenSent() {
         try {
-            threadPool.shutdown();
-            threadPool.awaitTermination(5000, TimeUnit.MILLISECONDS);
-            threadPool.shutdownNow();
+            asynchronousChannelGroup.shutdown();
+            asynchronousChannelGroup.awaitTermination(5000, TimeUnit.MILLISECONDS);
+            asynchronousChannelGroup.shutdownNow();
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }

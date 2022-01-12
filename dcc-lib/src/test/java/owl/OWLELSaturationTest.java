@@ -1,25 +1,11 @@
 package owl;
 
-import benchmark.workergeneration.SaturationWorkerThreadGenerator;
-import data.Closure;
-import data.DefaultClosure;
+import benchmark.eldlreasoning.OWLELSaturationInitializationFactory;
 import data.IndexedELOntology;
-import eldlreasoning.OWLELDistributedWorkerFactory;
-import eldlreasoning.OWLELWorkerFactory;
-import eldlreasoning.OWLELWorkloadDistributor;
-import eldlreasoning.rules.OWLELRule;
 import eldlsyntax.*;
-import networking.ServerData;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reasoning.saturation.SingleThreadedSaturation;
-import reasoning.saturation.distributed.DistributedSaturation;
-import reasoning.saturation.models.DistributedWorkerModel;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import util.ClosureComputationTestUtil;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -49,7 +35,6 @@ public class OWLELSaturationTest {
 
     @Test
     public void testELOntology() {
-
         ELSignature s = elOntology.getSignature();
 
         // concept names = A, B, C
@@ -75,98 +60,28 @@ public class OWLELSaturationTest {
         elOntology.tBox().forEach(eltBoxAxiom -> eltBoxAxiom.accept(tBoxVisitor));
 
         System.out.println();
-        System.out.println("Closure: ");
-        getClosureOfSingleThreadedSaturator().forEach(System.out::println);
+        OWLELSaturationInitializationFactory factory = new OWLELSaturationInitializationFactory(elOntology, 1);
+        System.out.println(ClosureComputationTestUtil.singleThreadedClosureComputation(factory));
     }
 
-    public DefaultClosure<ELConceptInclusion> getClosureOfSingleThreadedSaturator() {
-        Collection<OWLELRule> owlelRules = OWLELWorkerFactory.getOWL2ELRules(elOntology);
-        DefaultClosure<ELConceptInclusion> closure = new DefaultClosure<>();
-        SingleThreadedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> saturation =
-                new SingleThreadedSaturation<>(elOntology.getInitialAxioms().iterator(), owlelRules, closure);
-        return saturation.saturate();
-    }
-
-    /*
-    public Set<ELConceptInclusion> getClosureOfParallelSaturator() {
-        OWL2ELSaturationControlNode saturator = new OWL2ELSaturationControlNode(elOntology, 3);
-        saturator.init();
-        return saturator.saturate();
-    }
-
-     */
-
-    /*
     @Test
     public void testParallelSaturation() {
-        Set<ELConceptInclusion> closure = getClosureOfParallelSaturator();
+        OWLELSaturationInitializationFactory factory = new OWLELSaturationInitializationFactory(elOntology, 2);
+        ClosureComputationTestUtil.parallelClosureComputation(factory);
 
-        ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
-            @Override
-            public void visit(ELConceptInclusion axiom) {
-                System.out.println(axiom.toString());
-            }
-        };
-        System.out.println("TBox axioms:");
-        elOntology.tBox().forEach(eltBoxAxiom -> eltBoxAxiom.accept(tBoxVisitor));
-
-        System.out.println();
-        System.out.println("Closure: ");
-        closure.forEach(System.out::println);
-
-        assertEquals(getClosureOfSingleThreadedSaturator(), closure);
+        factory = new OWLELSaturationInitializationFactory(elOntology, 4);
+        ClosureComputationTestUtil.parallelClosureComputation(factory);
     }
 
-     */
+    @Test
+    public void testDistributedSaturation() {
+        OWLELSaturationInitializationFactory factory = new OWLELSaturationInitializationFactory(elOntology, 2);
+        ClosureComputationTestUtil.distributedClosureComputation(factory, false);
 
-
-    void testDistributedSaturation() {
-        SaturationWorkerThreadGenerator workerFactory;
-        workerFactory = new SaturationWorkerThreadGenerator(
-                3
-        );
-
-        workerFactory.generateAndRunWorkers();
-
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        List<ServerData> workerServerData = workerFactory.getWorkerServerDataList();
-        OWLELDistributedWorkerFactory owlWorkerFactory = new OWLELDistributedWorkerFactory(elOntology,
-                workerServerData);
-        List<DistributedWorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workerModels =
-                owlWorkerFactory.generateDistributedWorkers();
-        OWLELWorkloadDistributor workloadDistributor = new OWLELWorkloadDistributor(workerModels);
-        DistributedSaturation<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> distributedSaturation = new DistributedSaturation<>(
-                workerModels, workloadDistributor, elOntology.getInitialAxioms(), new DefaultClosure<>());
-
-        ELTBoxAxiom.Visitor tBoxVisitor = new ELTBoxAxiom.Visitor() {
-            @Override
-            public void visit(ELConceptInclusion axiom) {
-                System.out.println(axiom.toString());
-            }
-        };
-
-        System.out.println("TBox axioms:");
-        elOntology.tBox().forEach(eltBoxAxiom -> eltBoxAxiom.accept(tBoxVisitor));
-
-        System.out.println();
-        System.out.println("Closure: ");
-
-        Closure<ELConceptInclusion> distributedClosure = distributedSaturation.saturate();
-        Closure<ELConceptInclusion> singleThreadedClosure = getClosureOfSingleThreadedSaturator();
-
-        Set<ELConceptInclusion> difference = new UnifiedSet<>();
-        singleThreadedClosure.getClosureResults().forEach(difference::add);
-        distributedClosure.getClosureResults().forEach(difference::remove);
-
-        System.out.println(difference);
-        assertEquals(singleThreadedClosure, distributedClosure);
-
-        workerFactory.stopWorkers();
-
+        init();
+        factory = new OWLELSaturationInitializationFactory(elOntology, 4);
+        ClosureComputationTestUtil.distributedClosureComputation(factory, false);
     }
+
+
 }

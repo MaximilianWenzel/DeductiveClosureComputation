@@ -1,4 +1,4 @@
-package eldlreasoning.rules;
+package benchmark.eldlreasoning.rules;
 
 import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptInclusion;
@@ -15,6 +15,10 @@ public class UnfoldSubsumptionRule extends OWLELRule {
     public UnfoldSubsumptionRule(Set<ELConceptInclusion> ontology) {
         super();
         this.ontology = ontology;
+    }
+
+    public UnfoldSubsumptionRule() {
+
     }
 
     @Override

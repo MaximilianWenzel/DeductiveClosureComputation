@@ -10,7 +10,6 @@ import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.ConnectionEstablishmentListener;
-import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.*;
@@ -27,9 +26,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable>
         implements SaturationCommunicationChannel {
@@ -37,11 +39,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final Logger log = ConsoleUtils.getLogger();
 
     private final ServerData serverData;
-    private final BlockingQueue<Object> toDo = QueueFactory.createSaturationToDo();
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
-
     private final AtomicLong establishedConnections = new AtomicLong(0);
+    private BlockingQueue<Object> toDo = QueueFactory.createSaturationToDo();
+    private ExecutorService threadPool;
     private NetworkingComponent networkingComponent;
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A, T>> workers;
@@ -70,6 +72,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
+        this.threadPool = Executors.newSingleThreadExecutor();
         networkingComponent = new NIO2NetworkingComponent(
                 Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
                 Collections.emptyList()

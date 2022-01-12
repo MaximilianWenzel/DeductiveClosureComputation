@@ -13,12 +13,12 @@ public class ELConceptAssertion extends ELABoxAxiom {
 	/**
 	 * The instance of this concept assertion
 	 */
-	private final ELIndividual instance_;
+	private ELIndividual instance_;
 
 	/**
 	 * The type of this concept assertion
 	 */
-	private final ELConcept type_;
+	private ELConcept type_;
 
 	/**
 	 * Creates a new axiom stating that the given individual is an instance of a
@@ -30,6 +30,10 @@ public class ELConceptAssertion extends ELABoxAxiom {
 	public ELConceptAssertion(ELConcept type, ELIndividual instance) {
 		this.instance_ = Objects.requireNonNull(instance);
 		this.type_ = Objects.requireNonNull(type);
+	}
+
+	ELConceptAssertion() {
+
 	}
 
 	/**

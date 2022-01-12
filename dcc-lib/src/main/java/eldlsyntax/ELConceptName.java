@@ -14,7 +14,7 @@ public class ELConceptName extends ELConcept implements ELEntity {
 	/**
 	 * The name of this concept
 	 */
-	private final String name_;
+	private String name_;
 
 	/**
 	 * Creates a new concept with the given name
@@ -23,6 +23,10 @@ public class ELConceptName extends ELConcept implements ELEntity {
 	 */
 	public ELConceptName(String name) {
 		this.name_ = Objects.requireNonNull(name);
+	}
+
+	ELConceptName() {
+
 	}
 
 	@Override

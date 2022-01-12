@@ -1,23 +1,11 @@
 package transitiveclosure;
 
-import benchmark.workergeneration.SaturationJVMWorkerGenerator;
-import benchmark.workergeneration.SaturationWorkerGenerator;
-import benchmark.workergeneration.SaturationWorkerThreadGenerator;
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
 import benchmark.transitiveclosure.*;
-import networking.ServerData;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.roaringbitmap.RoaringBitmap;
-import reasoning.saturation.SingleThreadedSaturation;
-import reasoning.saturation.distributed.DistributedSaturation;
-import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
-import reasoning.saturation.distributed.metadata.SaturationConfiguration;
-import reasoning.saturation.distributed.metadata.WorkerStatistics;
-import reasoning.saturation.models.DistributedWorkerModel;
-import reasoning.saturation.parallel.ParallelSaturation;
-import util.ConsoleUtils;
+import util.ClosureComputationTestUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,117 +52,15 @@ public class TransitiveReachabilityTest {
 
     @Test
     void testSingleThreadedComputation() {
-        assertEquals(expectedResults, singleThreadedClosureComputation(initialAxioms));
-    }
-
-    Set<Reachability> singleThreadedClosureComputation(List<? extends Reachability> initialAxioms) {
         ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
                 initialAxioms,
                 1,
                 0
         );
 
-        SingleThreadedSaturation<ReachabilityClosure, Reachability> saturation = new SingleThreadedSaturation<>(
-                initialAxioms.iterator(),
-                initializationFactory.generateRules(),
-                new ReachabilityClosure()
-        );
-
-        ReachabilityClosure closure = saturation.saturate();
-        Set<Reachability> result = new UnifiedSet<>();
-        closure.getClosureResults().forEach(result::add);
-        System.out.println("Closure: ");
-        result.forEach(System.out::println);
-        return result;
+        assertEquals(expectedResults, ClosureComputationTestUtil.singleThreadedClosureComputation(initializationFactory));
     }
 
-    Set<Reachability> parallelClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers) {
-        ParallelSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new ParallelSaturation<>(
-                new ReachabilitySaturationInitializationFactory(initialAxioms, numberOfWorkers, 0)
-        );
-
-        ReachabilityClosure closure = saturation.saturate();
-        Set<Reachability> result = new UnifiedSet<>();
-        closure.getClosureResults().forEach(result::add);
-
-        assertEquals(singleThreadedClosureComputation(initialAxioms), result);
-
-        return result;
-    }
-
-
-    void distributedClosureComputation(List<? extends Reachability> initialAxioms, int numberOfWorkers,
-                                       boolean workersInSeparateJVMs) {
-        List<ServerData> serverDataList = null;
-        SaturationWorkerGenerator workerGenerator;
-
-        if (workersInSeparateJVMs) {
-            workerGenerator = new SaturationJVMWorkerGenerator(numberOfWorkers);
-            try {
-                workerGenerator.generateAndRunWorkers();
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-        } else {
-            workerGenerator = new SaturationWorkerThreadGenerator(
-                    numberOfWorkers);
-            workerGenerator.generateAndRunWorkers();
-        }
-        serverDataList = workerGenerator.getWorkerServerDataList();
-
-
-        ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
-                initialAxioms,
-                numberOfWorkers,
-                0
-        );
-
-        List<DistributedWorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = initializationFactory.getDistributedWorkerModels(
-                serverDataList);
-        SaturationConfiguration configuration = new SaturationConfiguration(true, false);
-        DistributedSaturation<ReachabilityClosure, Reachability, RoaringBitmap> saturation = new DistributedSaturation<>(
-                workers,
-                new ReachabilityWorkloadDistributor(workers),
-                initialAxioms,
-                new ReachabilityClosure(),
-                configuration
-        );
-
-        ReachabilityClosure closure = saturation.saturate();
-        Set<Reachability> distributedResults = new UnifiedSet<>();
-        distributedResults.addAll(closure.getClosureResults());
-
-        System.out.println("Closure: ");
-        closure.getClosureResults().forEach(System.out::println);
-
-        Set<Reachability> singleThreadedResults = singleThreadedClosureComputation(initialAxioms);
-        assertEquals(singleThreadedResults, distributedResults);
-
-        List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
-        ControlNodeStatistics controlNodeStatistics = saturation.getControlNodeStatistics();
-
-        System.out.println(ConsoleUtils.getSeparator());
-        System.out.println("Statistics");
-        System.out.println(ConsoleUtils.getSeparator());
-        System.out.println(WorkerStatistics.getWorkerStatsHeader());
-        workerStatistics.forEach(w -> System.out.println(w.getWorkerStatistics()));
-
-        System.out.println(ControlNodeStatistics.getControlNodeStatsHeader());
-        System.out.println(controlNodeStatistics.getControlNodeStatistics());
-        System.out.println(ConsoleUtils.getSeparator());
-
-        workerGenerator.stopWorkers();
-
-        if (workersInSeparateJVMs) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
     @Test
     void testDistributedClosureComputation() {
@@ -183,33 +69,73 @@ public class TransitiveReachabilityTest {
             if (i == 1) {
                 workersInSeparateJVM = true;
             }
-            distributedClosureComputation(initialAxioms, 2, workersInSeparateJVM);
+            ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
+                    initialAxioms,
+                    2,
+                    0
+            );
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
 
             ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
-            distributedClosureComputation(generator.generateGraph(), 4, workersInSeparateJVM);
+            initializationFactory = new ReachabilitySaturationInitializationFactory(
+                    generator.generateGraph(),
+                    4,
+                    0
+            );
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
 
             if (!workersInSeparateJVM) {
                 generator = new ReachabilityBinaryTreeGenerator(7);
-                distributedClosureComputation(generator.generateGraph(), 20, workersInSeparateJVM);
+                initializationFactory = new ReachabilitySaturationInitializationFactory(
+                        generator.generateGraph(),
+                        20,
+                        0
+                );
+                ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
             }
         }
     }
 
     @Test
     void testParallelClosureComputation() {
-        parallelClosureComputation(initialAxioms, 4);
+        ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
+                initialAxioms,
+                4,
+                0
+        );
+        ClosureComputationTestUtil.parallelClosureComputation(initializationFactory);
 
         ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
-        parallelClosureComputation(generator.generateGraph(), 4);
+        initializationFactory = new ReachabilitySaturationInitializationFactory(
+                generator.generateGraph(),
+                4,
+                0
+        );
+        ClosureComputationTestUtil.parallelClosureComputation(initializationFactory);
 
         generator = new ReachabilityBinaryTreeGenerator(8);
-        parallelClosureComputation(generator.generateGraph(), 20);
+        initializationFactory = new ReachabilitySaturationInitializationFactory(
+                generator.generateGraph(),
+                20,
+                0
+        );
+        ClosureComputationTestUtil.parallelClosureComputation(initializationFactory);
 
         generator = new ReachabilityBinaryTreeGenerator(10);
-        parallelClosureComputation(generator.generateGraph(), 20);
+        initializationFactory = new ReachabilitySaturationInitializationFactory(
+                generator.generateGraph(),
+                20,
+                0
+        );
+        ClosureComputationTestUtil.parallelClosureComputation(initializationFactory);
 
         generator = new ReachabilityBinaryTreeGenerator(12);
-        parallelClosureComputation(generator.generateGraph(), 20);
+        initializationFactory = new ReachabilitySaturationInitializationFactory(
+                generator.generateGraph(),
+                20,
+                0
+        );
+        ClosureComputationTestUtil.parallelClosureComputation(initializationFactory);
 
     }
 

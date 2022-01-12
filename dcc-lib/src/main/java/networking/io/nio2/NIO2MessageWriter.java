@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NIO2MessageWriter {
@@ -22,7 +23,7 @@ public class NIO2MessageWriter {
     private int MESSAGE_SIZE_BYTES = 4;
     private Serializer serializer = new KryoSerializer();
     private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createSaturationToDo();
+    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createNIOMessageWriterQueue();
 
     public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {
         this.socketChannel = socketChannel;

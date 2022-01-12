@@ -1,4 +1,4 @@
-package eldlreasoning.rules;
+package benchmark.eldlreasoning.rules;
 
 import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptConjunction;
@@ -35,7 +35,10 @@ import java.util.Set;
  */
 public class ComposeConjunctionRule extends OWLELRule {
 
-    private final Set<ELConcept> negativeConceptsFromOntology;
+    private Set<ELConcept> negativeConceptsFromOntology;
+
+    public ComposeConjunctionRule() {
+    }
 
     public ComposeConjunctionRule(Set<ELConcept> negativeConceptsFromOntology) {
         super();
@@ -44,7 +47,6 @@ public class ComposeConjunctionRule extends OWLELRule {
 
     @Override
     public void apply(ELConceptInclusion axiom) {
-
         ELConcept c = axiom.getSubConcept();
         ELConcept d1 = axiom.getSuperConcept();
 

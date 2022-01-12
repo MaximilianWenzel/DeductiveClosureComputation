@@ -11,7 +11,7 @@ public class ELRoleName extends ELRole implements ELEntity {
 	/**
 	 * The name of this role
 	 */
-	private final String name_;
+	private String name_;
 
 	/**
 	 * Creates a new role with the given name
@@ -20,6 +20,10 @@ public class ELRoleName extends ELRole implements ELEntity {
 	 */
 	public ELRoleName(String name) {
 		this.name_ = name;
+	}
+
+	ELRoleName() {
+
 	}
 
 	@Override

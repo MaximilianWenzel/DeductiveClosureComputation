@@ -1,4 +1,4 @@
-package eldlreasoning.rules;
+package benchmark.eldlreasoning.rules;
 
 import data.DefaultClosure;
 import eldlsyntax.ELConceptInclusion;

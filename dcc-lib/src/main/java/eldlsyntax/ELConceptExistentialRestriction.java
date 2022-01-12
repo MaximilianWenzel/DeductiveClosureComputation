@@ -4,9 +4,9 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * The concept ∃ R.C representing objects that are connected by R represented by
- * the given role to at least one object of C.
- *
+ * The concept ∃ R.C representing objects that are connected by R represented by the given role to at least one object
+ * of C.
+ * <p>
  * Implementation taken from https://github.com/ykazakov/rw19-dl and adjusted to EL++ description logic (DL).
  */
 public class ELConceptExistentialRestriction extends ELConcept {
@@ -14,15 +14,17 @@ public class ELConceptExistentialRestriction extends ELConcept {
     /**
      * The relation using which objects of this concept must be connected
      */
-    private final ELRole relation_;
-
+    private ELRole relation_;
     /**
      * The concept
-     *
-     * containing at least one relation successor of all objects represented by
-     * this concept
+     * <p>
+     * containing at least one relation successor of all objects represented by this concept
      */
-    private final ELConcept filler_;
+    private ELConcept filler_;
+
+    ELConceptExistentialRestriction() {
+
+    }
 
     /**
      * Creates a new existential restriction using the given role and concept
@@ -36,16 +38,14 @@ public class ELConceptExistentialRestriction extends ELConcept {
     }
 
     /**
-     * @return the relation using which objects of this concept must be
-     *         connected
+     * @return the relation using which objects of this concept must be connected
      */
     public ELRole getRelation() {
         return this.relation_;
     }
 
     /**
-     * @return the concept containing at least one relation successor of all
-     *         objects represented by this concept
+     * @return the concept containing at least one relation successor of all objects represented by this concept
      */
     public ELConcept getFiller() {
         return this.filler_;

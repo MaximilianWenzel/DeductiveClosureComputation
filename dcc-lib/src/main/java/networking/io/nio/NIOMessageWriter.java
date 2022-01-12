@@ -15,7 +15,7 @@ public class NIOMessageWriter {
     private final int BUFFER_SIZE = 2 << 20;
     private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.9);
     // TODO user defined buffer size
-    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createSaturationToDo();
+    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createNIOMessageWriterQueue();
     private int numBytesForLength = 4;
 
     private Serializer serializer = new KryoSerializer();

@@ -79,5 +79,6 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
     public void visit(A axiom) {
         incrementalReasoner.processAxiom(axiom);
     }
+
 }
 

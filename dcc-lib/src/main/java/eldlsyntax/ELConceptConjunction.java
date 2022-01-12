@@ -15,7 +15,7 @@ public class ELConceptConjunction extends ELConcept {
     /**
      * The conjuncts from which this concept is constructed
      */
-    private final ELConcept firstConjunct_, secondConjunct_;
+    private ELConcept firstConjunct_, secondConjunct_;
 
     /**
      * Creates a new conjunction of the two given conjuncts
@@ -27,6 +27,10 @@ public class ELConceptConjunction extends ELConcept {
                                 ELConcept secondConjunct) {
         this.firstConjunct_ = Objects.requireNonNull(firstConjunct);
         this.secondConjunct_ = Objects.requireNonNull(secondConjunct);
+    }
+
+    ELConceptConjunction() {
+
     }
 
     /**

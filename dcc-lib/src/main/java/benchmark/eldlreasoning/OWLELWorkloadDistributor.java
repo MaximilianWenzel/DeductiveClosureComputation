@@ -1,4 +1,4 @@
-package eldlreasoning;
+package benchmark.eldlreasoning;
 
 import data.DefaultClosure;
 import eldlsyntax.ELConcept;
@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Set;
 
 public class OWLELWorkloadDistributor extends WorkloadDistributor<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> {
+
+    private OWLELWorkloadDistributor() {
+
+    }
 
     public OWLELWorkloadDistributor(List<? extends WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workerModels) {
         super(workerModels);
