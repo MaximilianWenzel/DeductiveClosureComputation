@@ -68,7 +68,10 @@ public class NetworkingTest {
 
         NIONetworkingComponent networkingComponent = new NIONetworkingComponent(
                 Collections.singletonList(portListener),
-                serverConnectors);
+                serverConnectors,
+                () -> {
+                }
+        );
 
         while (socketIDs.isEmpty()) {
             try {
@@ -165,7 +168,9 @@ public class NetworkingTest {
 
         NIO2NetworkingComponent networkingComponent = new NIO2NetworkingComponent(
                 Collections.singletonList(portListener),
-                serverConnectors);
+                serverConnectors,
+                2
+        );
 
         while (socketIDs.isEmpty()) {
             try {

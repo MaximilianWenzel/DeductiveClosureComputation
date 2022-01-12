@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import networking.NIO2NetworkingComponent;
+import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -26,12 +27,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable>
         implements SaturationCommunicationChannel {
@@ -43,8 +41,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
     private final AtomicLong establishedConnections = new AtomicLong(0);
     private BlockingQueue<Object> toDo = QueueFactory.createSaturationToDo();
-    private ExecutorService threadPool;
+
     private NetworkingComponent networkingComponent;
+    private Runnable runnableForMainNIOLoop = null;
+    private int numberOfNetworkingThreads;
+
+
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A, T>> workers;
     private WorkloadDistributor<C, A, T> workloadDistributor;
@@ -62,8 +64,20 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private SaturationConfiguration config;
     private WorkerStatistics stats;
 
-    public WorkerNodeCommunicationChannel(ServerData serverData) {
+    public WorkerNodeCommunicationChannel(ServerData serverData, int numberOfNetworkingThreads) {
+        if (numberOfNetworkingThreads <= 1) {
+            throw new IllegalArgumentException(
+                    "Number of networking threads must be >= 1, given value: " + numberOfNetworkingThreads);
+        }
         this.serverData = serverData;
+        this.numberOfNetworkingThreads = numberOfNetworkingThreads;
+        init();
+    }
+
+    public WorkerNodeCommunicationChannel(ServerData serverData, Runnable runnableForMainNIOLoop) {
+        this.serverData = serverData;
+        this.numberOfNetworkingThreads = 1;
+        this.runnableForMainNIOLoop = runnableForMainNIOLoop;
         init();
     }
 
@@ -72,17 +86,31 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
-        this.threadPool = Executors.newSingleThreadExecutor();
-        networkingComponent = new NIO2NetworkingComponent(
-                Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
-                Collections.emptyList()
-        );
+        if (numberOfNetworkingThreads == 1) {
+            networkingComponent = new NIONetworkingComponent(
+                    Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
+                    Collections.emptyList(),
+                    runnableForMainNIOLoop
+            );
+        } else {
+            networkingComponent = new NIO2NetworkingComponent(
+                    Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
+                    Collections.emptyList(),
+                    numberOfNetworkingThreads
+            );
+        }
+    }
+
+    public void startNetworkCommunication() {
+        if (numberOfNetworkingThreads == 1) {
+            ((NIONetworkingComponent)networkingComponent).startNIOThread();
+        }
     }
 
 
     public void connectToWorkerServers() {
         // connect to all worker nodes with a higher worker ID
-        for (DistributedWorkerModel workerModel : this.workers) {
+        for (DistributedWorkerModel<?, ?, ?> workerModel : this.workers) {
             if (workerModel.getID() > this.workerID) {
                 try {
                     WorkerConnectionEstablishmentListener workerConnectionEstablishmentListener = new WorkerConnectionEstablishmentListener(
@@ -143,9 +171,15 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     @Override
-    public Object read() throws InterruptedException {
+    public Object takeNextMessage() throws InterruptedException {
         return toDo.take();
     }
+
+    @Override
+    public Object pollNextMessage() {
+        return toDo.poll();
+    }
+
 
     @Override
     public boolean hasMoreMessages() {

@@ -88,7 +88,8 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         networkingComponent = new NIO2NetworkingComponent(
                 Collections.emptyList(),
-                Collections.emptyList()
+                Collections.emptyList(),
+                2
         );
 
     }
@@ -122,8 +123,13 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     }
 
     @Override
-    public Object read() throws InterruptedException {
+    public Object takeNextMessage() throws InterruptedException {
         return receivedMessages.take();
+    }
+
+    @Override
+    public Object pollNextMessage() {
+        return receivedMessages.poll();
     }
 
     @Override

@@ -58,13 +58,14 @@ public class ClosureComputationTestUtil {
 
     public static <C extends Closure<A>, A extends Serializable, T extends Serializable> void distributedClosureComputation(
             SaturationInitializationFactory<C, A, T> factory,
-            boolean workersInSeparateJVMs) {
+            boolean workersInSeparateJVMs,
+            int numberOfThreadsForSingleWorker) {
         List<ServerData> serverDataList = null;
         SaturationWorkerGenerator workerGenerator;
         int numberOfWorkers = factory.getWorkerModels().size();
 
         if (workersInSeparateJVMs) {
-            workerGenerator = new SaturationJVMWorkerGenerator(numberOfWorkers);
+            workerGenerator = new SaturationJVMWorkerGenerator(numberOfWorkers, numberOfThreadsForSingleWorker);
             try {
                 workerGenerator.generateAndRunWorkers();
                 Thread.sleep(1000);
@@ -74,7 +75,7 @@ public class ClosureComputationTestUtil {
 
         } else {
             workerGenerator = new SaturationWorkerThreadGenerator(
-                    numberOfWorkers);
+                    numberOfWorkers, numberOfThreadsForSingleWorker);
             workerGenerator.generateAndRunWorkers();
         }
         serverDataList = workerGenerator.getWorkerServerDataList();

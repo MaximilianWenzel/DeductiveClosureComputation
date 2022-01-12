@@ -65,6 +65,7 @@ public class TransitiveReachabilityTest {
     @Test
     void testDistributedClosureComputation() {
         boolean workersInSeparateJVM = false;
+        int numberOfThreadsPerSingleWorker = 1;
         for (int i = 0; i < 2; i++) {
             if (i == 1) {
                 workersInSeparateJVM = true;
@@ -74,8 +75,9 @@ public class TransitiveReachabilityTest {
                     2,
                     0
             );
-            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
 
+            /*
             ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
             initializationFactory = new ReachabilitySaturationInitializationFactory(
                     generator.generateGraph(),
@@ -93,6 +95,8 @@ public class TransitiveReachabilityTest {
                 );
                 ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
             }
+
+             */
         }
     }
 

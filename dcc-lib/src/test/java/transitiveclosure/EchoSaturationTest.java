@@ -4,8 +4,8 @@ import benchmark.echoclosure.EchoAxiom;
 import benchmark.echoclosure.EchoClosure;
 import benchmark.echoclosure.EchoSaturationInitializationFactory;
 import org.junit.jupiter.api.Test;
-import util.ClosureComputationTestUtil;
 import reasoning.saturation.SaturationInitializationFactory;
+import util.ClosureComputationTestUtil;
 
 public class EchoSaturationTest {
 
@@ -32,6 +32,6 @@ public class EchoSaturationTest {
         SaturationInitializationFactory<EchoClosure, EchoAxiom, Integer> initializationFactory = new EchoSaturationInitializationFactory(
                 numWorkers, 1000);
 
-        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false);
+        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 2);
     }
 }

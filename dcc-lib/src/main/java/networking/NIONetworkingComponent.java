@@ -1,7 +1,6 @@
 package networking;
 
 import networking.connectors.ConnectionEstablishmentListener;
-import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.SocketManager;
 import networking.io.nio.NIOSocketManager;
 import util.ConsoleUtils;
@@ -19,7 +18,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
 
     protected Logger log = ConsoleUtils.getLogger();
-    protected Thread nioThread;
+    protected Thread nioThread = null;
 
     protected Selector selector;
 
@@ -32,10 +31,14 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     protected boolean running = true;
 
+    protected Runnable runnableForMainNIOLoop;
+
     public NIONetworkingComponent(List<ConnectionEstablishmentListener> portNumbersToListen,
-                                  List<ConnectionEstablishmentListener> serversToConnectTo) {
+                                  List<ConnectionEstablishmentListener> serversToConnectTo,
+                                  Runnable runnableForMainNIOLoop) {
         this.portNumbersToListen = portNumbersToListen;
         this.serversToConnectTo.addAll(serversToConnectTo);
+        this.runnableForMainNIOLoop = runnableForMainNIOLoop;
         init();
     }
 
@@ -47,7 +50,6 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         }
 
         this.serverSocketChannels = new ArrayList<>(portNumbersToListen.size());
-        startNIOThread();
     }
 
     @Override
@@ -60,14 +62,6 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         ServerData serverData = portListener.getServerData();
         serverSocketChannel.bind(new InetSocketAddress(serverData.getHostname(), serverData.getPortNumber()));
         this.serverSocketChannels.add(serverSocketChannel);
-    }
-
-    private Thread startNIOThread() {
-        if (nioThread == null) {
-            nioThread = new Thread(this);
-            nioThread.start();
-        }
-        return nioThread;
     }
 
     @Override
@@ -83,6 +77,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
             while (running) {
                 try {
+                    runnableForMainNIOLoop.run();
                     mainNIOSelectorLoop();
                 } catch (CancelledKeyException | IOException | ClosedSelectorException e) {
                     log.info("Connection got closed.");
@@ -90,34 +85,15 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
                     e.printStackTrace();
                 }
             }
-
-            // close all channels
-            for (ServerSocketChannel serverSocketChannel : serverSocketChannels) {
-                SelectionKey key = serverSocketChannel.keyFor(selector);
-                if (key != null) {
-                    key.cancel();
-                    key.channel().close();
-                }
-                serverSocketChannel.close();
-            }
-
-            for (NIOSocketManager socketManager : this.socketIDToSocketManager.values()) {
-                SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
-                if (key != null) {
-                    key.cancel();
-                    key.channel().close();
-                }
-                socketManager.close();
-            }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
+        } finally {
+            closeAllSockets();
         }
-
-
     }
 
     private void mainNIOSelectorLoop() throws IOException, ClassNotFoundException, InterruptedException {
-        selector.select();
+        selector.selectNow();
         if (!selector.isOpen()) {
             return;
         }
@@ -159,7 +135,8 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         serverConnector.onConnectionEstablished(socketManager);
     }
 
-    private void connectToServer(ConnectionEstablishmentListener serverConnector, SocketChannel socketChannel) throws IOException {
+    private void connectToServer(ConnectionEstablishmentListener serverConnector, SocketChannel socketChannel) throws
+            IOException {
         socketChannel.configureBlocking(false);
 
         ServerData serverData = serverConnector.getServerData();
@@ -252,12 +229,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     @Override
     public void terminate() {
         this.running = false;
-        try {
-            selector.close();
-            this.nioThread.join();
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
-        }
+        closeAllSockets();
     }
 
     @Override
@@ -283,6 +255,13 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     @Override
     public void closeAllSockets() {
+        serverSocketChannels.forEach(ss -> {
+            try {
+                ss.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
         for (SocketManager socketManager : this.socketIDToSocketManager.values()) {
             try {
                 socketManager.close();
@@ -296,11 +275,13 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     @Override
     public void terminateAfterAllMessagesHaveBeenSent() {
         this.running = false;
-        try {
-            selector.close();
-            this.nioThread.join();
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
+        closeAllSockets();
+    }
+
+    public void startNIOThread() {
+        if (nioThread == null) {
+            nioThread = new Thread(this);
         }
+        nioThread.start();
     }
 }

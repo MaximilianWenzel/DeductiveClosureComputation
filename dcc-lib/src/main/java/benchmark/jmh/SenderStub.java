@@ -56,16 +56,17 @@ public class SenderStub {
             case NIO:
                 networkingComponent = new NIONetworkingComponent(
                         Collections.emptyList(),
-                        Collections.singletonList(serverConnector)
+                        Collections.singletonList(serverConnector),
+                        () -> {}
                 );
                 break;
             case ASYNC_NIO:
                 networkingComponent = new NIO2NetworkingComponent(
                         Collections.emptyList(),
-                        Collections.singletonList(serverConnector)
+                        Collections.singletonList(serverConnector),
+                        2
                 );
                 break;
-
         }
 
 

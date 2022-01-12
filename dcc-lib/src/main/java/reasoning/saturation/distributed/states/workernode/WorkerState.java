@@ -36,11 +36,22 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
     }
 
     public void mainWorkerLoop() throws InterruptedException {
-        Object msg = communicationChannel.read();
+        Object msg = communicationChannel.takeNextMessage();
         if (msg instanceof MessageModel) {
             ((MessageModel<C, A, T>)msg).accept(this);
         } else {
             this.visit((A) msg);
+        }
+    }
+
+    public void mainWorkerLoopForSingleThread() {
+        Object msg = communicationChannel.pollNextMessage();
+        if (msg != null) {
+            if (msg instanceof MessageModel) {
+                ((MessageModel<C, A, T>)msg).accept(this);
+            } else {
+                this.visit((A) msg);
+            }
         }
     }
 

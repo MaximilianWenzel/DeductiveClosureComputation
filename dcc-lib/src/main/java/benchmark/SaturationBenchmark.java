@@ -29,7 +29,10 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -45,6 +48,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     private List<List<String>> csvRows = new ArrayList<>();
     private List<String> csvHeader;
+
+    private List<Integer> numberOfThreadsForSingleDistributedWorker = Collections.singletonList(2);
 
     private boolean workerNodeStatistics = false;
 
@@ -64,6 +69,21 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         csvHeader.add("minRuntimeMS");
         csvHeader.add("maxRuntimeMS");
         csvHeader.add("averageRuntimeMS");
+    }
+
+    public SaturationBenchmark(String benchmarkType,
+                               Set<SaturationApproach> includedApproaches,
+                               File outputDirectory,
+                               int numberOfExperimentRepetitions,
+                               boolean workerNodeStatistics,
+                               List<Integer> numberOfThreadsForSingleDistributedWorker) {
+        this.benchmarkType = benchmarkType;
+        this.numberOfThreadsForSingleDistributedWorker = numberOfThreadsForSingleDistributedWorker;
+        this.includedApproaches = includedApproaches;
+        this.numberOfExperimentRepetitions = numberOfExperimentRepetitions;
+        this.outputDirectory = outputDirectory;
+        this.outputDirectory.mkdir();
+        this.workerNodeStatistics = workerNodeStatistics;
     }
 
     public SaturationBenchmark(String benchmarkType,
@@ -104,28 +124,30 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 initializationFactory.resetFactory();
             }
 
-            // distributed - each worker in separate thread
-            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_MULTITHREADED)) {
-                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_MULTITHREADED);
-                initializationFactory.resetFactory();
-            }
+            for (Integer numThreadsForSingleWorker : numberOfThreadsForSingleDistributedWorker) {
+                // distributed - each worker in separate thread
+                if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_MULTITHREADED)) {
+                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_MULTITHREADED, numThreadsForSingleWorker);
+                    initializationFactory.resetFactory();
+                }
 
-            // distributed - each worker in separate JVM
-            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_JVM)) {
-                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
-                initializationFactory.resetFactory();
-            }
+                // distributed - each worker in separate JVM
+                if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_JVM)) {
+                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_JVM, numThreadsForSingleWorker);
+                    initializationFactory.resetFactory();
+                }
 
-            // distributed - each worker in separate docker container
-            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER)) {
-                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
-                initializationFactory.resetFactory();
-            }
+                // distributed - each worker in separate docker container
+                if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER)) {
+                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER, numThreadsForSingleWorker);
+                    initializationFactory.resetFactory();
+                }
 
-            // distributed - worker have been already started in separate docker container, only control node is started
-            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK)) {
-                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK);
-                initializationFactory.resetFactory();
+                // distributed - worker have been already started in separate docker container, only control node is started
+                if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK)) {
+                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK, numThreadsForSingleWorker);
+                    initializationFactory.resetFactory();
+                }
             }
         }
 
@@ -182,14 +204,14 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     }
 
-    public void runDistributedSaturationBenchmark(SaturationApproach distributedApproach) {
+    public void runDistributedSaturationBenchmark(SaturationApproach distributedApproach, int numberOfThreadsForSingleDistributedWorker) {
         DescriptiveStatistics runtime = null;
         log.info("Distributed");
         log.info("# Initial Axioms: " + initialAxioms.size());
         log.info("# Workers: " + workers.size());
         log.info("Approach: " + distributedApproach.toString());
         try {
-            runtime = distributedClosureComputation(distributedApproach);
+            runtime = distributedClosureComputation(distributedApproach, numberOfThreadsForSingleDistributedWorker);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -209,7 +231,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     }
 
-    private DescriptiveStatistics distributedClosureComputation(SaturationApproach distributedApproach) throws
+    private DescriptiveStatistics distributedClosureComputation(SaturationApproach distributedApproach,
+                                                                int numberOfThreadsForSingleDistributedWorker) throws
             InterruptedException {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
         List<ServerData> serverDataList = null;
@@ -217,13 +240,13 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         // initialize workers
         switch (distributedApproach) {
             case DISTRIBUTED_MULTITHREADED:
-                workerGenerator = new SaturationWorkerThreadGenerator(workers.size());
+                workerGenerator = new SaturationWorkerThreadGenerator(workers.size(), numberOfThreadsForSingleDistributedWorker);
                 break;
             case DISTRIBUTED_SEPARATE_DOCKER_CONTAINER:
                 workerGenerator = new SaturationDockerWorkerGenerator(workers.size());
                 break;
             case DISTRIBUTED_SEPARATE_JVM:
-                workerGenerator = new SaturationJVMWorkerGenerator(workers.size());
+                workerGenerator = new SaturationJVMWorkerGenerator(workers.size(), numberOfThreadsForSingleDistributedWorker);
                 break;
             case DISTRIBUTED_DOCKER_BENCHMARK:
                 workerGenerator = null;
@@ -384,7 +407,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 .setHeader(this.csvHeader.toArray(new String[csvHeader.size()]))
                 .setDelimiter(";")
                 .build();
-        FileWriter out = new FileWriter(Paths.get(outputDirectory.toString(), benchmarkType + "_" + "benchmark.csv").toFile());
+        FileWriter out = new FileWriter(
+                Paths.get(outputDirectory.toString(), benchmarkType + "_" + "benchmark.csv").toFile());
         try (CSVPrinter printer = new CSVPrinter(out, csvFormat)) {
             for (List<String> values : this.csvRows) {
                 printer.printRecord(values);

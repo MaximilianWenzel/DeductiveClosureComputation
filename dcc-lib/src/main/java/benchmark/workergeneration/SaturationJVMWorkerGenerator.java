@@ -19,9 +19,11 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
     private List<Process> workerProcesses = new ArrayList<>();
+    private int numberOfThreadsForSingleWorker;
 
-    public SaturationJVMWorkerGenerator(int numberOfWorkers) {
+    public SaturationJVMWorkerGenerator(int numberOfWorkers, int numberOfThreadsForSingleWorker) {
         this.numberOfWorkers = numberOfWorkers;
+        this.numberOfThreadsForSingleWorker = numberOfThreadsForSingleWorker;
         init();
     }
 
@@ -58,7 +60,7 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
                 "-cp",
                 classpath,
                 SaturationWorker.class.getName(),
-                "localhost", portNumber + "" // application args
+                "localhost", portNumber + "", numberOfThreadsForSingleWorker + "" // application args
         ).inheritIO();
         workerProcesses.add(processBuilder.start());
     }

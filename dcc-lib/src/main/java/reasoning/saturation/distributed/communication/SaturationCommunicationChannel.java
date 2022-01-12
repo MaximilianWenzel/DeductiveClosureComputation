@@ -2,7 +2,9 @@ package reasoning.saturation.distributed.communication;
 
 public interface SaturationCommunicationChannel {
 
-    Object read() throws InterruptedException;
+    Object takeNextMessage() throws InterruptedException;
+
+    Object pollNextMessage();
 
     boolean hasMoreMessages();
 

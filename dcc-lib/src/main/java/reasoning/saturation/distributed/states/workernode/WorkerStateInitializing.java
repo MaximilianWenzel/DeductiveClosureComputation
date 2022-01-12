@@ -53,6 +53,11 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
             case WORKER_CLIENT_HELLO:
                 communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
                 break;
+            case CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT:
+                WorkerStateConverged<C, A, T> stateConverged = new WorkerStateConverged<>(worker);
+                this.worker.switchState(stateConverged);
+                stateConverged.visit(message);
+                break;
             default:
                 messageProtocolViolation(message);
         }

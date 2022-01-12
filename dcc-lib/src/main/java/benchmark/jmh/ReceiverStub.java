@@ -54,13 +54,15 @@ public class ReceiverStub {
             case NIO:
                 networkingComponent = new NIONetworkingComponent(
                         Collections.singletonList(portListener),
-                        Collections.emptyList()
+                        Collections.emptyList(),
+                        () -> {}
                 );
                 break;
             case ASYNC_NIO:
                 networkingComponent = new NIO2NetworkingComponent(
                         Collections.singletonList(portListener),
-                        Collections.emptyList()
+                        Collections.emptyList(),
+                        2
                 );
                 break;
 

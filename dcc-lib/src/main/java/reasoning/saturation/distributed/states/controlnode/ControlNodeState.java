@@ -34,7 +34,7 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
     }
 
     public void mainControlNodeLoop() throws InterruptedException {
-        Object msg = communicationChannel.read();
+        Object msg = communicationChannel.takeNextMessage();
         if (msg instanceof MessageModel) {
             MessageModel<C, A, T> message = (MessageModel<C, A, T>) msg;
             message.accept(this);
