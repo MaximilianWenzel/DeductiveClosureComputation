@@ -2,18 +2,20 @@ package reasoning.saturation.parallel;
 
 import data.Closure;
 import data.ParallelToDo;
+import data.ToDoQueue;
 import enums.StatisticsComponent;
 import networking.messages.AxiomCount;
 import networking.messages.RequestAxiomMessageCount;
-import reasoning.reasoner.IncrementalReasonerImpl;
-import reasoning.reasoner.IncrementalReasonerWithStatistics;
+import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.rules.ParallelSaturationInferenceProcessor;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
+import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,20 +30,27 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     private final C closure;
     private final ParallelToDo toDo;
     private final ParallelSaturation<C, A, T> controlNode;
-    private IncrementalReasonerImpl<C, A> incrementalReasoner;
 
     private final AtomicInteger receivedAxioms = new AtomicInteger(0);
     private final AtomicInteger sentAxioms = new AtomicInteger(0);
     private final AtomicInteger saturationStage = new AtomicInteger(0);
-    private boolean lastMessageWasAxiomCountRequest = false;
+
     private final SaturationConfiguration config;
+    private IncrementalStreamReasoner<C, A> incrementalReasoner;
+    private WorkloadDistributor<C, A, T> workloadDistributor;
+    private ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor;
+
+    private boolean lastMessageWasAxiomCountRequest = false;
     private WorkerStatistics statistics = null;
 
-    public SaturationContext(SaturationConfiguration config, ParallelSaturation<C, A, T> controlNode, Collection<? extends Rule<C, A>> rules,
+    public SaturationContext(SaturationConfiguration config, ParallelSaturation<C, A, T> controlNode,
+                             Collection<? extends Rule<C, A>> rules,
+                             WorkloadDistributor<C, A, T> workloadDistributor,
                              C closure,
                              ParallelToDo toDo) {
         this.config = config;
         this.controlNode = controlNode;
+        this.workloadDistributor = workloadDistributor;
         this.closure = closure;
         this.toDo = toDo;
         this.rules = rules;
@@ -52,10 +61,8 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     private void init() {
         if (config.collectWorkerNodeStatistics()) {
             this.statistics = new WorkerStatistics();
-            this.incrementalReasoner = new IncrementalReasonerWithStatistics<>(rules, closure, config, statistics);
-        } else {
-            this.incrementalReasoner = new IncrementalReasonerImpl<>(rules, closure);
         }
+        this.incrementalReasoner = new IncrementalStreamReasoner<>(rules, closure, config, statistics);
     }
 
     @Override
@@ -99,7 +106,8 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
                         this.statistics.getNumberOfReceivedAxioms().incrementAndGet();
                     }
                     receivedAxioms.incrementAndGet();
-                    incrementalReasoner.processAxiom((A) message);
+                    incrementalReasoner.getStreamOfInferencesForGivenAxiom((A)message)
+                            .forEach(inference -> this.inferenceProcessor.processInference(inference));
                 }
             }
 
@@ -132,17 +140,17 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     public void sendAxiomCountToControlNode() {
         try {
             controlNode.getStatusMessages().put(new AxiomCount(this.id,
-                            this.saturationStage.get(),
-                            this.sentAxioms.getAndSet(0),
-                            this.receivedAxioms.getAndSet(0)));
+                    this.saturationStage.get(),
+                    this.sentAxioms.getAndSet(0),
+                    this.receivedAxioms.getAndSet(0)));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     public void setInferenceProcessor(ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor) {
+        this.inferenceProcessor = inferenceProcessor;
         this.rules.forEach(r -> {
-            r.setInferenceProcessor(inferenceProcessor);
             r.setClosure(closure);
         });
     }

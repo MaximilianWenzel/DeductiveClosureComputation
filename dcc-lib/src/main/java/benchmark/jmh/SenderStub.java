@@ -11,6 +11,8 @@ import networking.io.SocketManager;
 
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SenderStub {
@@ -64,7 +66,7 @@ public class SenderStub {
                 networkingComponent = new NIO2NetworkingComponent(
                         Collections.emptyList(),
                         Collections.singletonList(serverConnector),
-                        2
+                        Executors.newFixedThreadPool(2)
                 );
                 break;
         }

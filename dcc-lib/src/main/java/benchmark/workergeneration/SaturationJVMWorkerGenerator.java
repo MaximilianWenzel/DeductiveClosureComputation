@@ -1,6 +1,7 @@
 package benchmark.workergeneration;
 
 import networking.ServerData;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.distributed.SaturationWorker;
 import util.NetworkingUtils;
 
@@ -12,6 +13,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
@@ -29,8 +31,14 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
 
     private void init() {
         serverDataList = new ArrayList<>();
+        Set<Integer> freePorts = new UnifiedSet<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            serverDataList.add(new ServerData("localhost", NetworkingUtils.getFreePort()));
+            int freePort = 0;
+            do {
+                freePort = NetworkingUtils.getFreePort();
+            } while (!freePorts.add(freePort));
+
+            serverDataList.add(new ServerData("localhost", freePort));
         }
     }
 

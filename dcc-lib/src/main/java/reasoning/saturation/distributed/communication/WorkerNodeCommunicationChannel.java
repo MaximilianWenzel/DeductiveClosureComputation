@@ -5,8 +5,8 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
 import enums.SaturationStatusMessage;
+import enums.StatisticsComponent;
 import networking.NIO2NetworkingComponent;
-import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
@@ -16,6 +16,7 @@ import networking.io.SocketManager;
 import networking.messages.*;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
+import reasoning.saturation.distributed.states.workernode.MessagesToSendManager;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
@@ -25,11 +26,14 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable>
         implements SaturationCommunicationChannel {
@@ -40,12 +44,10 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
     private final AtomicLong establishedConnections = new AtomicLong(0);
-    private BlockingQueue<Object> toDo = QueueFactory.createSaturationToDo();
+    private BlockingQueue<Object> toDo = QueueFactory.createDistributedSaturationToDo();
 
     private NetworkingComponent networkingComponent;
-    private Runnable runnableForMainNIOLoop = null;
-    private int numberOfNetworkingThreads;
-
+    private ExecutorService threadPool;
 
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A, T>> workers;
@@ -64,20 +66,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private SaturationConfiguration config;
     private WorkerStatistics stats;
 
-    public WorkerNodeCommunicationChannel(ServerData serverData, int numberOfNetworkingThreads) {
-        if (numberOfNetworkingThreads <= 1) {
-            throw new IllegalArgumentException(
-                    "Number of networking threads must be >= 1, given value: " + numberOfNetworkingThreads);
-        }
+    public WorkerNodeCommunicationChannel(ServerData serverData, ExecutorService threadPool) {
         this.serverData = serverData;
-        this.numberOfNetworkingThreads = numberOfNetworkingThreads;
-        init();
-    }
-
-    public WorkerNodeCommunicationChannel(ServerData serverData, Runnable runnableForMainNIOLoop) {
-        this.serverData = serverData;
-        this.numberOfNetworkingThreads = 1;
-        this.runnableForMainNIOLoop = runnableForMainNIOLoop;
+        this.threadPool = threadPool;
         init();
     }
 
@@ -86,27 +77,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
         this.acknowledgementEventManager = new AcknowledgementEventManager();
 
-        if (numberOfNetworkingThreads == 1) {
-            networkingComponent = new NIONetworkingComponent(
-                    Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
-                    Collections.emptyList(),
-                    runnableForMainNIOLoop
-            );
-        } else {
-            networkingComponent = new NIO2NetworkingComponent(
-                    Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
-                    Collections.emptyList(),
-                    numberOfNetworkingThreads
-            );
-        }
+        networkingComponent = new NIO2NetworkingComponent(
+                Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
+                Collections.emptyList(),
+                threadPool
+        );
     }
-
-    public void startNetworkCommunication() {
-        if (numberOfNetworkingThreads == 1) {
-            ((NIONetworkingComponent)networkingComponent).startNIOThread();
-        }
-    }
-
 
     public void connectToWorkerServers() {
         // connect to all worker nodes with a higher worker ID
@@ -127,6 +103,33 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         AcknowledgementMessage ack = new AcknowledgementMessage(this.workerID, messageID);
         long receiverSocketID = workerIDToSocketID.get(receiverID);
         send(receiverSocketID, ack);
+    }
+
+    public void distributeInferences(Stream<A> inferenceStream) {
+        inferenceStream.forEach(inference -> {
+            if (config.collectWorkerNodeStatistics()) {
+                stats.getNumberOfDerivedInferences().incrementAndGet();
+                stats.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+            }
+
+            Iterator<Long> receiverWorkerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(inference).iterator();
+            long currentReceiverWorkerID;
+
+            while (receiverWorkerIDs.hasNext()) {
+                currentReceiverWorkerID = receiverWorkerIDs.next();
+
+                if (currentReceiverWorkerID != this.workerID) {
+                    sendAxiom(currentReceiverWorkerID, inference);
+                } else {
+                    // add axioms from this worker directly to the queue
+                    toDo.add(inference);
+                }
+            }
+
+            if (config.collectWorkerNodeStatistics()) {
+                stats.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+            }
+        });
     }
 
     public void sendToControlNode(SaturationStatusMessage status, Runnable onAcknowledgement) {
@@ -171,7 +174,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     @Override
-    public Object takeNextMessage() throws InterruptedException {
+    public Object removeNextMessage() throws InterruptedException {
         return toDo.take();
     }
 
@@ -187,24 +190,6 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 || networkingComponent.socketsCurrentlyReadMessages();
     }
 
-    public void distributeAxiom(A axiom) {
-        List<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
-
-        for (Long receiverWorkerID : workerIDs) {
-            if (receiverWorkerID != this.workerID) {
-                sentAxiomMessages.getAndIncrement();
-                sendAxiom(receiverWorkerID, axiom);
-            } else {
-                // add axioms from this worker directly to the queue
-                try {
-                    toDo.put(axiom);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
     @Override
     public void terminateNow() {
         this.networkingComponent.terminate();
@@ -216,7 +201,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
 
-    private void sendAxiom(long receiverWorkerID, A axiom) {
+    public void sendAxiom(long receiverWorkerID, A axiom) {
+        sentAxiomMessages.getAndIncrement();
         if (config.collectWorkerNodeStatistics()) {
             stats.getNumberOfSentAxioms().getAndIncrement();
         }
@@ -228,6 +214,10 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         }
 
         send(socketID, axiom);
+    }
+
+    public BlockingQueue<Object> getToDo() {
+        return toDo;
     }
 
     public List<DistributedWorkerModel<C, A, T>> getWorkers() {

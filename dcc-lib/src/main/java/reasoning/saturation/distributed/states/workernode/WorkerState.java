@@ -4,7 +4,7 @@ import data.Closure;
 import exceptions.MessageProtocolViolationException;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.messages.*;
-import reasoning.reasoner.IncrementalReasoner;
+import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -13,18 +13,24 @@ import reasoning.saturation.distributed.states.AxiomVisitor;
 import util.ConsoleUtils;
 
 import java.io.Serializable;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
 public abstract class WorkerState<C extends Closure<A>, A extends Serializable, T extends Serializable> implements MessageModelVisitor<C, A, T>,
         AxiomVisitor<A> {
 
     protected final Logger log = ConsoleUtils.getLogger();
-    protected SaturationWorker<C, A, T> worker;
-    protected WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
-    protected IncrementalReasoner<C, A> incrementalReasoner;
-    protected AcknowledgementEventManager acknowledgementEventManager;
+
     protected WorkerStatistics stats;
     protected SaturationConfiguration config;
+
+    protected ExecutorService threadPool;
+
+    protected SaturationWorker<C, A, T> worker;
+    protected WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
+    protected AcknowledgementEventManager acknowledgementEventManager;
+
+    protected IncrementalStreamReasoner<C, A> incrementalReasoner;
 
     public WorkerState(SaturationWorker<C, A, T> worker) {
         this.worker = worker;
@@ -33,10 +39,11 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         this.acknowledgementEventManager = communicationChannel.getAcknowledgementEventManager();
         this.config = worker.getConfig();
         this.stats = worker.getStats();
+        this.threadPool = worker.getThreadPool();
     }
 
     public void mainWorkerLoop() throws InterruptedException {
-        Object msg = communicationChannel.takeNextMessage();
+        Object msg = communicationChannel.removeNextMessage();
         if (msg instanceof MessageModel) {
             ((MessageModel<C, A, T>)msg).accept(this);
         } else {
@@ -44,16 +51,6 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         }
     }
 
-    public void mainWorkerLoopForSingleThread() {
-        Object msg = communicationChannel.pollNextMessage();
-        if (msg != null) {
-            if (msg instanceof MessageModel) {
-                ((MessageModel<C, A, T>)msg).accept(this);
-            } else {
-                this.visit((A) msg);
-            }
-        }
-    }
 
     @Override
     public void visit(DebugMessage message) {

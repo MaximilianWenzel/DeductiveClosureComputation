@@ -5,6 +5,8 @@ import org.roaringbitmap.RoaringBitmap;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class InitialAxiomsDistributor<A extends Serializable> {
 
@@ -22,7 +24,8 @@ public class InitialAxiomsDistributor<A extends Serializable> {
         // distribute initial axioms across workers
         this.workerIDToInitialAxiomsIndex = new HashMap<>();
         for (int i = 0; i < initialAxioms.size(); i++) {
-            List<Long> relevantWorkers = workloadDistributor.getRelevantWorkerIDsForAxiom(initialAxioms.get(i));
+            List<Long> relevantWorkers = workloadDistributor.getRelevantWorkerIDsForAxiom(initialAxioms.get(i)).collect(
+                    Collectors.toList());
             for (Long workerID : relevantWorkers) {
                 RoaringBitmap relevantAxiomsForWorker = workerIDToInitialAxiomsIndex.computeIfAbsent(workerID, pID -> new RoaringBitmap());
                 relevantAxiomsForWorker.add(i);

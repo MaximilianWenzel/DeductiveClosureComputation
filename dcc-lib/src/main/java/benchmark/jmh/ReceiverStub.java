@@ -12,6 +12,8 @@ import util.NetworkingUtils;
 
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ReceiverStub {
 
@@ -62,7 +64,7 @@ public class ReceiverStub {
                 networkingComponent = new NIO2NetworkingComponent(
                         Collections.singletonList(portListener),
                         Collections.emptyList(),
-                        2
+                        Executors.newFixedThreadPool(2)
                 );
                 break;
 

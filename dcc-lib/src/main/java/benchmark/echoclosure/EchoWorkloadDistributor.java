@@ -5,6 +5,7 @@ import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class EchoWorkloadDistributor extends WorkloadDistributor<EchoClosure, EchoAxiom, Integer> {
 
@@ -18,8 +19,8 @@ public class EchoWorkloadDistributor extends WorkloadDistributor<EchoClosure, Ec
     }
 
     @Override
-    public List<Long> getRelevantWorkerIDsForAxiom(EchoAxiom axiom) {
+    public Stream<Long> getRelevantWorkerIDsForAxiom(EchoAxiom axiom) {
         int partitionID = (axiom.getX() % workerModels.size());
-        return Collections.singletonList(workerModels.get(partitionID).getID());
+        return Stream.of(workerModels.get(partitionID).getID());
     }
 }

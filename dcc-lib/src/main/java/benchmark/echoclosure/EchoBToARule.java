@@ -2,6 +2,8 @@ package benchmark.echoclosure;
 
 import reasoning.rules.Rule;
 
+import java.util.stream.Stream;
+
 /**
  * a(x) :- b(x) .
  */
@@ -11,9 +13,11 @@ public class EchoBToARule extends Rule<EchoClosure, EchoAxiom> {
     }
 
     @Override
-    public void apply(EchoAxiom axiom) {
+    public Stream<EchoAxiom> streamOfInferences(EchoAxiom axiom) {
+        Stream.Builder<EchoAxiom> inferences = Stream.builder();
         if (axiom instanceof EchoAxiomB) {
-            processInference(new EchoAxiomA(axiom.getX() - 1));
+            inferences.add(new EchoAxiomA(axiom.getX() - 1));
         }
+        return inferences.build();
     }
 }

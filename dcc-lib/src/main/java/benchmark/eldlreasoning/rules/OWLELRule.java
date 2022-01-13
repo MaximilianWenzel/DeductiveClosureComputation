@@ -10,5 +10,4 @@ public abstract class OWLELRule extends Rule<DefaultClosure<ELConceptInclusion>,
         super();
     }
 
-    public abstract void apply(ELConceptInclusion axiom);
 }

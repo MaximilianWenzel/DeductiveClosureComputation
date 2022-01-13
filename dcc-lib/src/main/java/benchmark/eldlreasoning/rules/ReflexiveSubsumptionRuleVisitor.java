@@ -4,43 +4,48 @@ import eldlsyntax.*;
 
 import java.io.Serializable;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class ReflexiveSubsumptionRuleVisitor implements ELConcept.Visitor, Serializable {
-    private Consumer<ELConceptInclusion> consumer;
+    private Stream.Builder<ELConceptInclusion> inferenceBuilder;
 
-    ReflexiveSubsumptionRuleVisitor() {
+    public ReflexiveSubsumptionRuleVisitor() {
 
     }
 
-    public ReflexiveSubsumptionRuleVisitor(Consumer<ELConceptInclusion> consumer) {
-        this.consumer = consumer;
+    public Stream.Builder<ELConceptInclusion> getInferenceBuilder() {
+        return inferenceBuilder;
+    }
+
+    public void setInferenceBuilder(Stream.Builder<ELConceptInclusion> inferenceBuilder) {
+        this.inferenceBuilder = inferenceBuilder;
     }
 
     @Override
     public void visit(ELConceptBottom concept) {
-        consumer.accept(new ELConceptInclusion(concept, concept));
+        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
     }
 
     @Override
     public void visit(ELConceptConjunction concept) {
-        consumer.accept(new ELConceptInclusion(concept, concept));
+        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
         concept.getFirstConjunct().accept(this);
         concept.getSecondConjunct().accept(this);
     }
 
     @Override
     public void visit(ELConceptExistentialRestriction concept) {
-        consumer.accept(new ELConceptInclusion(concept, concept));
+        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
         concept.getFiller().accept(this);
     }
 
     @Override
     public void visit(ELConceptName concept) {
-        consumer.accept(new ELConceptInclusion(concept, concept));
+        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
     }
 
     @Override
     public void visit(ELConceptTop concept) {
-        consumer.accept(new ELConceptInclusion(concept, concept));
+        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
     }
 }

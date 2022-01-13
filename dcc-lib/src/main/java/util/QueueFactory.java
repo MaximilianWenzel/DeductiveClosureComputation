@@ -1,7 +1,10 @@
 package util;
 
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class QueueFactory {
 
@@ -10,6 +13,10 @@ public class QueueFactory {
 
     public static <E> BlockingQueue<E> createSaturationToDo() {
         return new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
+    }
+
+    public static <E> BlockingQueue<E> createDistributedSaturationToDo() {
+        return new LinkedBlockingQueue<>();
     }
 
     public static <E> BlockingQueue<E> createNIOMessageWriterQueue() {

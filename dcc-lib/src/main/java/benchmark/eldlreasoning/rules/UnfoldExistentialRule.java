@@ -4,6 +4,8 @@ import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptExistentialRestriction;
 import eldlsyntax.ELConceptInclusion;
 
+import java.util.stream.Stream;
+
 /**
  * E ⊑ ∃R.D ⇐ E ⊑ ∃R.C ∧ C ⊑ D
  */
@@ -14,9 +16,10 @@ public class UnfoldExistentialRule extends OWLELRule {
     }
 
     @Override
-    public void apply(ELConceptInclusion axiom) {
+    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
         if (!(axiom.getSuperConcept() instanceof ELConceptExistentialRestriction)) {
-            return;
+            return Stream.empty();
         }
 
         ELConcept e = axiom.getSubConcept();
@@ -31,8 +34,9 @@ public class UnfoldExistentialRule extends OWLELRule {
             if (c.equals(conceptInclusion.getSubConcept())) {
                 ELConcept d = conceptInclusion.getSuperConcept();
                 ELConceptExistentialRestriction existForSupertype = new ELConceptExistentialRestriction(exist.getRelation(), d);
-                processInference(new ELConceptInclusion(e, existForSupertype));
+                inferences.add(new ELConceptInclusion(e, existForSupertype));
             }
         }
+        return inferences.build();
     }
 }

@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extends Serializable, T extends Serializable>
         implements InferenceProcessor<A> {
@@ -53,8 +54,8 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
         }
 
         if (!closure.contains(axiom)) {
-            List<Long> workerIDs = distributor.getRelevantWorkerIDsForAxiom(axiom);
-            for (Long workerID : workerIDs) {
+            Stream<Long> workerIDs = distributor.getRelevantWorkerIDsForAxiom(axiom);
+            workerIDs.forEach(workerID -> {
                 sentAxiomsCount.incrementAndGet();
                 if (statistics != null) {
                     statistics.getNumberOfSentAxioms().incrementAndGet();
@@ -62,7 +63,7 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
                 SaturationContext<C, A, T> saturationContext = workerIDToSaturationContext.get(workerID);
                 ToDoQueue<Serializable> toDo = saturationContext.getToDo();
                 toDo.add(axiom);
-            }
+            });
         }
 
         if (statistics != null) {

@@ -14,14 +14,11 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.roaringbitmap.RoaringBitmap;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 public class IndividualExperiments {
 
-    private static final boolean collectWorkerNodeStatistics = false;
+    private static final boolean collectWorkerNodeStatistics = true;
 
     private static final int EXPERIMENT_ROUNDS = 1;
 
@@ -32,7 +29,7 @@ public class IndividualExperiments {
 
     static {
         binaryTreeDepthList = new ArrayList<>();
-        binaryTreeDepthList.add(9);
+        binaryTreeDepthList.add(17);
 
         initialEchoAxioms = new ArrayList<>();
         //initialEchoAxioms.add(10_000);
@@ -73,12 +70,11 @@ public class IndividualExperiments {
     }
 
     public static void benchmark(File outputDirectory) {
-
         Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
         includedApproaches.add(SaturationApproach.SINGLE_THREADED);
-        includedApproaches.add(SaturationApproach.PARALLEL);
-        includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
-        //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
+        //includedApproaches.add(SaturationApproach.PARALLEL);
+        //includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
+        includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
 
         binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
@@ -105,7 +101,7 @@ public class IndividualExperiments {
                 ReachabilitySaturationInitializationFactory factory = new ReachabilitySaturationInitializationFactory(
                         initialAxioms,
                         numWorkers,
-                        500_000
+                        0
                 );
                 binaryTreeBenchmark.startBenchmark(factory);
             }

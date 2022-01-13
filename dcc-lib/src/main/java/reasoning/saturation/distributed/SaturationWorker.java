@@ -2,13 +2,9 @@ package reasoning.saturation.distributed;
 
 import data.Closure;
 import exceptions.NotImplementedException;
-import networking.NIONetworkingComponent;
 import networking.ServerData;
 import networking.messages.InitializeWorkerMessage;
-import reasoning.reasoner.IncrementalReasoner;
-import reasoning.reasoner.IncrementalReasonerImpl;
-import reasoning.reasoner.IncrementalReasonerWithStatistics;
-import reasoning.rules.DistributedSaturationInferenceProcessor;
+import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -20,6 +16,8 @@ import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class SaturationWorker<C extends Closure<A>, A extends Serializable, T extends Serializable>
@@ -32,28 +30,29 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private Collection<? extends Rule<C, A>> rules;
 
     private WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
-    private int numberOfNetworkingThreads;
+    private int numberOfThreads;
+    private ExecutorService threadPool = null;
 
     private WorkerState<C, A, T> state;
-    private IncrementalReasoner<C, A> incrementalReasoner;
+    private IncrementalStreamReasoner<C, A> incrementalReasoner;
     private SaturationConfiguration config;
     private WorkerStatistics stats = new WorkerStatistics();
     private boolean terminateAfterSaturation = false;
 
     public SaturationWorker(ServerData serverData,
                             IncrementalReasonerType incrementalReasonerType,
-                            int numberOfNetworkingThreads) {
+                            int numberOfThreads) {
         this.serverData = serverData;
-        this.numberOfNetworkingThreads = numberOfNetworkingThreads;
+        this.numberOfThreads = numberOfThreads;
         this.incrementalReasonerType = incrementalReasonerType;
         init();
     }
 
     public SaturationWorker(ServerData serverData,
                             IncrementalReasonerType incrementalReasonerType,
-                            int numberOfNetworkingThreads,
+                            int numberOfThreads,
                             boolean terminateAfterSaturation) {
-        this(serverData, incrementalReasonerType, numberOfNetworkingThreads);
+        this(serverData, incrementalReasonerType, numberOfThreads);
         this.terminateAfterSaturation = terminateAfterSaturation;
         init();
     }
@@ -83,49 +82,33 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     private void init() {
-        if (numberOfNetworkingThreads == 1) {
-            this.communicationChannel = new WorkerNodeCommunicationChannel<>(serverData, new Runnable() {
-                @Override
-                public void run() {
-                    if (!(state instanceof WorkerStateFinished)) {
-                        state.mainWorkerLoopForSingleThread();
-                    } else {
-                        log.info("Saturation finished.");
-                        clearWorkerForNewSaturation();
-                    }
-                }
-            });
-        } else {
-            this.communicationChannel = new WorkerNodeCommunicationChannel<>(serverData, numberOfNetworkingThreads);
+        if (threadPool == null) {
+            threadPool = Executors.newFixedThreadPool(numberOfThreads);
         }
+        this.communicationChannel = new WorkerNodeCommunicationChannel<>(serverData, threadPool);
         this.state = new WorkerStateInitializing<>(this);
 
     }
 
-
     @Override
     public void run() {
-        if (numberOfNetworkingThreads == 1) {
-            communicationChannel.startNetworkCommunication();
-        } else {
-            try {
-                do {
-                    while (!(state instanceof WorkerStateFinished)) {
-                        state.mainWorkerLoop();
-                    }
-                    log.info("Saturation finished.");
-                    clearWorkerForNewSaturation();
-                } while (!terminateAfterSaturation);
+        try {
+            do {
+                while (!(state instanceof WorkerStateFinished)) {
+                    state.mainWorkerLoop();
+                }
+                log.info("Saturation finished.");
+                clearWorkerForNewSaturation();
+            } while (!terminateAfterSaturation);
 
-            } catch (InterruptedException e) {
-                log.info("Worker has been interrupted.");
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                log.info("Terminating worker...");
-                terminate();
-                log.info("Worker terminated.");
-            }
+        } catch (InterruptedException e) {
+            log.info("Worker has been interrupted.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            log.info("Terminating worker...");
+            terminate();
+            log.info("Worker terminated.");
         }
     }
 
@@ -151,7 +134,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         return communicationChannel;
     }
 
-    public IncrementalReasoner<C, A> getIncrementalReasoner() {
+    public IncrementalStreamReasoner<C, A> getIncrementalReasoner() {
         return incrementalReasoner;
     }
 
@@ -173,24 +156,21 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     private void initializeRules() {
-        DistributedSaturationInferenceProcessor inferenceProcessor = new DistributedSaturationInferenceProcessor(
-                communicationChannel, closure, config, stats);
         this.rules.forEach(r -> {
-            r.setInferenceProcessor(inferenceProcessor);
             r.setClosure(closure);
         });
 
         switch (incrementalReasonerType) {
             case SINGLE_THREADED:
-                if (config.collectControlNodeStatistics()) {
-                    this.incrementalReasoner = new IncrementalReasonerWithStatistics<>(rules, closure, config, stats);
-                } else {
-                    this.incrementalReasoner = new IncrementalReasonerImpl<>(rules, closure);
-                }
+                this.incrementalReasoner = new IncrementalStreamReasoner<>(rules, closure, config, stats);
                 break;
             default:
                 throw new NotImplementedException();
         }
+    }
+
+    public ExecutorService getThreadPool() {
+        return threadPool;
     }
 
     public void terminate() {

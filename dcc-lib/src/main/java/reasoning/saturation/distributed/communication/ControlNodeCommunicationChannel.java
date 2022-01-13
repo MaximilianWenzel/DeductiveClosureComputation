@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -61,17 +63,21 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected AtomicInteger sumOfAllReceivedAxioms = new AtomicInteger(0);
     protected AtomicInteger sumOfAllSentAxioms = new AtomicInteger(0);
 
+    protected ExecutorService threadPool;
+
     protected SaturationConfiguration config;
 
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
                                            WorkloadDistributor<C, A, T> workloadDistributor,
                                            List<? extends A> initialAxioms,
-                                           SaturationConfiguration config) {
+                                           SaturationConfiguration config,
+                                           ExecutorService threadPool) {
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
         this.config = config;
+        this.threadPool = threadPool;
         init();
     }
 
@@ -89,7 +95,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         networkingComponent = new NIO2NetworkingComponent(
                 Collections.emptyList(),
                 Collections.emptyList(),
-                2
+                threadPool
         );
 
     }
@@ -123,8 +129,8 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     }
 
     @Override
-    public Object takeNextMessage() throws InterruptedException {
-        return receivedMessages.take();
+    public Object removeNextMessage() {
+        return receivedMessages.remove();
     }
 
     @Override

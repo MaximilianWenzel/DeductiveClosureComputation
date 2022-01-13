@@ -9,6 +9,7 @@ services:
     volumes:
       #- ~/:/saturation/ # read/write access to home directory
       - ./:/saturation/ # directory of docker compose file
+      # parameter volume
     command: ${APPROACH} ${NUM_WORKERS} ${BENCHMARK}
     ports:
       - "30000"

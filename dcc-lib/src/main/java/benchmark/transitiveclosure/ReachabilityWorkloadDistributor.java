@@ -6,6 +6,7 @@ import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class ReachabilityWorkloadDistributor extends WorkloadDistributor<ReachabilityClosure, Reachability, RoaringBitmap> {
 
@@ -18,14 +19,14 @@ public class ReachabilityWorkloadDistributor extends WorkloadDistributor<Reachab
     }
 
     @Override
-    public List<Long> getRelevantWorkerIDsForAxiom(Reachability axiom) {
-        List<Long> result = new ArrayList<>();
+    public Stream<Long> getRelevantWorkerIDsForAxiom(Reachability axiom) {
+        Stream.Builder<Long> workerIDs = Stream.builder();
         workerModels.forEach(worker -> {
             if (isRelevantAxiomToWorker(worker, axiom)) {
-                result.add(worker.getID());
+                workerIDs.add(worker.getID());
             }
         });
-        return result;
+        return workerIDs.build();
     }
 
     public boolean isRelevantAxiomToWorker(WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap> worker, Reachability axiom) {

@@ -90,7 +90,8 @@ public class ClosureComputationTestUtil {
                 factory.getWorkloadDistributor(),
                 factory.getInitialAxioms(),
                 factory.getNewClosure(),
-                configuration
+                configuration,
+                1
         );
 
         C closure = saturation.saturate();

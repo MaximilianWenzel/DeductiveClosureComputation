@@ -15,26 +15,37 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SaturationControlNode<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
-    private final ControlNodeCommunicationChannel<C, A, T> communicationChannel;
-    private final List<DistributedWorkerModel<C, A, T>> workers;
     private C resultingClosure;
+
+    private final List<DistributedWorkerModel<C, A, T>> workers;
+
+    private ControlNodeCommunicationChannel<C, A, T> communicationChannel;
     private ControlNodeState<C, A, T> state;
+
     private SaturationConfiguration config;
     private ControlNodeStatistics stats = new ControlNodeStatistics();
     private List<WorkerStatistics> workerStatistics = new ArrayList<>();
+
+    private ExecutorService threadPool;
+    private int numberOfThreads;
 
     protected SaturationControlNode(List<DistributedWorkerModel<C, A, T>> workers,
                                     WorkloadDistributor<C, A, T> workloadDistributor,
                                     List<? extends A> initialAxioms,
                                     C resultingClosure,
-                                    SaturationConfiguration config) {
-        this.communicationChannel = new ControlNodeCommunicationChannel<>(workers, workloadDistributor, initialAxioms, config);
+                                    SaturationConfiguration config,
+                                    int numberOfThreads) {
         this.workers = workers;
         this.resultingClosure = resultingClosure;
         this.config = config;
+        this.numberOfThreads = numberOfThreads;
+        this.threadPool = Executors.newFixedThreadPool(numberOfThreads);
+        this.communicationChannel = new ControlNodeCommunicationChannel<>(workers, workloadDistributor, initialAxioms, config, threadPool);
         init();
     }
 

@@ -25,15 +25,16 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     protected List<ConnectionEstablishmentListener> serversToConnectTo;
 
     protected ConcurrentMap<Long, NIO2SocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
-    protected int numberOfNetworkingThreads;
     protected AsynchronousChannelGroup asynchronousChannelGroup;
+
+    protected ExecutorService threadPool;
 
     public NIO2NetworkingComponent(List<ConnectionEstablishmentListener> portNumbersToListen,
                                    List<ConnectionEstablishmentListener> serversToConnectTo,
-                                   int numberOfNetworkingThreads) {
+                                   ExecutorService threadPool) {
         this.portNumbersToListen = portNumbersToListen;
         this.serversToConnectTo = serversToConnectTo;
-        this.numberOfNetworkingThreads = numberOfNetworkingThreads;
+        this.threadPool = threadPool;
         try {
             init();
         } catch (IOException e) {
@@ -42,8 +43,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     }
 
     private void init() throws IOException {
-        asynchronousChannelGroup = AsynchronousChannelGroup.withFixedThreadPool(numberOfNetworkingThreads, Thread::new);
-
+        asynchronousChannelGroup = AsynchronousChannelGroup.withThreadPool(threadPool);
 
         for (ConnectionEstablishmentListener portListener : portNumbersToListen) {
             listenToPort(portListener);

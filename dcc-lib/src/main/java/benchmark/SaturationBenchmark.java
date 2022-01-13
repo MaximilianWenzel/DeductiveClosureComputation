@@ -278,7 +278,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                     initializationFactory.getWorkloadDistributor(),
                     initialAxioms,
                     initializationFactory.getNewClosure(),
-                    new SaturationConfiguration(true, workerNodeStatistics)
+                    new SaturationConfiguration(true, workerNodeStatistics),
+                    1
             );
 
             // run saturation

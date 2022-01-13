@@ -5,6 +5,7 @@ import reasoning.saturation.models.WorkerModel;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.stream.Stream;
 
 public abstract class WorkloadDistributor<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Serializable {
 
@@ -17,5 +18,5 @@ public abstract class WorkloadDistributor<C extends Closure<A>, A extends Serial
         this.workerModels = workerModels;
     }
 
-    public abstract List<Long> getRelevantWorkerIDsForAxiom(A axiom);
+    public abstract Stream<Long> getRelevantWorkerIDsForAxiom(A axiom);
 }

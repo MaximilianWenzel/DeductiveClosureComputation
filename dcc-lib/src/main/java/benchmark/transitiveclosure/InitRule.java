@@ -2,6 +2,8 @@ package benchmark.transitiveclosure;
 
 import reasoning.rules.Rule;
 
+import java.util.stream.Stream;
+
 /**
  * derived(x, y) :- told(x, y)
  */
@@ -12,9 +14,13 @@ public class InitRule extends Rule<ReachabilityClosure, Reachability> {
     }
 
     @Override
-    public void apply(Reachability axiom) {
+    public Stream<Reachability> streamOfInferences(Reachability axiom) {
+        Stream.Builder<Reachability> inferences = Stream.builder();
+
         if (axiom instanceof ToldReachability) {
-            processInference(new DerivedReachability(axiom.getSourceNode(), axiom.getDestinationNode()));
+            inferences.accept(new DerivedReachability(axiom.getSourceNode(), axiom.getDestinationNode()));
         }
+
+        return inferences.build();
     }
 }

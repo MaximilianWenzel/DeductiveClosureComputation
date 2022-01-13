@@ -4,6 +4,7 @@ import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptInclusion;
 
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * derived(C ⊑ E) ⇐ derived(C ⊑ D) : told(D ⊑ E)
@@ -22,14 +23,16 @@ public class UnfoldSubsumptionRule extends OWLELRule {
     }
 
     @Override
-    public void apply(ELConceptInclusion axiom) {
+    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
         ELConcept c = axiom.getSubConcept();
         ELConcept d = axiom.getSuperConcept();
 
         for (ELConceptInclusion conceptIncl : ontology) {
             if (d.equals(conceptIncl.getSubConcept())) {
-                processInference(new ELConceptInclusion(c, conceptIncl.getSuperConcept()));
+                inferences.add(new ELConceptInclusion(c, conceptIncl.getSuperConcept()));
             }
         }
+        return inferences.build();
     }
 }

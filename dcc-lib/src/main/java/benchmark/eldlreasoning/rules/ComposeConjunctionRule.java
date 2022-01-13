@@ -5,6 +5,7 @@ import eldlsyntax.ELConceptConjunction;
 import eldlsyntax.ELConceptInclusion;
 
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * derived(C ⊑ D1 ⊓ D2) ⇐ derived(C ⊑ D1) ∧ derived(C ⊑ D2) ∧ occursNegatively(D1 ⊓ D2)
@@ -46,7 +47,8 @@ public class ComposeConjunctionRule extends OWLELRule {
     }
 
     @Override
-    public void apply(ELConceptInclusion axiom) {
+    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
         ELConcept c = axiom.getSubConcept();
         ELConcept d1 = axiom.getSuperConcept();
 
@@ -59,13 +61,14 @@ public class ComposeConjunctionRule extends OWLELRule {
                 ELConcept d2 = conceptInclusion.getSuperConcept();
                 ELConceptConjunction conjunction = new ELConceptConjunction(d1, d2);
                 if (this.negativeConceptsFromOntology.contains(conjunction)) {
-                    this.processInference(new ELConceptInclusion(c, conjunction));
+                    inferences.add(new ELConceptInclusion(c, conjunction));
                 }
                 ELConceptConjunction conjunction2 = new ELConceptConjunction(d2, d1);
                 if (this.negativeConceptsFromOntology.contains(conjunction2)) {
-                    this.processInference(new ELConceptInclusion(c, conjunction2));
+                    inferences.add(new ELConceptInclusion(c, conjunction2));
                 }
             }
         }
+        return inferences.build();
     }
 }

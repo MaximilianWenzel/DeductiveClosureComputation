@@ -1,9 +1,12 @@
 package benchmark.transitiveclosure;
 
+import benchmark.echoclosure.EchoAxiom;
 import com.google.common.base.Stopwatch;
 import org.roaringbitmap.IntConsumer;
 import org.roaringbitmap.RoaringBitmap;
 import reasoning.rules.Rule;
+
+import java.util.stream.Stream;
 
 /**
  * derived(x, z) :- derived(x, y), told(y, z)
@@ -22,7 +25,8 @@ public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachabili
     }
 
     @Override
-    public void apply(Reachability axiom) {
+    public Stream<Reachability> streamOfInferences(Reachability axiom) {
+        Stream.Builder<Reachability> inferences = Stream.builder();
         if (ruleDelayInNanoSec > 0) {
             Stopwatch s = Stopwatch.createStarted();
             while (true) {
@@ -42,7 +46,7 @@ public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachabili
             nodesWithConnectionToY.forEach(new IntConsumer() {
                 @Override
                 public void accept(int x) {
-                    processInference(new DerivedReachability(x, z));
+                    inferences.add(new DerivedReachability(x, z));
                 }
             });
         } else if (axiom instanceof DerivedReachability) {
@@ -54,11 +58,10 @@ public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachabili
             reachableFromY.forEach(new IntConsumer() {
                 @Override
                 public void accept(int z) {
-                    processInference(new DerivedReachability(axiom.getSourceNode(), z));
+                    inferences.add(new DerivedReachability(axiom.getSourceNode(), z));
                 }
             });
         }
-
-
+        return inferences.build();
     }
 }

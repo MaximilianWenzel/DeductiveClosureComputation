@@ -21,7 +21,6 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
             this.worker.switchState(new WorkerStateConverged<>(worker));
             if (config.collectWorkerNodeStatistics()) {
                 stats.getTodoIsEmptyEvent().incrementAndGet();
-                stats.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
                 stats.startStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
             }
             if (!lastMessageWasAxiomCountRequest) {
@@ -29,44 +28,12 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
             }
             return;
         }
-
-        Object obj = communicationChannel.takeNextMessage();
-        if (obj instanceof MessageModel) {
-            ((MessageModel<C, A, T>)obj).accept(this);
-        } else {
-            incrementalReasoner.processAxiom((A) obj);
-        }
-
-        if (obj instanceof RequestAxiomMessageCount) {
-            lastMessageWasAxiomCountRequest = true;
-        } else {
-            lastMessageWasAxiomCountRequest = false;
-        }
-    }
-
-    public void mainWorkerLoopForSingleThread() {
-        if (!communicationChannel.hasMoreMessages()) {
-            this.worker.switchState(new WorkerStateConverged<>(worker));
-            if (config.collectWorkerNodeStatistics()) {
-                stats.getTodoIsEmptyEvent().incrementAndGet();
-                stats.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
-                stats.startStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
-            }
-            if (!lastMessageWasAxiomCountRequest) {
-                communicationChannel.sendAxiomCountToControlNode();
-            }
-            return;
-        }
-
-        Object obj = communicationChannel.pollNextMessage();
-        if (obj == null) {
-            return;
-        }
+        Object obj = communicationChannel.removeNextMessage();
 
         if (obj instanceof MessageModel) {
             ((MessageModel<C, A, T>)obj).accept(this);
         } else {
-            incrementalReasoner.processAxiom((A) obj);
+            visit((A)obj);
         }
 
         if (obj instanceof RequestAxiomMessageCount) {
@@ -109,7 +76,9 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     @Override
     public void visit(A axiom) {
-        incrementalReasoner.processAxiom(axiom);
+        communicationChannel.distributeInferences(incrementalReasoner.getStreamOfInferencesForGivenAxiom(axiom)
+                .filter(inference -> !this.worker.getClosure().contains(inference)) // only those which are not contained in closure
+        );
     }
 
 }

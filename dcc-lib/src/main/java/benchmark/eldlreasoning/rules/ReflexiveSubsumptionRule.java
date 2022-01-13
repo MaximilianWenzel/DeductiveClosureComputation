@@ -5,6 +5,7 @@ import reasoning.rules.InferenceProcessor;
 
 import java.io.Serializable;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * C ⊑ C ⇐ no premises
@@ -15,16 +16,15 @@ public class ReflexiveSubsumptionRule extends OWLELRule {
 
     public ReflexiveSubsumptionRule() {
         super();
+        visitor = new ReflexiveSubsumptionRuleVisitor();
     }
 
     @Override
-    public void apply(ELConceptInclusion axiom) {
+    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
+        visitor.setInferenceBuilder(inferences);
         axiom.getSubConcept().accept(visitor);
         axiom.getSuperConcept().accept(visitor);
-    }
-
-    public void setInferenceProcessor(InferenceProcessor<ELConceptInclusion> inferenceProcessor) {
-        this.inferenceProcessor = inferenceProcessor;
-        this.visitor = new ReflexiveSubsumptionRuleVisitor(new ProcessInferenceConsumer<>(inferenceProcessor));
+        return inferences.build();
     }
 }

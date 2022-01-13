@@ -2,7 +2,7 @@ package reasoning.saturation.distributed.communication;
 
 public interface SaturationCommunicationChannel {
 
-    Object takeNextMessage() throws InterruptedException;
+    Object removeNextMessage() throws InterruptedException;
 
     Object pollNextMessage();
 

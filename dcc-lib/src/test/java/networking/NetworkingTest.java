@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -169,7 +170,7 @@ public class NetworkingTest {
         NIO2NetworkingComponent networkingComponent = new NIO2NetworkingComponent(
                 Collections.singletonList(portListener),
                 serverConnectors,
-                2
+                Executors.newFixedThreadPool(2)
         );
 
         while (socketIDs.isEmpty()) {

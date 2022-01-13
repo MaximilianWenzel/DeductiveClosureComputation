@@ -12,6 +12,7 @@ import java.nio.channels.CompletionHandler;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 public class NIO2MessageWriter {
 
@@ -96,6 +97,7 @@ public class NIO2MessageWriter {
             public void failed(Throwable exc, Object attachment) {
             }
         });
+
     }
 
     public boolean isEmpty() {

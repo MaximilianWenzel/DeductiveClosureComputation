@@ -11,6 +11,7 @@ import reasoning.saturation.workload.WorkloadDistributor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class OWLELWorkloadDistributor extends WorkloadDistributor<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> {
 
@@ -23,14 +24,14 @@ public class OWLELWorkloadDistributor extends WorkloadDistributor<DefaultClosure
     }
 
     @Override
-    public List<Long> getRelevantWorkerIDsForAxiom(ELConceptInclusion axiom) {
-        List<Long> workerIDs = new ArrayList<>();
+    public Stream<Long> getRelevantWorkerIDsForAxiom(ELConceptInclusion axiom) {
+        Stream.Builder<Long> workerIDs = Stream.builder();
         for (WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> worker : workerModels) {
             if (isRelevantAxiomToWorker(worker, axiom)) {
                 workerIDs.add(worker.getID());
             }
         }
-        return workerIDs;
+        return workerIDs.build();
     }
 
     public boolean isRelevantAxiomToWorker(WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> worker,

@@ -22,6 +22,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
@@ -74,6 +75,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
                 config,
                 this,
                 worker.getRules(),
+                workloadDistributor,
                 workerClosure,
                 workerToDo
         );
@@ -108,11 +110,11 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
 
         // distribute initial axioms
         for (A axiom : initialAxioms) {
-            List<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
-            for (Long workerID : workerIDs) {
+            Stream<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
+            workerIDs.forEach(workerID -> {
                 sumOfAllSentAxioms.incrementAndGet();
                 this.workerIDToSaturationContext.get(workerID).getToDo().add(axiom);
-            }
+            });
         }
 
         if (config.collectControlNodeStatistics()) {
