@@ -30,8 +30,9 @@ public class EchoSaturationTest {
     void testDistributedEchoSaturation() {
         int numWorkers = 4;
         SaturationInitializationFactory<EchoClosure, EchoAxiom, Integer> initializationFactory = new EchoSaturationInitializationFactory(
-                numWorkers, 1000);
+                numWorkers, 1_000);
 
-        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 2);
+        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 1);
+        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 3);
     }
 }

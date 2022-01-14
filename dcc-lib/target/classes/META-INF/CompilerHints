@@ -21,3 +21,6 @@ inline,benchmark/jmh/NIO2NetworkingComponentBenchmark.tearDown
 inline,benchmark/jmh/NIONetworkingComponentBenchmark.sendObjectNIO
 inline,benchmark/jmh/NIONetworkingComponentBenchmark.setUp
 inline,benchmark/jmh/NIONetworkingComponentBenchmark.tearDown
+inline,benchmark/jmh/SerializationBenchmark.kryoSerialization
+inline,benchmark/jmh/SerializationBenchmark.setUp
+inline,benchmark/jmh/SerializationBenchmark.tearDown

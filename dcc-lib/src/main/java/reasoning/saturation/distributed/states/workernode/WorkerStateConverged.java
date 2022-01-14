@@ -60,7 +60,6 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
         WorkerStateRunning<C, A, T> runningState = new WorkerStateRunning<>(worker);
         //log.info("Axioms received. Continuing saturation...");
         if (config.collectWorkerNodeStatistics()) {
-            stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
             stats.stopStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
         }
         worker.switchState(runningState);

@@ -33,7 +33,7 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
         this.stats = saturationControlNode.getControlNodeStatistics();
     }
 
-    public void mainControlNodeLoop() throws InterruptedException {
+    public void mainControlNodeLoop() {
         Object msg = communicationChannel.removeNextMessage();
         if (msg instanceof MessageModel) {
             MessageModel<C, A, T> message = (MessageModel<C, A, T>) msg;

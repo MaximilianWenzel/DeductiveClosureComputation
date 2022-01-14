@@ -74,7 +74,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     public SaturationBenchmark(String benchmarkType,
                                Set<SaturationApproach> includedApproaches,
                                File outputDirectory,
-                               int numberOfExperimentRepetitions,
+                               int numberOfWarmUpRounds, int numberOfExperimentRepetitions,
                                boolean workerNodeStatistics,
                                List<Integer> numberOfThreadsForSingleDistributedWorker) {
         this.benchmarkType = benchmarkType;
@@ -279,7 +279,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                     initialAxioms,
                     initializationFactory.getNewClosure(),
                     new SaturationConfiguration(true, workerNodeStatistics),
-                    1
+                    numberOfThreadsForSingleDistributedWorker
             );
 
             // run saturation

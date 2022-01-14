@@ -16,18 +16,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
         super(worker);
     }
 
-    public void mainWorkerLoop() throws InterruptedException {
-        if (!communicationChannel.hasMoreMessages()) {
-            this.worker.switchState(new WorkerStateConverged<>(worker));
-            if (config.collectWorkerNodeStatistics()) {
-                stats.getTodoIsEmptyEvent().incrementAndGet();
-                stats.startStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
-            }
-            if (!lastMessageWasAxiomCountRequest) {
-                communicationChannel.sendAxiomCountToControlNode();
-            }
-            return;
-        }
+    public void mainWorkerLoop() {
         Object obj = communicationChannel.removeNextMessage();
 
         if (obj instanceof MessageModel) {
@@ -36,10 +25,17 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
             visit((A)obj);
         }
 
-        if (obj instanceof RequestAxiomMessageCount) {
-            lastMessageWasAxiomCountRequest = true;
-        } else {
-            lastMessageWasAxiomCountRequest = false;
+        lastMessageWasAxiomCountRequest = obj instanceof RequestAxiomMessageCount;
+    }
+
+    public void onToDoIsEmpty() {
+        this.worker.switchState(new WorkerStateConverged<>(worker));
+        if (config.collectWorkerNodeStatistics()) {
+            stats.getTodoIsEmptyEvent().incrementAndGet();
+            stats.startStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
+        }
+        if (!lastMessageWasAxiomCountRequest) {
+            communicationChannel.sendAxiomCountToControlNode();
         }
     }
 

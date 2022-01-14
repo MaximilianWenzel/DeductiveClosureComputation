@@ -12,7 +12,6 @@ import util.NetworkingUtils;
 
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ReceiverStub {
@@ -21,13 +20,15 @@ public class ReceiverStub {
     private String hostname;
     private NetworkingComponent networkingComponent;
     private NetworkingComponentType type;
+    private BlockingQueue<Object> queue;
 
     public ReceiverStub(BlockingQueue<Object> queue, NetworkingComponentType type) {
         this.type = type;
-        init(queue);
+        this.queue = queue;
+        init();
     }
 
-    private void init(BlockingQueue<Object> queue) {
+    private void init() {
         MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
@@ -60,11 +61,11 @@ public class ReceiverStub {
                         () -> {}
                 );
                 break;
-            case ASYNC_NIO:
+            case ASYNC_NIO2:
                 networkingComponent = new NIO2NetworkingComponent(
                         Collections.singletonList(portListener),
                         Collections.emptyList(),
-                        Executors.newFixedThreadPool(2)
+                        Executors.newFixedThreadPool(1)
                 );
                 break;
 

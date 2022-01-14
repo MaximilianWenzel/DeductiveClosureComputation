@@ -22,4 +22,12 @@ public class ServerData implements Serializable {
     public int getPortNumber() {
         return portNumber;
     }
+
+    @Override
+    public String toString() {
+        return "ServerData{" +
+                "serverName='" + serverName + '\'' +
+                ", portNumber=" + portNumber +
+                '}';
+    }
 }

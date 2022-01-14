@@ -63,10 +63,10 @@ public class NIO2NetworkingComponentBenchmark {
 
     @Setup(Level.Trial)
     public void setUp() {
-        queue = new ArrayBlockingQueue<>(1);
-        nio2ReceiverStub = new ReceiverStub(queue, NetworkingComponentType.ASYNC_NIO);
+        queue = new ArrayBlockingQueue<>(1000);
+        nio2ReceiverStub = new ReceiverStub(queue, NetworkingComponentType.ASYNC_NIO2);
         nio2SenderStub = new SenderStub(new ServerData("localhost", nio2ReceiverStub.getServerPort()),
-                NetworkingComponentType.ASYNC_NIO);
+                NetworkingComponentType.ASYNC_NIO2);
     }
 
     @TearDown(Level.Trial)

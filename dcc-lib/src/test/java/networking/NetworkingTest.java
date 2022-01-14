@@ -6,6 +6,7 @@ import enums.NetworkingComponentType;
 import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
+import networking.messages.MessageEnvelope;
 import org.junit.jupiter.api.Test;
 import util.NetworkingUtils;
 import util.QueueFactory;
@@ -16,7 +17,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -112,9 +116,9 @@ public class NetworkingTest {
     @Test
     public void testSenderReceiverStubs() {
         BlockingQueue<Object> arrayBlockingQueue = QueueFactory.createSaturationToDo();
-        ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue, NetworkingComponentType.ASYNC_NIO);
+        ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue, NetworkingComponentType.ASYNC_NIO2);
         SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()),
-                NetworkingComponentType.ASYNC_NIO);
+                NetworkingComponentType.ASYNC_NIO2);
 
         int numResults = 100;
         for (int i = 0; i < numResults; i++) {
@@ -166,11 +170,11 @@ public class NetworkingTest {
         serverConnectors.add(serverConnector1);
         serverConnectors.add(serverConnector2);
 
-
+        ExecutorService threadPool = Executors.newFixedThreadPool(3);
         NIO2NetworkingComponent networkingComponent = new NIO2NetworkingComponent(
                 Collections.singletonList(portListener),
                 serverConnectors,
-                Executors.newFixedThreadPool(2)
+                threadPool
         );
 
         while (socketIDs.isEmpty()) {

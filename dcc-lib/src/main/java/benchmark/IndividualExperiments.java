@@ -21,19 +21,21 @@ public class IndividualExperiments {
     private static final boolean collectWorkerNodeStatistics = true;
 
     private static final int EXPERIMENT_ROUNDS = 1;
+    private static final int WARM_UP_ROUNDS = 1;
 
     private static List<Integer> binaryTreeDepthList;
     private static List<Integer> initialEchoAxioms;
     private static List<Integer> chainDepthList;
     private static List<Integer> numberOfWorkersList;
+    private static List<Integer> numberOfThreadsPerDistributedWorker;
 
     static {
         binaryTreeDepthList = new ArrayList<>();
-        binaryTreeDepthList.add(17);
+        binaryTreeDepthList.add(16);
 
         initialEchoAxioms = new ArrayList<>();
         //initialEchoAxioms.add(10_000);
-        initialEchoAxioms.add(20_000);
+        //initialEchoAxioms.add(20_000);
         //initialEchoAxioms.add(50_000);
         //initialEchoAxioms.add(100_000);
         //initialEchoAxioms.add(200_000);
@@ -48,8 +50,11 @@ public class IndividualExperiments {
 
         numberOfWorkersList = new ArrayList<>();
         numberOfWorkersList.add(1);
-        numberOfWorkersList.add(2);
-        //numberOfWorkersList.add(4);
+        //numberOfWorkersList.add(2);
+        numberOfWorkersList.add(4);
+
+        numberOfThreadsPerDistributedWorker = new ArrayList<>();
+        numberOfThreadsPerDistributedWorker.add(1);
     }
 
     public static void main(String[] args) {
@@ -72,9 +77,9 @@ public class IndividualExperiments {
     public static void benchmark(File outputDirectory) {
         Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
         includedApproaches.add(SaturationApproach.SINGLE_THREADED);
-        //includedApproaches.add(SaturationApproach.PARALLEL);
-        //includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
-        includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
+        includedApproaches.add(SaturationApproach.PARALLEL);
+        includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
+        //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
 
         binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
@@ -91,8 +96,10 @@ public class IndividualExperiments {
                 "BinaryTree",
                 includedApproaches,
                 outputDirectory,
+                WARM_UP_ROUNDS,
                 EXPERIMENT_ROUNDS,
-                collectWorkerNodeStatistics
+                collectWorkerNodeStatistics,
+                numberOfThreadsPerDistributedWorker
         );
         for (Integer depth : binaryTreeDepthList) {
             ReachabilityBinaryTreeGenerator treeGenerator = new ReachabilityBinaryTreeGenerator(depth);
@@ -119,8 +126,10 @@ public class IndividualExperiments {
                 "ChainGraph",
                 includedApproaches,
                 outputDirectory,
+                WARM_UP_ROUNDS,
                 EXPERIMENT_ROUNDS,
-                collectWorkerNodeStatistics
+                collectWorkerNodeStatistics,
+                numberOfThreadsPerDistributedWorker
         );
         for (Integer depth : chainDepthList) {
             ReachabilityChainGraphGenerator treeGenerator = new ReachabilityChainGraphGenerator(depth);
@@ -145,8 +154,10 @@ public class IndividualExperiments {
                 "Echo",
                 includedApproaches,
                 outputDirectory,
+                WARM_UP_ROUNDS,
                 EXPERIMENT_ROUNDS,
-                collectWorkerNodeStatistics
+                collectWorkerNodeStatistics,
+                numberOfThreadsPerDistributedWorker
         );
         for (Integer initialMessages : initialMessagesList) {
             for (Integer numWorkers : numberOfWorkersList) {

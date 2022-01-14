@@ -81,10 +81,6 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
             this.communicationChannel.addAxiomsToQueue(bufferedAxiomMessages);
             this.worker.switchState(new WorkerStateRunning<>(worker));
 
-            if (config.collectWorkerNodeStatistics()) {
-                stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
-            }
-
             communicationChannel.acknowledgeMessage(communicationChannel.getControlNodeID(), allWorkersInitializedMessageID);
         }
     }

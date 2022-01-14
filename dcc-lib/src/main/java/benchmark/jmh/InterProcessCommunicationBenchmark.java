@@ -68,7 +68,7 @@ public class InterProcessCommunicationBenchmark {
         public void run() {
             try {
                 while (running) {
-                    receivedMessages.offer(toSend.take());
+                    receivedMessages.add(toSend.take());
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();

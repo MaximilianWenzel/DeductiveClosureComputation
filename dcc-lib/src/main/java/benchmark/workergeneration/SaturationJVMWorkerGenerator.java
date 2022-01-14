@@ -2,6 +2,7 @@ package benchmark.workergeneration;
 
 import networking.ServerData;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
+import reasoning.saturation.Saturation;
 import reasoning.saturation.distributed.SaturationWorker;
 import util.NetworkingUtils;
 

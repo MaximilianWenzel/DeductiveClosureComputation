@@ -1,18 +1,19 @@
 package benchmark.workergeneration;
 
 import networking.ServerData;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.distributed.SaturationWorker;
 import util.NetworkingUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerator {
 
     private final int numberOfWorkers;
     private List<ServerData> serverDataList;
-    private List<Thread> workerThreads = new ArrayList<>();
     private final List<SaturationWorker<?, ?, ?>> saturationWorkers = new ArrayList<>();
     private final int numberOfThreadsForSingleWorker;
 
@@ -24,8 +25,13 @@ public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerato
 
     private void init() {
         serverDataList = new ArrayList<>();
+        Set<Integer> freePorts = new UnifiedSet<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            serverDataList.add(new ServerData("localhost", NetworkingUtils.getFreePort()));
+            int freePort = 0;
+            do {
+                freePort = NetworkingUtils.getFreePort();
+            } while (!freePorts.add(freePort));
+            serverDataList.add(new ServerData("localhost", freePort));
         }
     }
 
@@ -43,9 +49,7 @@ public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerato
                 e.printStackTrace();
             }
         }
-
-        workerThreads = saturationWorkers.stream().map(Thread::new).collect(Collectors.toList());
-        workerThreads.forEach(Thread::start);
+        saturationWorkers.forEach(SaturationWorker::start);
 
         try {
             Thread.sleep(500);
@@ -55,14 +59,7 @@ public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerato
     }
 
     public void stopWorkers() {
-        for (Thread workerThread : workerThreads) {
-            try {
-                workerThread.interrupt();
-                workerThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        saturationWorkers.forEach(SaturationWorker::stop);
     }
 
     public List<ServerData> getWorkerServerDataList() {

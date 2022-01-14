@@ -67,9 +67,6 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
 
     @Override
     public void run() {
-        if (config.collectWorkerNodeStatistics()) {
-            this.statistics.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
-        }
         try {
             while (!controlNode.allWorkersConverged()) {
                 Serializable message;
@@ -79,14 +76,12 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
                     }
 
                     if (config.collectWorkerNodeStatistics()) {
-                        this.statistics.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
                         this.statistics.startStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
                         this.statistics.getTodoIsEmptyEvent().incrementAndGet();
                     }
                     message = toDo.take();
                     if (config.collectWorkerNodeStatistics()) {
                         this.statistics.stopStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
-                        this.statistics.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
                     }
                 } else {
                     message = toDo.take();

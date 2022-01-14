@@ -4,6 +4,7 @@ import data.Closure;
 import exceptions.NotImplementedException;
 import networking.ServerData;
 import networking.messages.InitializeWorkerMessage;
+import networking.messages.MessageEnvelope;
 import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
@@ -16,8 +17,11 @@ import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public class SaturationWorker<C extends Closure<A>, A extends Serializable, T extends Serializable>
@@ -30,6 +34,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private Collection<? extends Rule<C, A>> rules;
 
     private WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
+    private BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent = new LinkedBlockingQueue<>();
     private int numberOfThreads;
     private ExecutorService threadPool = null;
 
@@ -38,6 +43,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private SaturationConfiguration config;
     private WorkerStatistics stats = new WorkerStatistics();
     private boolean terminateAfterSaturation = false;
+    private AtomicBoolean mainSaturationTaskSubmittedToThreadPool = new AtomicBoolean(true);
 
     public SaturationWorker(ServerData serverData,
                             IncrementalReasonerType incrementalReasonerType,
@@ -54,7 +60,6 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
                             boolean terminateAfterSaturation) {
         this(serverData, incrementalReasonerType, numberOfThreads);
         this.terminateAfterSaturation = terminateAfterSaturation;
-        init();
     }
 
     public static void main(String[] args) {
@@ -78,37 +83,70 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
                 numberOfNetworkingThreads,
                 false
         );
-        saturationWorker.run();
+        saturationWorker.start();
     }
 
     private void init() {
-        if (threadPool == null) {
+        if (threadPool == null || threadPool.isShutdown()) {
             threadPool = Executors.newFixedThreadPool(numberOfThreads);
         }
-        this.communicationChannel = new WorkerNodeCommunicationChannel<>(serverData, threadPool);
+        this.messagesThatCouldNotBeSent.clear();
+        this.communicationChannel = new WorkerNodeCommunicationChannel<>(
+                serverData,
+                threadPool,
+                messagesThatCouldNotBeSent,
+                () -> {
+                    if (mainSaturationTaskSubmittedToThreadPool.compareAndSet(false, true)) {
+                        threadPool.submit(this);
+                    }
+                }
+        );
         this.state = new WorkerStateInitializing<>(this);
-
     }
+
+    public void start() {
+        this.threadPool.submit(this);
+    }
+
+    public void stop() {
+        this.threadPool.shutdownNow();
+    }
+
 
     @Override
     public void run() {
-        try {
-            do {
-                while (!(state instanceof WorkerStateFinished)) {
-                    state.mainWorkerLoop();
-                }
-                log.info("Saturation finished.");
-                clearWorkerForNewSaturation();
-            } while (!terminateAfterSaturation);
+        do {
+            while (!(state instanceof WorkerStateFinished)) {
+                if (!messagesThatCouldNotBeSent.isEmpty()) {
+                    trySendingMessagesWhichCouldNotBeSent();
 
-        } catch (InterruptedException e) {
-            log.info("Worker has been interrupted.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            log.info("Terminating worker...");
-            terminate();
-            log.info("Worker terminated.");
+                    if (!messagesThatCouldNotBeSent.isEmpty()) {
+                        // messages still could not be sent completely - stop this task, rerun later
+                        threadPool.submit(this);
+                        return;
+                    }
+                }
+
+                if (mainSaturationTaskSubmittedToThreadPool.compareAndSet(!communicationChannel.hasMoreMessages(), false)) {
+                    state.onToDoIsEmpty();
+                    return;
+                }
+
+                state.mainWorkerLoop();
+            }
+            log.info("Saturation finished.");
+            clearWorkerForNewSaturation();
+        } while (!terminateAfterSaturation);
+
+        mainSaturationTaskSubmittedToThreadPool.set(false);
+    }
+
+    private void trySendingMessagesWhichCouldNotBeSent() {
+        // prevent endless loop, since callback method adds messages again if they could not be sent
+        int currentQueueSize = messagesThatCouldNotBeSent.size();
+        for (int i = 0; i < currentQueueSize; i++) {
+            MessageEnvelope message = messagesThatCouldNotBeSent.remove();
+            communicationChannel.send(message.getSocketID(), message.getMessage());
         }
     }
 
@@ -189,5 +227,13 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     public enum IncrementalReasonerType {
         SINGLE_THREADED,
         PARALLEL;
+    }
+
+    public WorkerState<C, A, T> getState() {
+        return state;
+    }
+
+    public AtomicBoolean mainSaturationTaskIsRunning() {
+        return mainSaturationTaskSubmittedToThreadPool;
     }
 }

@@ -16,7 +16,6 @@ import networking.io.SocketManager;
 import networking.messages.*;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
-import reasoning.saturation.distributed.states.workernode.MessagesToSendManager;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
@@ -30,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
@@ -47,6 +47,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private BlockingQueue<Object> toDo = QueueFactory.createDistributedSaturationToDo();
 
     private NetworkingComponent networkingComponent;
+    private Runnable oneNewMessageReceived;
+    private BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent;
     private ExecutorService threadPool;
 
     private long workerID = -1L;
@@ -66,9 +68,13 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private SaturationConfiguration config;
     private WorkerStatistics stats;
 
-    public WorkerNodeCommunicationChannel(ServerData serverData, ExecutorService threadPool) {
+    public WorkerNodeCommunicationChannel(ServerData serverData, ExecutorService threadPool,
+                                          BlockingQueue<MessageEnvelope> messageThatCouldNotBeSent,
+                                          Runnable onNewMessageReceived) {
         this.serverData = serverData;
         this.threadPool = threadPool;
+        this.messagesThatCouldNotBeSent = messageThatCouldNotBeSent;
+        this.oneNewMessageReceived = onNewMessageReceived;
         init();
     }
 
@@ -80,6 +86,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         networkingComponent = new NIO2NetworkingComponent(
                 Collections.singletonList(new WorkerServerConnectionEstablishmentListener(serverData)),
                 Collections.emptyList(),
+                messageEnvelope -> messagesThatCouldNotBeSent.add(messageEnvelope),
                 threadPool
         );
     }
@@ -164,18 +171,18 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         send(receiverSocketID, stateInfoMessage, onAcknowledgement);
     }
 
-    private void send(long receiverSocketID, MessageModel messageModel, Runnable onAcknowledgement) {
+    public void send(long receiverSocketID, MessageModel messageModel, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(messageModel.getMessageID(), onAcknowledgement);
         networkingComponent.sendMessage(receiverSocketID, messageModel);
     }
 
-    private void send(long receiverSocketID, Serializable message) {
+    public void send(long receiverSocketID, Serializable message) {
         networkingComponent.sendMessage(receiverSocketID, message);
     }
 
     @Override
-    public Object removeNextMessage() throws InterruptedException {
-        return toDo.take();
+    public Object removeNextMessage() {
+        return toDo.poll();
     }
 
     @Override
@@ -186,8 +193,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     @Override
     public boolean hasMoreMessages() {
-        return !this.toDo.isEmpty()
-                || networkingComponent.socketsCurrentlyReadMessages();
+        return !this.toDo.isEmpty();
     }
 
     @Override
@@ -316,7 +322,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 if (config.collectWorkerNodeStatistics()) {
                     stats.getNumberOfReceivedAxioms().incrementAndGet();
                 }
-                toDo.offer(message);
+                toDo.add(message);
+                oneNewMessageReceived.run();
                 return;
             }
             MessageModel messageModel = (MessageModel) message;
@@ -335,7 +342,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                     initializationMessageID = messageModel.getMessageID();
                 }
             }
-            toDo.offer(message);
+            toDo.add(message);
+            oneNewMessageReceived.run();
         }
     }
 

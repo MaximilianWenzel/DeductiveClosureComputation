@@ -77,14 +77,13 @@ public class TransitiveReachabilityTest {
             );
             ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
 
-            /*
             ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
             initializationFactory = new ReachabilitySaturationInitializationFactory(
                     generator.generateGraph(),
                     4,
                     0
             );
-            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
 
             if (!workersInSeparateJVM) {
                 generator = new ReachabilityBinaryTreeGenerator(7);
@@ -93,10 +92,9 @@ public class TransitiveReachabilityTest {
                         20,
                         0
                 );
-                ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
+                ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
             }
 
-             */
         }
     }
 

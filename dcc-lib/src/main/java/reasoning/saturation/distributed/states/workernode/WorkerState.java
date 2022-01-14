@@ -42,7 +42,7 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         this.threadPool = worker.getThreadPool();
     }
 
-    public void mainWorkerLoop() throws InterruptedException {
+    public void mainWorkerLoop() {
         Object msg = communicationChannel.removeNextMessage();
         if (msg instanceof MessageModel) {
             ((MessageModel<C, A, T>)msg).accept(this);
@@ -51,6 +51,9 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         }
     }
 
+    public void onToDoIsEmpty() {
+        // do nothing
+    }
 
     @Override
     public void visit(DebugMessage message) {

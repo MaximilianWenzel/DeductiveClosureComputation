@@ -48,7 +48,6 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
     public void processInference(A axiom) {
         // distribute axiom only if it is not contained in closure
         if (statistics != null) {
-            statistics.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
             statistics.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
             statistics.getNumberOfDerivedInferences().incrementAndGet();
         }
@@ -68,7 +67,6 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
 
         if (statistics != null) {
             statistics.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
-            statistics.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
         }
     }
 }

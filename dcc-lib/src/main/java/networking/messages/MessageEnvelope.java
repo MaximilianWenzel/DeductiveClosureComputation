@@ -4,9 +4,9 @@ import java.io.Serializable;
 
 public class MessageEnvelope implements Serializable {
     private final long socketID;
-    private final Object message;
+    private final Serializable message;
 
-    public MessageEnvelope(long receiverSocketID, Object message) {
+    public MessageEnvelope(long receiverSocketID, Serializable message) {
         this.socketID = receiverSocketID;
         this.message = message;
     }
@@ -15,7 +15,7 @@ public class MessageEnvelope implements Serializable {
         return socketID;
     }
 
-    public Object getMessage() {
+    public Serializable getMessage() {
         return message;
     }
 }

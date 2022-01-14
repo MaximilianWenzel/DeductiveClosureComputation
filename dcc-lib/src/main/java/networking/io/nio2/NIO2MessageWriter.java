@@ -1,6 +1,6 @@
 package networking.io.nio2;
 
-import util.QueueFactory;
+import networking.messages.MessageEnvelope;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -9,86 +9,91 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
+import java.util.function.Consumer;
 
 public class NIO2MessageWriter {
 
     private final AsynchronousSocketChannel socketChannel;
     // TODO user defined buffer size
     private final int BUFFER_SIZE = 512 << 10;
-    private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.95);
+    private final int STOP_SERIALIZATION_REMAINING_BYTES = (int) (BUFFER_SIZE * 0.1);
     private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
     private int MESSAGE_SIZE_BYTES = 4;
     private Serializer serializer = new KryoSerializer();
-    private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createNIOMessageWriterQueue();
 
-    public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {
+    private ByteBuffer messageBufferToReadFrom = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    private ByteBuffer messageBufferToWriteTo = ByteBuffer.allocateDirect(BUFFER_SIZE);
+
+    private long socketID;
+    private Consumer<MessageEnvelope> onMessageCouldNotBeSent;
+
+    public NIO2MessageWriter(long socketID, AsynchronousSocketChannel socketChannel,
+                             Consumer<MessageEnvelope> onMessageCouldNotBeSent) {
         this.socketChannel = socketChannel;
+        this.socketID = socketID;
+        this.onMessageCouldNotBeSent = onMessageCouldNotBeSent;
     }
 
     /**
-     * Returns whether all messages have been transmitted.
+     * Returns whether message could be transmitted.
      */
     public boolean send(Serializable message) {
         try {
-            messagesToSend.put(message);
-        } catch (InterruptedException e) {
+            serializeMessageToBuffer(message);
+        } catch (IOException e) {
             e.printStackTrace();
         }
-
         writeMessagesIfRequired();
         return true;
     }
 
     private void writeMessagesIfRequired() {
-        if (this.messagesToSend.isEmpty() && messageBuffer.position() == 0) {
+        if (messageBufferToWriteTo.position() == 0 && messageBufferToReadFrom.position() == 0) {
             // no messages to send
             return;
         }
 
         if (currentlyWritingMessage.compareAndSet(false, true)) {
-            try {
-                serializeMessagesToBuffer();
-
-            } catch (InterruptedException | IOException e) {
-                e.printStackTrace();
+            if (messageBufferToWriteTo.position() > 0 && messageBufferToReadFrom.position() == 0) {
+                switchBuffers();
             }
             readFromBufferAndWriteToSocket();
         }
     }
 
-    public void serializeMessagesToBuffer() throws InterruptedException, IOException {
-        while (!messagesToSend.isEmpty() && messageBuffer.position() < STOP_SERIALIZATION_TO_BUFFER_THRESHOLD) {
-            Serializable message = messagesToSend.poll();
+    private void serializeMessageToBuffer(Serializable message) throws IOException {
+        synchronized (messageBufferToWriteTo) {
+            if (messageBufferToWriteTo.remaining() > STOP_SERIALIZATION_REMAINING_BYTES) {
 
-            // reserve bytes for length
-            messageBuffer.position(messageBuffer.position() + MESSAGE_SIZE_BYTES);
+                // reserve bytes for length
+                messageBufferToWriteTo.position(messageBufferToWriteTo.position() + MESSAGE_SIZE_BYTES);
 
-            // write object to buffer
-            int start = messageBuffer.position();
-            serializer.serializeToByteBuffer(message, messageBuffer);
-            int end = messageBuffer.position();
+                // write object to buffer
+                int start = messageBufferToWriteTo.position();
+                serializer.serializeToByteBuffer(message, messageBufferToWriteTo);
+                int end = messageBufferToWriteTo.position();
 
-            // write length to buffer
-            int numBytesObject = end - start;
-            messageBuffer.position(messageBuffer.position() - numBytesObject - MESSAGE_SIZE_BYTES);
-            messageBuffer.putInt(numBytesObject);
+                // write length to buffer
+                int numBytesObject = end - start;
+                messageBufferToWriteTo.position(
+                        messageBufferToWriteTo.position() - numBytesObject - MESSAGE_SIZE_BYTES);
+                messageBufferToWriteTo.putInt(numBytesObject);
 
-            // set position to end of object
-            messageBuffer.position(end);
+                // set position to end of object
+                messageBufferToWriteTo.position(end);
+            } else {
+                onMessageCouldNotBeSent.accept(new MessageEnvelope(socketID, message));
+            }
         }
     }
 
     public void readFromBufferAndWriteToSocket() {
-        messageBuffer.flip();
-        this.socketChannel.write(messageBuffer, null, new CompletionHandler<Integer, Object>() {
+        messageBufferToReadFrom.flip();
+        this.socketChannel.write(messageBufferToReadFrom, null, new CompletionHandler<Integer, Object>() {
             @Override
             public void completed(Integer result, Object attachment) {
-                messageBuffer.compact();
+                messageBufferToReadFrom.compact();
                 currentlyWritingMessage.set(false);
                 writeMessagesIfRequired();
             }
@@ -100,8 +105,19 @@ public class NIO2MessageWriter {
 
     }
 
+    private void switchBuffers() {
+        synchronized (messageBufferToReadFrom) {
+            synchronized (messageBufferToWriteTo) {
+                // switch buffers
+                ByteBuffer temp = messageBufferToReadFrom;
+                messageBufferToReadFrom = messageBufferToWriteTo;
+                messageBufferToWriteTo = temp;
+            }
+        }
+    }
+
     public boolean isEmpty() {
-        return messagesToSend.isEmpty();
+        return messageBufferToWriteTo.position() == 0 && messageBufferToReadFrom.position() == 0;
     }
 
 }
