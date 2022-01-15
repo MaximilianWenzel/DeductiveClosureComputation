@@ -28,7 +28,7 @@ public class ClosureComputationTestUtil {
             SaturationInitializationFactory<C, A, T> factory) {
 
         SingleThreadedSaturation<C, A> saturation = new SingleThreadedSaturation<>(
-                factory.getInitialAxioms().iterator(),
+                factory.getInitialAxioms(),
                 factory.generateRules(),
                 factory.getNewClosure()
         );

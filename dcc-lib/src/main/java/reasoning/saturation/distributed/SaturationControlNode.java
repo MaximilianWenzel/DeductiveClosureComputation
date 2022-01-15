@@ -15,6 +15,7 @@ import reasoning.saturation.workload.WorkloadDistributor;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,7 +40,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
 
     protected SaturationControlNode(List<DistributedWorkerModel<C, A, T>> workers,
                                     WorkloadDistributor<C, A, T> workloadDistributor,
-                                    List<? extends A> initialAxioms,
+                                    Iterator<? extends A> initialAxioms,
                                     C resultingClosure,
                                     SaturationConfiguration config,
                                     int numberOfThreads) {
@@ -138,5 +139,6 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     public List<WorkerStatistics> getWorkerStatistics() {
         return workerStatistics;
     }
+
 
 }

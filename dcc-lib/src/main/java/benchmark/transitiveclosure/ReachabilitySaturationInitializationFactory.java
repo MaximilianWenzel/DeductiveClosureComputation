@@ -67,8 +67,8 @@ public class ReachabilitySaturationInitializationFactory extends SaturationIniti
     }
 
     @Override
-    public List<? extends Reachability> getInitialAxioms() {
-        return initialAxioms;
+    public Iterator<? extends Reachability> getInitialAxioms() {
+        return initialAxioms.iterator();
     }
 
     @Override

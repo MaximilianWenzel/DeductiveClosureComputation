@@ -6,6 +6,7 @@ import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class EchoSaturationInitializationFactory
@@ -45,8 +46,8 @@ public class EchoSaturationInitializationFactory
     }
 
     @Override
-    public List<? extends EchoAxiom> getInitialAxioms() {
-        return initialAxioms;
+    public Iterator<EchoAxiom> getInitialAxioms() {
+        return initialAxioms.iterator();
     }
 
     @Override

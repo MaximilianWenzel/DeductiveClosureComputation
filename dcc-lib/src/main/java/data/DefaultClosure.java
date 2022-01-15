@@ -8,20 +8,20 @@ import java.util.List;
 
 public class DefaultClosure<A extends Serializable> extends UnifiedSet<A> implements Closure<A> {
     @Override
-    public boolean addAll(List<A> initialAxioms) {
+    public boolean addAll(List<A> axioms) {
         int sizeBefore = this.size();
-        initialAxioms.forEach(this::add);
+        axioms.forEach(this::add);
         return sizeBefore != this.size();
     }
 
     @Override
-    public boolean contains(A e) {
-        return super.contains(e);
+    public boolean contains(A axiom) {
+        return super.contains(axiom);
     }
 
     @Override
-    public boolean remove(A o) {
-        return super.remove(o);
+    public boolean remove(A axiom) {
+        return super.remove(axiom);
     }
 
     @Override

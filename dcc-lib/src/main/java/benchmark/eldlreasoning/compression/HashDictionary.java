@@ -16,7 +16,7 @@ public class HashDictionary {
 
     }
 
-    int add(String str) {
+    public int add(String str) {
         int id = idCounter.getAndIncrement();
         idToStringMap.put(str, id);
         return id;

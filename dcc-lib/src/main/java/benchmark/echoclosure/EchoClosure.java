@@ -11,23 +11,23 @@ public class EchoClosure implements Closure<EchoAxiom> {
     private UnifiedSet<EchoAxiom> axioms = new UnifiedSet<>();
 
     @Override
-    public boolean add(EchoAxiom e) {
-        return axioms.add(e);
+    public boolean add(EchoAxiom axiom) {
+        return axioms.add(axiom);
     }
 
     @Override
-    public boolean addAll(List<EchoAxiom> initialAxioms) {
-        return axioms.addAll(initialAxioms);
+    public boolean addAll(List<EchoAxiom> axioms) {
+        return this.axioms.addAll(axioms);
     }
 
     @Override
-    public boolean contains(EchoAxiom e) {
-        return axioms.contains(e);
+    public boolean contains(EchoAxiom axiom) {
+        return axioms.contains(axiom);
     }
 
     @Override
-    public boolean remove(EchoAxiom o) {
-        return axioms.remove(o);
+    public boolean remove(EchoAxiom axiom) {
+        return axioms.remove(axiom);
     }
 
     @Override

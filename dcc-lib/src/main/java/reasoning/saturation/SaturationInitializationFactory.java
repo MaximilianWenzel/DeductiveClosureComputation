@@ -9,6 +9,7 @@ import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public abstract class SaturationInitializationFactory<C extends Closure<A>, A extends Serializable, T extends Serializable> {
@@ -29,7 +30,7 @@ public abstract class SaturationInitializationFactory<C extends Closure<A>, A ex
     }
 
 
-    public abstract List<? extends A> getInitialAxioms();
+    public abstract Iterator<? extends A> getInitialAxioms();
     public abstract C getNewClosure();
     public abstract WorkloadDistributor<C, A, T> getWorkloadDistributor();
     public abstract List<Rule<C, A>> generateRules();

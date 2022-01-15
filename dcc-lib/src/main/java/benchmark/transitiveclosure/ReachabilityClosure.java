@@ -15,23 +15,23 @@ public class ReachabilityClosure implements Closure<Reachability>, Serializable 
     private final RoaringBitmap emptyRoaringBitmap = new RoaringBitmap();
 
     @Override
-    public boolean add(Reachability reachability) {
+    public boolean add(Reachability axiom) {
         RoaringBitmap nodesReachableFromX;
-        if (reachability instanceof DerivedReachability) {
+        if (axiom instanceof DerivedReachability) {
             RoaringBitmap nodesWithConnectionToY = nodeToIncomingConnectedNodesMap.computeIfAbsent(
-                    reachability.getDestinationNode(), p -> new RoaringBitmap());
-            nodesWithConnectionToY.add(reachability.getSourceNode());
-            nodesReachableFromX = nodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(),
+                    axiom.getDestinationNode(), p -> new RoaringBitmap());
+            nodesWithConnectionToY.add(axiom.getSourceNode());
+            nodesReachableFromX = nodeToOutgoingConnectedNodesMap.computeIfAbsent(axiom.getSourceNode(),
                     p -> new RoaringBitmap());
 
-        } else if (reachability instanceof ToldReachability) {
-            nodesReachableFromX = toldNodeToOutgoingConnectedNodesMap.computeIfAbsent(reachability.getSourceNode(),
+        } else if (axiom instanceof ToldReachability) {
+            nodesReachableFromX = toldNodeToOutgoingConnectedNodesMap.computeIfAbsent(axiom.getSourceNode(),
                     p -> new RoaringBitmap());
         } else {
             throw new IllegalArgumentException();
         }
-        boolean isNewValue = !nodesReachableFromX.contains(reachability.getDestinationNode());
-        nodesReachableFromX.add(reachability.getDestinationNode());
+        boolean isNewValue = !nodesReachableFromX.contains(axiom.getDestinationNode());
+        nodesReachableFromX.add(axiom.getDestinationNode());
         return isNewValue;
     }
 
@@ -63,24 +63,24 @@ public class ReachabilityClosure implements Closure<Reachability>, Serializable 
     }
 
     @Override
-    public boolean contains(Reachability reachability) {
+    public boolean contains(Reachability axiom) {
         RoaringBitmap destinationNodes;
-        if (reachability instanceof ToldReachability) {
-            destinationNodes = this.toldNodeToOutgoingConnectedNodesMap.getOrDefault(reachability.getSourceNode(),
+        if (axiom instanceof ToldReachability) {
+            destinationNodes = this.toldNodeToOutgoingConnectedNodesMap.getOrDefault(axiom.getSourceNode(),
                     emptyRoaringBitmap);
         } else {
-            destinationNodes = this.nodeToOutgoingConnectedNodesMap.getOrDefault(reachability.getSourceNode(),
+            destinationNodes = this.nodeToOutgoingConnectedNodesMap.getOrDefault(axiom.getSourceNode(),
                     emptyRoaringBitmap);
         }
-        return destinationNodes.contains(reachability.getDestinationNode());
+        return destinationNodes.contains(axiom.getDestinationNode());
     }
 
     @Override
-    public boolean remove(Reachability reachability) {
-        RoaringBitmap connectedNodeIDs = nodeToOutgoingConnectedNodesMap.get(reachability.getSourceNode());
+    public boolean remove(Reachability axiom) {
+        RoaringBitmap connectedNodeIDs = nodeToOutgoingConnectedNodesMap.get(axiom.getSourceNode());
         if (connectedNodeIDs != null) {
-            boolean containedValue = connectedNodeIDs.contains(reachability.getDestinationNode());
-            connectedNodeIDs.remove(reachability.getDestinationNode());
+            boolean containedValue = connectedNodeIDs.contains(axiom.getDestinationNode());
+            connectedNodeIDs.remove(axiom.getDestinationNode());
             return containedValue;
         }
         return false;

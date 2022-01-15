@@ -67,8 +67,8 @@ public class OWLELSaturationInitializationFactory extends
     }
 
     @Override
-    public List<? extends ELConceptInclusion> getInitialAxioms() {
-        return this.elOntology.getInitialAxioms();
+    public Iterator<ELConceptInclusion> getInitialAxioms() {
+        return this.elOntology.getInitialAxioms().iterator();
     }
 
     @Override

@@ -9,6 +9,7 @@ import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
 
 public class DistributedSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable>
@@ -22,7 +23,7 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
 
     public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
                                  WorkloadDistributor<C, A, T> workloadDistributor,
-                                 List<? extends A> initialAxioms,
+                                 Iterator<? extends A> initialAxioms,
                                  C resultingClosure,
                                  int numberOfThreadsForControlNode) {
         this.workloadDistributor = workloadDistributor;
@@ -34,7 +35,7 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
 
     public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
                                  WorkloadDistributor<C, A, T> workloadDistributor,
-                                 List<? extends A> initialAxioms,
+                                 Iterator<? extends A> initialAxioms,
                                  C resultingClosure,
                                  SaturationConfiguration config,
                                  int numberOfThreadsForControlNode) {

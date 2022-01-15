@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 public class ReachabilityWorkloadDistributor extends WorkloadDistributor<ReachabilityClosure, Reachability, RoaringBitmap> {
 
+
     protected ReachabilityWorkloadDistributor() {
 
     }

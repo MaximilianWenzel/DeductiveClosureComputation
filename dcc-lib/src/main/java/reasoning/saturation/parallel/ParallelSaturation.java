@@ -11,7 +11,6 @@ import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.WorkerModel;
-import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
 import util.QueueFactory;
@@ -33,9 +32,8 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
     private Collection<WorkerModel<C, A, T>> workerModels;
     private volatile boolean allWorkersConverged = false;
     private List<Thread> threadPool;
-    private List<? extends A> initialAxioms;
+    private Iterator<? extends A> initialAxioms;
     private WorkloadDistributor<C, A, T> workloadDistributor;
-    private InitialAxiomsDistributor<A> initialAxiomsDistributor;
     private Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext = new HashMap<>();
 
     private AtomicLong sumOfAllReceivedAxioms = new AtomicLong(0);
@@ -85,7 +83,6 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
     }
 
     private void init() {
-        this.initialAxiomsDistributor = new InitialAxiomsDistributor<>(initialAxioms, workloadDistributor);
 
         // init workers
         if (config.collectControlNodeStatistics()) {
@@ -109,13 +106,13 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         }
 
         // distribute initial axioms
-        for (A axiom : initialAxioms) {
+        initialAxioms.forEachRemaining(axiom -> {
             Stream<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
             workerIDs.forEach(workerID -> {
                 sumOfAllSentAxioms.incrementAndGet();
                 this.workerIDToSaturationContext.get(workerID).getToDo().add(axiom);
             });
-        }
+        });
 
         if (config.collectControlNodeStatistics()) {
             controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);

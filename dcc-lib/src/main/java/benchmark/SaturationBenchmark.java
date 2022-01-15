@@ -6,6 +6,7 @@ import benchmark.workergeneration.SaturationJVMWorkerGenerator;
 import benchmark.workergeneration.SaturationWorkerGenerator;
 import benchmark.workergeneration.SaturationWorkerThreadGenerator;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Streams;
 import data.Closure;
 import enums.SaturationApproach;
 import networking.ServerData;
@@ -29,12 +30,11 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T extends Serializable> {
     private Logger log = ConsoleUtils.getLogger();
@@ -54,7 +54,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     private boolean workerNodeStatistics = false;
 
     private SaturationInitializationFactory<C, A, T> initializationFactory;
-    private List<? extends A> initialAxioms;
+    private Iterator<? extends A> initialAxioms;
+    private long numberOfInitialAxioms;
     private List<WorkerModel<C, A, T>> workers;
 
     private SaturationWorkerGenerator workerGenerator;
@@ -102,7 +103,11 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     public void startBenchmark(SaturationInitializationFactory<C, A, T> saturationInitializationFactory) {
         this.initializationFactory = saturationInitializationFactory;
+
         this.initialAxioms = initializationFactory.getInitialAxioms();
+        this.numberOfInitialAxioms = Streams.stream(initialAxioms).count();
+        this.initialAxioms = initializationFactory.getInitialAxioms();
+
         this.workers = initializationFactory.getWorkerModels();
 
         log.info(ConsoleUtils.getSeparator());
@@ -163,13 +168,13 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     public void runSingleThreadedSaturationBenchmark() {
         log.info("Single");
-        log.info("# Initial Axioms: " + initialAxioms.size());
+        log.info("# Initial Axioms: " + numberOfInitialAxioms);
 
         DescriptiveStatistics runtimeInMSStats = singleThreadedClosureComputation();
 
         CSVRow row = new CSVRow(
                 "single",
-                initialAxioms.size(),
+                numberOfInitialAxioms,
                 null,
                 runtimeInMSStats.getMin(),
                 runtimeInMSStats.getMax(),
@@ -183,7 +188,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     public void runParallelSaturationBenchmark() {
         log.info("Parallel");
-        log.info("# Initial Axioms: " + initialAxioms.size());
+        log.info("# Initial Axioms: " + numberOfInitialAxioms);
         log.info("# Workers: " + workers.size());
 
         DescriptiveStatistics runtimeInMSStats = parallelClosureComputation(
@@ -191,7 +196,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
         CSVRow row = new CSVRow(
                 "parallel",
-                initialAxioms.size(),
+                numberOfInitialAxioms,
                 workers.size(),
                 runtimeInMSStats.getMin(),
                 runtimeInMSStats.getMax(),
@@ -207,7 +212,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     public void runDistributedSaturationBenchmark(SaturationApproach distributedApproach, int numberOfThreadsForSingleDistributedWorker) {
         DescriptiveStatistics runtime = null;
         log.info("Distributed");
-        log.info("# Initial Axioms: " + initialAxioms.size());
+        log.info("# Initial Axioms: " + numberOfInitialAxioms);
         log.info("# Workers: " + workers.size());
         log.info("Approach: " + distributedApproach.toString());
         try {
@@ -218,7 +223,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
         CSVRow row = new CSVRow(
                 distributedApproach.toString().toLowerCase(),
-                initialAxioms.size(),
+                numberOfInitialAxioms,
                 workers.size(),
                 runtime.getMin(),
                 runtime.getMax(),
@@ -322,7 +327,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
 
             SingleThreadedSaturation<C, A> saturation = new SingleThreadedSaturation<>(
-                    initialAxioms.iterator(),
+                    initialAxioms,
                     initializationFactory.generateRules(),
                     initializationFactory.getNewClosure()
             );
@@ -380,14 +385,14 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         String csvControlNodeStatsPath = Paths.get(this.outputDirectory.toString(),
                 approach + "_controlNode"
                         + "_" + benchmarkType
-                        + "_numMessages=" + initialAxioms.size()
+                        + "_numMessages=" + numberOfInitialAxioms
                         + "_numWorkers=" + workers.size())
                 + ".csv";
 
         String csvWorkerStatsPath = Paths.get(this.outputDirectory.toString(),
                 approach + "_workers"
                         + "_" + benchmarkType
-                        + "_numMessages=" + initialAxioms.size()
+                        + "_numMessages=" + numberOfInitialAxioms
                         + "_numWorkers=" + workers.size())
                 + ".csv";
         try {
@@ -420,13 +425,13 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     private class CSVRow {
         String benchmarkType = SaturationBenchmark.this.benchmarkType;
         String approach;
-        Integer numberOfEchoAxioms;
+        Long numberOfEchoAxioms;
         Integer numWorkers;
         Double minRuntimeMS;
         Double maxRuntimeMS;
         Double averageRuntimeMS;
 
-        public CSVRow(String approach, Integer numberOfEchoAxioms,
+        public CSVRow(String approach, Long numberOfEchoAxioms,
                       Integer numWorkers,
                       Double minRuntimeMS, Double maxRuntimeMS, Double averageRuntimeMS) {
             this.approach = approach;

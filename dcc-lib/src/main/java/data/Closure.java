@@ -6,11 +6,11 @@ import java.util.List;
 
 public interface Closure<A extends Serializable> {
 
-    boolean add(A e);
-    boolean addAll(List<A> initialAxioms);
-    boolean contains(A e);
+    boolean add(A axiom);
+    boolean addAll(List<A> axioms);
+    boolean contains(A axiom);
 
-    boolean remove(A o);
+    boolean remove(A axiom);
 
     Collection<A> getClosureResults();
 }

@@ -23,6 +23,7 @@ import util.QueueFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -48,7 +49,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected long controlNodeID = 0L;
     protected BlockingQueue<Object> receivedMessages = QueueFactory.createSaturationToDo();
     protected WorkloadDistributor<C, A, T> workloadDistributor;
-    protected List<? extends A> initialAxioms;
+    protected Iterator<? extends A> initialAxioms;
 
     protected InitialAxiomsDistributor<A> initialAxiomsDistributor;
     protected AcknowledgementEventManager acknowledgementEventManager;
@@ -70,7 +71,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
                                            WorkloadDistributor<C, A, T> workloadDistributor,
-                                           List<? extends A> initialAxioms,
+                                           Iterator<? extends A> initialAxioms,
                                            SaturationConfiguration config,
                                            ExecutorService threadPool,
                                            BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent,
@@ -91,8 +92,6 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         this.workerIDToWorker = new ConcurrentHashMap<>();
         workers.forEach(p -> workerIDToWorker.put(p.getID(), p));
-
-        initialAxiomsDistributor = new InitialAxiomsDistributor<>(initialAxioms, workloadDistributor);
 
         acknowledgementEventManager = new AcknowledgementEventManager();
 
@@ -132,6 +131,15 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                         }
                     });
         }
+    }
+
+    public void distributeInitialAxioms() {
+        this.initialAxioms.forEachRemaining(axiom -> {
+            sumOfAllSentAxioms.incrementAndGet();
+            workloadDistributor.getRelevantWorkerIDsForAxiom(axiom).forEach(workerID -> {
+                send(workerID, axiom);
+            });
+        });
     }
 
     @Override
@@ -266,16 +274,11 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                 public void run() {
                     initializedWorkers.getAndIncrement();
 
-                    // send initial axioms
-                    initialAxiomsDistributor.getInitialAxioms(workerModel.getID())
-                            .forEach(axiom -> {
-                                ControlNodeCommunicationChannel.this.getSumOfAllSentAxioms().incrementAndGet();
-                                send(socketManager.getSocketID(), axiom);
-                            });
                 }
             });
 
         }
+
 
     }
 
