@@ -8,11 +8,14 @@ import networking.ServerData;
 import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
+import networking.messages.MessageEnvelope;
 
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 public class SenderStub {
 
@@ -21,10 +24,23 @@ public class SenderStub {
     SocketManager destinationSocket;
     NetworkingComponentType type;
 
+    // used in case of NIO2
+    Consumer<MessageEnvelope> onMessageCouldNotBeSent;
+    ExecutorService threadPool;
+
 
     public SenderStub(ServerData serverData, NetworkingComponentType type) {
         this.serverData = serverData;
         this.type = type;
+        this.threadPool = Executors.newFixedThreadPool(1);
+        init();
+    }
+
+    public SenderStub(ServerData serverData, Consumer<MessageEnvelope> onMessageCouldNotBeSent, ExecutorService threadPool) {
+        this.serverData = serverData;
+        this.type = NetworkingComponentType.ASYNC_NIO2;
+        this.onMessageCouldNotBeSent = onMessageCouldNotBeSent;
+        this.threadPool = threadPool;
         init();
     }
 
@@ -65,7 +81,8 @@ public class SenderStub {
                 networkingComponent = new NIO2NetworkingComponent(
                         Collections.emptyList(),
                         Collections.singletonList(serverConnector),
-                        Executors.newFixedThreadPool(1)
+                        onMessageCouldNotBeSent,
+                        threadPool
                 );
                 break;
         }

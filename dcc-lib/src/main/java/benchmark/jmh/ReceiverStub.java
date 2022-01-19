@@ -32,13 +32,7 @@ public class ReceiverStub {
         MessageHandler messageHandler = new MessageHandler() {
             @Override
             public void process(long socketID, Object message) {
-                assert message != null;
-                try {
-                    queue.put(message);
-                    queue.remove();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                assert message.hashCode() > 0;
             }
         };
 

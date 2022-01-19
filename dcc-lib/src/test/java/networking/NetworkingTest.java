@@ -77,6 +77,8 @@ public class NetworkingTest {
                 () -> {
                 }
         );
+        ExecutorService threadPool = Executors.newFixedThreadPool(1);
+        threadPool.submit(networkingComponent);
 
         while (socketIDs.isEmpty()) {
             try {

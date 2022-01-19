@@ -15,7 +15,6 @@ import networking.io.SocketManager;
 import networking.messages.*;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
-import reasoning.saturation.workload.InitialAxiomsDistributor;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
 import util.QueueFactory;
@@ -51,7 +50,6 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected Iterator<? extends A> initialAxioms;
 
-    protected InitialAxiomsDistributor<A> initialAxiomsDistributor;
     protected AcknowledgementEventManager acknowledgementEventManager;
 
     protected boolean allConnectionsEstablished = false;
@@ -135,9 +133,9 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     public void distributeInitialAxioms() {
         this.initialAxioms.forEachRemaining(axiom -> {
-            sumOfAllSentAxioms.incrementAndGet();
             workloadDistributor.getRelevantWorkerIDsForAxiom(axiom).forEach(workerID -> {
-                send(workerID, axiom);
+                sumOfAllSentAxioms.incrementAndGet();
+                send(workerIDToSocketID.get(workerID), axiom);
             });
         });
     }

@@ -3,8 +3,12 @@ package networking.messages;
 import java.io.Serializable;
 
 public class MessageEnvelope implements Serializable {
-    private final long socketID;
-    private final Serializable message;
+    private long socketID;
+    private Serializable message;
+
+    MessageEnvelope() {
+
+    }
 
     public MessageEnvelope(long receiverSocketID, Serializable message) {
         this.socketID = receiverSocketID;

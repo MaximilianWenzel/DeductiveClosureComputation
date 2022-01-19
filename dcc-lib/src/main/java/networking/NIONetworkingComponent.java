@@ -194,20 +194,15 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     @Override
     public void sendMessage(long socketID, Serializable message) {
         NIOSocketManager socketManager = this.socketIDToSocketManager.get(socketID);
-        try {
-            if (!socketManager.sendMessage(message)) {
-                // has still messages to send - add write selector
-                SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
-                if ((key.interestOps() & SelectionKey.OP_WRITE) == 0) {
-                    // write is not set yet
-                    key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-                    selector.wakeup();
-                }
+        if (!socketManager.sendMessage(message)) {
+            // has still messages to send - add write selector
+            SelectionKey key = socketManager.getSocketChannel().keyFor(selector);
+            if ((key.interestOps() & SelectionKey.OP_WRITE) == 0) {
+                // write is not set yet
+                key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+                selector.wakeup();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-
     }
 
     private void acceptClientConnection(SelectionKey key) throws IOException {

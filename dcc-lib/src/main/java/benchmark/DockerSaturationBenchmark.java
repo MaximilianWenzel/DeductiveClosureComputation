@@ -22,7 +22,7 @@ public class DockerSaturationBenchmark {
 
     static {
         binaryTreeDepthList = new ArrayList<>();
-        binaryTreeDepthList.add(18);
+        binaryTreeDepthList.add(10);
 
         initialEchoAxioms = new ArrayList<>();
         //initialEchoAxioms.add(10_000);

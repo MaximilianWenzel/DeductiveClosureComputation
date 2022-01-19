@@ -2,20 +2,18 @@ package benchmark.workergeneration;
 
 import networking.ServerData;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
-import reasoning.saturation.Saturation;
 import reasoning.saturation.distributed.SaturationWorker;
 import util.NetworkingUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
 
@@ -29,6 +27,7 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
         this.numberOfThreadsForSingleWorker = numberOfThreadsForSingleWorker;
         init();
     }
+
 
     private void init() {
         serverDataList = new ArrayList<>();
@@ -47,7 +46,7 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
         for (ServerData serverData : serverDataList) {
             try {
                 startWorkerJVM(serverData.getPortNumber());
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException | InterruptedException | URISyntaxException e) {
                 e.printStackTrace();
             }
         }
@@ -59,13 +58,14 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
         }
     }
 
-    private void startWorkerJVM(int portNumber) throws IOException, InterruptedException {
-        String classpath = Arrays.stream(((URLClassLoader) Thread.currentThread().getContextClassLoader()).getURLs())
-                .map(URL::getFile)
-                .collect(Collectors.joining(File.pathSeparator));
-        String path = Paths.get(System.getProperty("java.home"), "bin", "java").toString();
+    private void startWorkerJVM(int portNumber) throws IOException, InterruptedException, URISyntaxException {
+        //String classpath = SaturationJVMWorkerGenerator.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        //classpath = URLDecoder.decode(classpath, "UTF-8");
+        String classpath = System.getProperty("java.class.path");
+
+        String javaBinPath = Paths.get(System.getProperty("java.home"), "bin", "java").toString();
         ProcessBuilder processBuilder = new ProcessBuilder(
-                path,
+                javaBinPath,
                 "-cp",
                 classpath,
                 SaturationWorker.class.getName(),

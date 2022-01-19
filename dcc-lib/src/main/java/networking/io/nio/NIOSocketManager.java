@@ -31,7 +31,7 @@ public class NIOSocketManager implements SocketManager {
      * Returns whether the complete message could be transmitted.
      */
     @Override
-    public boolean sendMessage(Serializable message) throws IOException {
+    public boolean sendMessage(Serializable message) {
         return this.messageWriter.send(message);
     }
 

@@ -104,7 +104,6 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
             );
             context.setInferenceProcessor(inferenceProcessor);
         }
-
         // distribute initial axioms
         initialAxioms.forEachRemaining(axiom -> {
             Stream<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
@@ -114,6 +113,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
             });
         });
 
+        initAndStartThreads();
         if (config.collectControlNodeStatistics()) {
             controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
         }
@@ -123,7 +123,6 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         if (config.collectControlNodeStatistics()) {
             controlNodeStatistics.startStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
         }
-        initAndStartThreads();
         try {
             while (!allWorkersConverged) {
 

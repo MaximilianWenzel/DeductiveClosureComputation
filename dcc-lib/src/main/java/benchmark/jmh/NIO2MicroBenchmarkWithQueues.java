@@ -4,6 +4,7 @@ import com.google.common.base.Stopwatch;
 import nio2kryo.Edge;
 import util.ConsoleUtils;
 import util.NetworkingUtils;
+import util.QueueFactory;
 import util.serialization.KryoSerializer;
 
 import java.io.IOException;
@@ -16,21 +17,21 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class NIO2MicroBenchmark {
+public class NIO2MicroBenchmarkWithQueues {
 
     public static final int MESSAGE_COUNT = 20_000_000;
     public static final Random rnd = new Random();
-    public static final int BUFFER_SIZE = 512 << 10;
+    public static final int BUFFER_SIZE = 1 << 20;
 
     public static void main(String[] args) {
-        /*
         Scanner s = new Scanner(System.in);
         s.nextLine();
-
-         */
         for (int i = 0; i < 3; i++) {
             executeExperiment();
             System.out.println(ConsoleUtils.getSeparator());
@@ -42,17 +43,13 @@ public class NIO2MicroBenchmark {
         NIO2Client client = new NIO2Client(server.port);
 
         Stopwatch sw = Stopwatch.createStarted();
-        try {
-            client.run();
-            client.getChannelGroup().awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        sw.stop();
+        client.start();
 
         int hashCodeServer = server.getResult();
+        sw.stop();
+
         int hashCodeClient = client.hashSum;
+
         assert hashCodeClient == hashCodeServer;
 
         long timeInMS = sw.elapsed(TimeUnit.MILLISECONDS);
@@ -72,7 +69,8 @@ public class NIO2MicroBenchmark {
         AsynchronousSocketChannel client;
 
         KryoSerializer kryoSerializer = new KryoSerializer();
-        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+        int BYTE_BUFFER_CAPACITY = BUFFER_SIZE;
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(BYTE_BUFFER_CAPACITY);
 
         int hashSum = 0;
         AtomicInteger counter = new AtomicInteger(0);
@@ -177,58 +175,64 @@ public class NIO2MicroBenchmark {
         }
     }
 
-    public static class NIO2Client implements Runnable {
+    public static class NIO2Client {
 
         AtomicInteger counter = new AtomicInteger(0);
         int hashSum = 0;
 
-        AsynchronousChannelGroup channelGroup;
+        AsynchronousChannelGroup threadPool;
         AsynchronousSocketChannel server;
 
-        KryoSerializer kryoSerializer = new KryoSerializer();
-        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+        BlockingQueue<Serializable> queue = QueueFactory.createSaturationToDo();
+        BlockingQueue<Serializable> queue2 = QueueFactory.createSaturationToDo();
 
-        Serializable lastObj;
-        Serializable nextObj;
+        KryoSerializer kryoSerializer = new KryoSerializer();
+        int BYTE_BUFFER_CAPACITY = BUFFER_SIZE;
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(BYTE_BUFFER_CAPACITY);
 
         public NIO2Client(int serverPort) {
             try {
-                this.channelGroup = AsynchronousChannelGroup.withFixedThreadPool(1, Thread::new);
-
+                threadPool = AsynchronousChannelGroup.withFixedThreadPool(1, Thread::new);
                 InetSocketAddress hostAddress = new InetSocketAddress("localhost", serverPort);
-                server = AsynchronousSocketChannel.open(channelGroup);
+                server = AsynchronousSocketChannel.open(threadPool);
                 server.connect(hostAddress).get();
             } catch (IOException | ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
         }
 
-        @Override
-        public void run() {
-            serializeMessages();
-        }
-
-        private void serializeMessages() {
-            for (; counter.get() < MESSAGE_COUNT; counter.incrementAndGet()) {
-                if (lastObj != null) {
-                    nextObj = lastObj;
-                    lastObj = null;
-                } else {
-                    nextObj = new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000));
-                }
-
-                hashSum += nextObj.hashCode();
-                if (!serializeObjToBuffer(nextObj)) {
-                    // buffer is full
-                    lastObj = nextObj;
-                    return;
-                }
+        private void start() {
+            try {
+                serializeMessages();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-            writeToSocket();
         }
 
-        private boolean serializeObjToBuffer(Serializable obj) {
-            if (byteBuffer.position() < 0.9 * BUFFER_SIZE) {
+        private void swapQueues() {
+            //System.out.println("swap");
+            BlockingQueue<Serializable> temp = queue;
+            queue = queue2;
+            queue2 = temp;
+        }
+
+        private void serializeMessages() throws InterruptedException {
+            serializeObjsToBuffer();
+            for (; counter.get() < MESSAGE_COUNT; counter.incrementAndGet()) {
+                if (queue.remainingCapacity() == 0 && queue2.isEmpty()) {
+                    swapQueues();
+                }
+
+                Edge obj = new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000));
+                hashSum += obj.hashCode();
+                queue.put(obj);
+            }
+        }
+
+        private void serializeObjsToBuffer() {
+            while (!queue2.isEmpty() && byteBuffer.position() < 0.9 * BYTE_BUFFER_CAPACITY) {
+                Serializable obj = queue2.poll();
+
                 // reserve bytes for length
                 byteBuffer.position(byteBuffer.position() + 4);
 
@@ -244,12 +248,13 @@ public class NIO2MicroBenchmark {
 
                 // set position to end of object
                 byteBuffer.position(end);
-                return true;
 
-            } else {
-                writeToSocket();
-                return false;
+                if (queue2.isEmpty()) {
+                    swapQueues();
+                }
             }
+            writeToSocket();
+
         }
 
         private void writeToSocket() {
@@ -259,12 +264,10 @@ public class NIO2MicroBenchmark {
                 public void completed(Integer result, Object attachment) {
                     byteBuffer.compact();
 
-                    if (counter.get() < MESSAGE_COUNT) {
-                        serializeMessages();
+                    if (counter.get() < MESSAGE_COUNT || !queue2.isEmpty() || !queue.isEmpty()) {
+                        serializeObjsToBuffer();
                     } else if (counter.get() == MESSAGE_COUNT && byteBuffer.position() > 0) {
                         writeToSocket();
-                    } else {
-                        terminate();
                     }
                 }
 
@@ -277,14 +280,10 @@ public class NIO2MicroBenchmark {
 
         public void terminate() {
             try {
-                this.channelGroup.shutdownNow();
+                this.threadPool.shutdownNow();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-
-        public AsynchronousChannelGroup getChannelGroup() {
-            return channelGroup;
         }
     }
 

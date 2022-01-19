@@ -13,6 +13,6 @@ networking\NetworkingTest$1.class
 networking\NetworkingTest$3.class
 networking\NetworkingTest$6.class
 serialization\KryoSerialization.class
-owl\OWLELSaturationTest$2.class
 serialization\JavaSerialization.class
 networking\NetworkingTest$2.class
+util\ClosureComputationTestUtil.class

@@ -80,6 +80,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                                List<Integer> numberOfThreadsForSingleDistributedWorker) {
         this.benchmarkType = benchmarkType;
         this.numberOfThreadsForSingleDistributedWorker = numberOfThreadsForSingleDistributedWorker;
+        this.numberOfWarmUpRounds = numberOfWarmUpRounds;
         this.includedApproaches = includedApproaches;
         this.numberOfExperimentRepetitions = numberOfExperimentRepetitions;
         this.outputDirectory = outputDirectory;
@@ -266,6 +267,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         }
 
         for (int roundNumber = 1; roundNumber <= this.numberOfWarmUpRounds + this.numberOfExperimentRepetitions; roundNumber++) {
+            initialAxioms = this.initializationFactory.getInitialAxioms();
+
             if (roundNumber <= numberOfWarmUpRounds) {
                 log.info("Warm-up Round " + roundNumber);
             } else {
@@ -319,6 +322,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         List<Double> runtimeInMSPerRound = new ArrayList<>();
 
         for (int roundNumber = 1; roundNumber <= this.numberOfWarmUpRounds + this.numberOfExperimentRepetitions; roundNumber++) {
+            initialAxioms = this.initializationFactory.getInitialAxioms();
+
             if (roundNumber <= numberOfWarmUpRounds) {
                 log.info("Warm-up Round " + roundNumber);
             } else {
@@ -336,14 +341,12 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             this.stopwatch = Stopwatch.createStarted();
             C closure = saturation.saturate();
             assert closure.getClosureResults().size() > 0;
+            this.stopwatch.stop();
 
             if (roundNumber > numberOfWarmUpRounds) {
                 Duration runtime = this.stopwatch.elapsed();
                 runtimeInMSPerRound.add((double) runtime.toMillis());
             }
-
-            assert closure.getClosureResults().size() > 0;
-
         }
         return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
     }

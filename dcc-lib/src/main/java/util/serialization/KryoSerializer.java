@@ -13,26 +13,18 @@ import java.nio.ByteBuffer;
 
 public class KryoSerializer implements Serializer {
 
-    private Kryo kryo = new Kryo();
+    private Kryo kryo;
     private ByteBufferInput bbi = new ByteBufferInput();
     private ByteBufferOutput bbo = new ByteBufferOutput();
+
+    {
+        kryo = new Kryo();
+        KryoUtils.getClasses().forEach(kryo::register);
+    }
 
     public KryoSerializer() {
 
     }
-
-    {
-        kryo = new Kryo();
-        //SerializationUtils.kryo.register(TestObject.class);
-        //SerializationUtils.kryo.register(MessageEnvelope.class);
-        //SerializationUtils.kryo.register(SaturationAxiomsMessage.class);
-        //SerializationUtils.kryo.register(ArrayList.class);
-        //SerializationUtils.kryo.register(networking.messages.SaturationAxiomsMessage.class);
-        //SerializationUtils.kryo.register(Closure.class);
-        //SerializationUtils.kryo.register(Serializable.class);
-        kryo.setRegistrationRequired(false);
-    }
-
 
     @Override
     public byte[] serialize(Serializable object) {
@@ -67,5 +59,17 @@ public class KryoSerializer implements Serializer {
         ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         Input input = new Input(bis);
         return kryo.readClassAndObject(input);
+    }
+
+    public Kryo getKryo() {
+        return kryo;
+    }
+
+    public ByteBufferInput getByteBufferInput() {
+        return bbi;
+    }
+
+    public ByteBufferOutput getByteBufferOutput() {
+        return bbo;
     }
 }
