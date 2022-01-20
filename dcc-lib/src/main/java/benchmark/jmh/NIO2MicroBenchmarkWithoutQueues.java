@@ -9,6 +9,7 @@ import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.MessageEnvelope;
 import nio2kryo.Edge;
+import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -32,12 +33,15 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
     private Serializable nextMessageToBeSent;
     private Stopwatch sw = Stopwatch.createUnstarted();
 
-    private int MESSAGE_COUNT = 100_000_000;
+    private int MESSAGE_COUNT = 20_000_000;
     private int sentMessages = 0;
 
     public static void main(String[] args) {
         NIO2MicroBenchmarkWithoutQueues benchmark = new NIO2MicroBenchmarkWithoutQueues();
-        benchmark.runExperiment();
+        for (int i = 0; i < 3; i++) {
+            benchmark.runExperiment();
+            System.out.println(ConsoleUtils.getSeparator());
+        }
     }
 
     public NIO2MicroBenchmarkWithoutQueues() {

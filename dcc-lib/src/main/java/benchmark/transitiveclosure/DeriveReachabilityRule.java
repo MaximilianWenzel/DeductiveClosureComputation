@@ -1,6 +1,5 @@
 package benchmark.transitiveclosure;
 
-import benchmark.echoclosure.EchoAxiom;
 import com.google.common.base.Stopwatch;
 import org.roaringbitmap.IntConsumer;
 import org.roaringbitmap.RoaringBitmap;

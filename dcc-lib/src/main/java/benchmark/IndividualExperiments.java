@@ -20,8 +20,8 @@ public class IndividualExperiments {
 
     private static final boolean collectWorkerNodeStatistics = false;
 
-    private static final int EXPERIMENT_ROUNDS = 1;
-    private static final int WARM_UP_ROUNDS = 1;
+    private static final int EXPERIMENT_ROUNDS = 2;
+    private static final int WARM_UP_ROUNDS = 2;
 
     private static List<Integer> binaryTreeDepthList;
     private static List<Integer> initialEchoAxioms;
@@ -31,7 +31,7 @@ public class IndividualExperiments {
 
     static {
         binaryTreeDepthList = new ArrayList<>();
-        for (int i = 10; i <= 17; i++) {
+        for (int i = 14; i <= 17; i++) {
             binaryTreeDepthList.add(i);
         }
 
@@ -53,7 +53,7 @@ public class IndividualExperiments {
         numberOfWorkersList = new ArrayList<>();
         numberOfWorkersList.add(1);
         numberOfWorkersList.add(2);
-        numberOfWorkersList.add(3);
+        //numberOfWorkersList.add(3);
         numberOfWorkersList.add(4);
 
         numberOfThreadsPerDistributedWorker = new ArrayList<>();

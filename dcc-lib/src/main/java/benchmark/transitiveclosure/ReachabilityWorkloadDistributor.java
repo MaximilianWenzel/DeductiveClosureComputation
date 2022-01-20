@@ -32,11 +32,12 @@ public class ReachabilityWorkloadDistributor extends WorkloadDistributor<Reachab
 
     public boolean isRelevantAxiomToWorker(WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap> worker, Reachability axiom) {
         RoaringBitmap responsibleNodeIDs = worker.getWorkerTerms();
-        if (responsibleNodeIDs.contains(axiom.getSourceNode())
-                || responsibleNodeIDs.contains(axiom.getDestinationNode())) {
-            return true;
+        if (axiom instanceof ToldReachability) {
+            return responsibleNodeIDs.contains(axiom.getSourceNode());
+        } else {
+            // derived reachability
+            return responsibleNodeIDs.contains(axiom.getDestinationNode());
         }
-        return false;
     }
 
 }
