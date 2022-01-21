@@ -1,10 +1,8 @@
 package networking.reactor.netty.echo;
 
-import java.util.Arrays;
 import java.util.Random;
 import java.util.function.Predicate;
 
-import networking.reactor.netty.echo.ReactorNettyServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +30,7 @@ public class ReactorNettyClient {
 
 		// the stream of random objects that will be sent over network and back
 		Flux<Object> stream = Flux.range(1, COUNT)
-				.map(ignore -> new networking.react.netty.echo.Edge(rnd.nextInt(1000), rnd.nextInt(1000)));
+				.map(ignore -> new Edge(rnd.nextInt(1000), rnd.nextInt(1000)));
 
 		LoopResources loop = LoopResources.create("event-loop", 1, true);
 
@@ -41,8 +39,8 @@ public class ReactorNettyClient {
 				// .doOnConnected(conn -> conn.addHandler(
 				// new ReadTimeoutHandler(10, TimeUnit.SECONDS)))
 				.doOnChannelInit((observer, channel, remoteAddress) -> {
-					channel.pipeline().addFirst(new networking.react.netty.echo.NettyKryoEncoder(),
-							new networking.react.netty.echo.NettyKryoDecoder());
+					channel.pipeline().addFirst(new NettyKryoEncoder(),
+							new NettyKryoDecoder());
 				})
 
 				.handle((inbound, outbound) -> {
@@ -57,13 +55,13 @@ public class ReactorNettyClient {
 								hashDiff[0] += h;
 							})
 					// UNCOMMENT FOR BATCHES
-//					 .buffer(BATCH_SIZE).map(l -> l.toArray())// batches
+					// .buffer(BATCH_SIZE).map(l -> l.toArray())// batches
 					, Mono.just("done"))).then()
 							.and(inbound.receiveObject()
 									.takeWhile(Predicate.not("done"::equals))
 									// UNCOMMENT FOR BATCHES
-//									 .flatMapIterable(
-//									 arr -> Arrays.asList((Object[]) arr))
+									// .flatMapIterable(
+									// arr -> Arrays.asList((Object[]) arr))
 									.doOnNext(obj -> {
 										int h = obj.hashCode();
 										counts[1]++;

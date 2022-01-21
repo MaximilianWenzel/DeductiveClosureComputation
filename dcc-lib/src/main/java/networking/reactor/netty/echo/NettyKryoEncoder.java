@@ -1,4 +1,4 @@
-package networking.react.netty.echo;
+package networking.reactor.netty.echo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

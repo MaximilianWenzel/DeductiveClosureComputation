@@ -1,4 +1,4 @@
-package networking.react.netty.echo;
+package networking.reactor.netty.echo;
 
 import java.util.List;
 
