@@ -1,9 +1,10 @@
-package networking.react.netty.echo;
+package networking.reactor.netty.echo;
 
 import java.util.Arrays;
 import java.util.Random;
 import java.util.function.Predicate;
 
+import networking.reactor.netty.echo.ReactorNettyServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,7 @@ public class ReactorNettyClient {
 			.getLogger(ReactorNettyClient.class);
 
 	// public static final int COUNT = 100_000_000;
-	public static final int COUNT = 100_000_000;
+	public static final int COUNT = 1_000_000;
 
 	// much faster with batches, don't know why
 	// uncomment batch processing in the stream
@@ -31,7 +32,7 @@ public class ReactorNettyClient {
 
 		// the stream of random objects that will be sent over network and back
 		Flux<Object> stream = Flux.range(1, COUNT)
-				.map(ignore -> new Edge(rnd.nextInt(1000), rnd.nextInt(1000)));
+				.map(ignore -> new networking.react.netty.echo.Edge(rnd.nextInt(1000), rnd.nextInt(1000)));
 
 		LoopResources loop = LoopResources.create("event-loop", 1, true);
 
@@ -40,8 +41,8 @@ public class ReactorNettyClient {
 				// .doOnConnected(conn -> conn.addHandler(
 				// new ReadTimeoutHandler(10, TimeUnit.SECONDS)))
 				.doOnChannelInit((observer, channel, remoteAddress) -> {
-					channel.pipeline().addFirst(new NettyKryoEncoder(),
-							new NettyKryoDecoder());
+					channel.pipeline().addFirst(new networking.react.netty.echo.NettyKryoEncoder(),
+							new networking.react.netty.echo.NettyKryoDecoder());
 				})
 
 				.handle((inbound, outbound) -> {

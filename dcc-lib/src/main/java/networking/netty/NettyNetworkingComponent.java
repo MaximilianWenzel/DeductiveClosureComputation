@@ -2,6 +2,7 @@ package networking.netty;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -22,11 +23,14 @@ import java.util.logging.Logger;
 
 public class NettyNetworkingComponent {
 
+    private static final int BUFFER_SIZE = 512 << 10;
+
     private Logger log = ConsoleUtils.getLogger();
 
     private ConcurrentMap<Long, NettySocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
     private EventLoopGroup group;
     private int numberOfThreads = 1;
+
 
     public NettyNetworkingComponent(int numberOfThreads) {
         this.numberOfThreads = numberOfThreads;
@@ -50,7 +54,24 @@ public class NettyNetworkingComponent {
                         inboundHandlersForPipeline,
                         outboundHandlersForPipeline))
                 .option(ChannelOption.SO_BACKLOG, 128)
-                .childOption(ChannelOption.SO_KEEPALIVE, true);
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childOption(ChannelOption.SO_RCVBUF, BUFFER_SIZE)
+                .childOption(ChannelOption.SO_SNDBUF, BUFFER_SIZE);
+                /*
+                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.SO_REUSEADDR, true)
+                .option(ChannelOption.SO_LINGER, 0)
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_REUSEADDR, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childOption(ChannelOption.SO_LINGER, 0)
+                .childOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10_000)
+
+                .childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 10*65536)
+                .childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 2*65536)
+                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+
+                 */
 
 
         try {

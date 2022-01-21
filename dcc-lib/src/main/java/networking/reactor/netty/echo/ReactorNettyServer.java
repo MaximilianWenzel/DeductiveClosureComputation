@@ -1,4 +1,4 @@
-package networking.react.netty.echo;
+package networking.reactor.netty.echo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +26,8 @@ public class ReactorNettyServer {
 						PooledByteBufAllocator.DEFAULT)
 				.childOption(ChannelOption.SO_KEEPALIVE, true)
 				.doOnChannelInit((observer, channel, remoteAddress) -> {
-					channel.pipeline().addFirst(new NettyKryoDecoder(),
-							new NettyKryoEncoder());
+					channel.pipeline().addFirst(new networking.react.netty.echo.NettyKryoDecoder(),
+							new networking.react.netty.echo.NettyKryoEncoder());
 				}).handle((inbound, outbound) -> outbound
 						.sendObject(inbound.receiveObject()))
 				.bindNow();

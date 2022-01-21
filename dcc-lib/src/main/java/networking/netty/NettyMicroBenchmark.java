@@ -1,17 +1,14 @@
 package networking.netty;
 
 import com.google.common.base.Stopwatch;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
-import io.netty.util.CharsetUtil;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import networking.ServerData;
 import nio2kryo.Edge;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
 import util.ConsoleUtils;
-import util.NetworkingUtils;
 
 import java.util.Collections;
 import java.util.Random;
@@ -22,7 +19,7 @@ import java.util.stream.Stream;
 
 public class NettyMicroBenchmark {
 
-    public static final int MESSAGE_COUNT = 1_000_000;
+    public static final int MESSAGE_COUNT = 2_000_000;
     public static final BlockingQueue<Integer> hashSumResults = new ArrayBlockingQueue<>(2);
     private static final Random rnd = new Random();
 
@@ -63,10 +60,7 @@ public class NettyMicroBenchmark {
                 Collections.emptyList()
         );
 
-
-
         Stopwatch sw = Stopwatch.createStarted();
-
 
         try {
             System.out.println("Waiting for hash sums...");
@@ -91,15 +85,13 @@ public class NettyMicroBenchmark {
 
     public static class SimpleClient extends ChannelInboundHandlerAdapter implements Subscriber<Edge> {
 
+        Flux<Edge> flux = Flux.fromStream(Stream.generate(() -> new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)))
+                .limit(MESSAGE_COUNT));
         private BlockingQueue<Integer> result;
         private int sentMessages = 0;
         private int hashSum = 0;
         private ChannelHandlerContext ctx;
-
         private Subscription subscription;
-
-        Flux<Edge> flux = Flux.fromStream(Stream.generate(() -> new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)))
-                .limit(MESSAGE_COUNT));
 
         public SimpleClient(BlockingQueue<Integer> result) {
             this.result = result;
@@ -107,7 +99,7 @@ public class NettyMicroBenchmark {
         }
 
         @Override
-        public void channelActive(ChannelHandlerContext channelHandlerContext){
+        public void channelActive(ChannelHandlerContext channelHandlerContext) {
             System.out.println("Client active");
             this.ctx = channelHandlerContext;
             flux.subscribeWith(this);
@@ -123,11 +115,13 @@ public class NettyMicroBenchmark {
         @Override
         public void onNext(Edge edge) {
             Object obj = new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000));
-            ctx.writeAndFlush(obj);
-            // TODO: read documentation of ChannelOutboundBuffer
+            ctx.write(obj);
             hashSum += obj.hashCode();
             sentMessages++;
             //System.out.println("Client: Sending message " + sentMessages);
+            if (!ctx.channel().isWritable() || sentMessages == MESSAGE_COUNT) {
+                ctx.flush();
+            }
         }
 
         @Override
@@ -139,7 +133,6 @@ public class NettyMicroBenchmark {
         public void onComplete() {
             System.out.println("Client: All messages have been sent.");
             result.add(hashSum);
-            ctx.close();
         }
 
     }
@@ -160,7 +153,7 @@ public class NettyMicroBenchmark {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             receivedMessages++;
-            if (receivedMessages % 10_000 == 0) {
+            if (receivedMessages % 1_000_000 == 0) {
                 System.out.println("Received message: " + msg + ", (" + receivedMessages + "/" + MESSAGE_COUNT + ")");
             }
             if (receivedMessages < NettyMicroBenchmark.MESSAGE_COUNT) {
