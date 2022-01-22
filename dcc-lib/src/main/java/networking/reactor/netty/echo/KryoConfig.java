@@ -1,8 +1,10 @@
-package networking.react.netty.echo;
+package networking.reactor.netty.echo;
 
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import com.esotericsoftware.kryo.Kryo;
+
+import java.util.ArrayList;
 
 public class KryoConfig {
 
@@ -12,6 +14,7 @@ public class KryoConfig {
 		kryo = new Kryo();
 		kryo.register(Edge.class);
 		kryo.register(Object[].class);
+		kryo.register(ArrayList.class);
 		kryo.setReferences(false);
 		kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
 	}

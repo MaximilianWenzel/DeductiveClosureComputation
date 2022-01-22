@@ -14,6 +14,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -23,8 +24,12 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
 
     protected List<ConnectionEstablishmentListener> portNumbersToListen;
     protected List<ConnectionEstablishmentListener> serversToConnectTo;
+
     protected Consumer<MessageEnvelope> onMessageCouldNotBeSent;
+
     protected ConcurrentMap<Long, NIO2SocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
+    protected List<AsynchronousServerSocketChannel> serverSocketChannels = new ArrayList<>();
+
     protected AsynchronousChannelGroup asynchronousChannelGroup;
     protected ExecutorService threadPool;
     private Logger log = ConsoleUtils.getLogger();
@@ -83,6 +88,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         log.info("Listening on " + inetSocketAddress + "...");
         server.bind(inetSocketAddress);
         server.accept(portListener.getMessageProcessor(), new ServerSocketCompletionHandler(portListener, server));
+        this.serverSocketChannels.add(server);
     }
 
     public void connectToServer(ConnectionEstablishmentListener serverConnector) throws IOException {
@@ -158,27 +164,25 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
             }
         }
         socketIDToSocketManager.clear();
+
+        for (AsynchronousServerSocketChannel socketChannel : serverSocketChannels) {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        serverSocketChannels.clear();
     }
 
     @Override
     public void terminate() {
-        try {
-            closeAllSockets();
-            asynchronousChannelGroup.shutdownNow();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        closeAllSockets();
     }
 
     @Override
     public void terminateAfterAllMessagesHaveBeenSent() {
-        try {
-            closeAllSockets();
-            asynchronousChannelGroup.shutdown();
-            asynchronousChannelGroup.awaitTermination(5000, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        closeAllSockets();
     }
 
     private class ServerSocketCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {

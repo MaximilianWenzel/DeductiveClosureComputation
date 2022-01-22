@@ -20,7 +20,7 @@ public class IndividualExperiments {
 
     private static final boolean collectWorkerNodeStatistics = false;
 
-    private static final int EXPERIMENT_ROUNDS = 2;
+    private static final int EXPERIMENT_ROUNDS = 3;
     private static final int WARM_UP_ROUNDS = 2;
 
     private static List<Integer> binaryTreeDepthList;

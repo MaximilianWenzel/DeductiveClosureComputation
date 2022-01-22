@@ -8,6 +8,7 @@ import nio2kryo.Edge;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
+import reactor.netty.NettyOutbound;
 import util.ConsoleUtils;
 
 import java.util.Collections;
@@ -19,7 +20,7 @@ import java.util.stream.Stream;
 
 public class NettyMicroBenchmark {
 
-    public static final int MESSAGE_COUNT = 2_000_000;
+    public static final int MESSAGE_COUNT = 2;
     public static final BlockingQueue<Integer> hashSumResults = new ArrayBlockingQueue<>(2);
     private static final Random rnd = new Random();
 
@@ -37,6 +38,8 @@ public class NettyMicroBenchmark {
     }
 
     public static void executeExperiment() {
+
+
         // server
         NettyNetworkingComponent serverNetworkingComponent = new NettyNetworkingComponent(1);
         ServerData serverData = new ServerData("localhost", 8080);
@@ -81,7 +84,6 @@ public class NettyMicroBenchmark {
         System.out.println("Required time for " + MESSAGE_COUNT + " objects: " + timeInMS + "ms");
         System.out.println(objPerSec + " obj/s");
     }
-
 
     public static class SimpleClient extends ChannelInboundHandlerAdapter implements Subscriber<Edge> {
 

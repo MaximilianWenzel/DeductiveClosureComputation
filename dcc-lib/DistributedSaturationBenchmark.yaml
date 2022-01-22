@@ -19,7 +19,7 @@ services:
       - saturation-network
     ports:
       - "30000"
-    command: 0.0.0.0 30000
+    command: 0.0.0.0 30000 ${NUM_NETWORKING_THREADS}
     deploy:
       mode: replicated
       replicas: ${NUM_WORKERS}

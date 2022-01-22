@@ -21,8 +21,10 @@ public class DockerSaturationBenchmark {
     private static List<Integer> numberOfWorkersList;
 
     static {
+        outputDirectory.mkdir();
+
         binaryTreeDepthList = new ArrayList<>();
-        for (int i = 0; i <= 17; i++) {
+        for (int i = 14; i <= 17; i++) {
             binaryTreeDepthList.add(i);
         }
 

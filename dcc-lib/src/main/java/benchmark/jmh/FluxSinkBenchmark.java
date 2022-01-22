@@ -98,7 +98,7 @@ public class FluxSinkBenchmark {
 
     @Benchmark
     public void sinkEmit_RequestRate_1_000_000_Elements() {
-        sinkRequestRate_1_000_000_Elements.tryEmitNext(new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)));
+        sinkRequestRate_1_000_000_Elements.emitNext(obj, failureHandler);
     }
 
 

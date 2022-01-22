@@ -5,52 +5,48 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
 import enums.SaturationStatusMessage;
-import networking.NIO2NetworkingComponent;
-import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
-import networking.connectors.ConnectionEstablishmentListener;
-import networking.io.MessageHandler;
-import networking.io.SocketManager;
 import networking.messages.*;
+import networking.netty.NettyConnectionModel;
+import networking.netty.NettyReactorNetworkingComponent;
+import networking.netty.NettySocketManager;
+import reactor.core.publisher.SignalType;
+import reactor.core.publisher.Sinks;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
-import util.QueueFactory;
 
-import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
-public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable>
-        implements SaturationCommunicationChannel {
+public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
     // TODO: adjust if workers are not running on localhost
     private static final boolean WORKERS_ON_LOCALHOST = false;
 
     private final Logger log = ConsoleUtils.getLogger();
 
-    protected NetworkingComponent networkingComponent;
+    protected NettyReactorNetworkingComponent networkingComponent;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
     protected BiMap<Long, Long> socketIDToWorkerID;
     protected BiMap<Long, Long> workerIDToSocketID;
     protected long controlNodeID = 0L;
-    protected BlockingQueue<Object> receivedMessages = QueueFactory.createSaturationToDo();
+    protected Sinks.Many<Object> receivedMessages = ReactorSinkFactory.getSink(); // TODO: define queue buffer
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected Iterator<? extends A> initialAxioms;
 
     protected AcknowledgementEventManager acknowledgementEventManager;
+
+    protected EmitFailureHandlerImpl emitFailureHandler = new EmitFailureHandlerImpl();
 
     protected boolean allConnectionsEstablished = false;
     protected AtomicInteger initializedWorkers = new AtomicInteger(0);
@@ -60,12 +56,13 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected AtomicInteger sumOfAllReceivedAxioms = new AtomicInteger(0);
     protected AtomicInteger sumOfAllSentAxioms = new AtomicInteger(0);
 
+    protected Map<Long, Sinks.Many<Object>> workerIDToOutboundMessages = new HashMap<>();
+
     protected ExecutorService threadPool;
     protected BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent;
     protected Runnable onNewMessageReceived;
 
     protected SaturationConfiguration config;
-
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
                                            WorkloadDistributor<C, A, T> workloadDistributor,
@@ -93,42 +90,12 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         acknowledgementEventManager = new AcknowledgementEventManager();
 
-        networkingComponent = new NIO2NetworkingComponent(
-                Collections.emptyList(),
-                Collections.emptyList(),
-                messageEnvelope -> messagesThatCouldNotBeSent.add(messageEnvelope),
-                threadPool
-        );
-
+        networkingComponent = new NettyReactorNetworkingComponent();
     }
 
     public void initializeConnectionToWorkerServers() {
-
-        if (WORKERS_ON_LOCALHOST) {
-            List<ServerData> serverDataList = workers.stream()
-                    .map(DistributedWorkerModel::getServerData)
-                    .map(s -> new ServerData("localhost", s.getPortNumber()))
-                    .collect(Collectors.toList());
-
-            for (int i = 0; i < workers.size(); i++) {
-                WorkerConnectionEstablishmentListener workerConnectionEstablishmentListener = new WorkerConnectionEstablishmentListener(
-                        serverDataList.get(i), workers.get(i));
-                try {
-                    networkingComponent.connectToServer(workerConnectionEstablishmentListener);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        } else {
-            workers.stream().map(p -> new WorkerConnectionEstablishmentListener(p.getServerData(), p))
-                    .forEach(s -> {
-                        try {
-                            networkingComponent.connectToServer(s);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    });
-        }
+        workers.stream().map(this::getWorkerConnectionModel)
+                .forEach(s -> networkingComponent.connectToServer(s));
     }
 
     public void distributeInitialAxioms() {
@@ -140,64 +107,43 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         });
     }
 
-    @Override
-    public Object removeNextMessage() {
-        return receivedMessages.poll();
-    }
-
-    @Override
-    public Object pollNextMessage() {
-        return receivedMessages.poll();
-    }
-
-    @Override
-    public boolean hasMoreMessages() {
-        return !this.receivedMessages.isEmpty();
-    }
-
-    @Override
-    public void terminateNow() {
+    public void terminate() {
         networkingComponent.terminate();
     }
 
-    @Override
-    public void terminateAfterAllMessagesHaveBeenSent() {
-        networkingComponent.terminateAfterAllMessagesHaveBeenSent();
-    }
-
     public void broadcast(SaturationStatusMessage statusMessage, Runnable onAcknowledgement) {
-        for (Long socketID : this.socketIDToWorkerID.keySet()) {
+        for (Long workerID : this.workerIDToOutboundMessages.keySet()) {
             StateInfoMessage stateInfoMessage = new StateInfoMessage(controlNodeID, statusMessage);
-            send(socketID, stateInfoMessage, onAcknowledgement);
+            send(workerID, stateInfoMessage, onAcknowledgement);
         }
     }
 
     public void acknowledgeMessage(long receiverWorkerID, long messageID) {
         AcknowledgementMessage ack = new AcknowledgementMessage(controlNodeID, messageID);
-        long receiverSocketID = workerIDToSocketID.get(receiverWorkerID);
-        send(receiverSocketID, ack);
+        long workerID = workerIDToSocketID.get(receiverWorkerID);
+        send(workerID, ack);
     }
 
-    public void send(long receiverSocketID, SaturationStatusMessage status, Runnable onAcknowledgement) {
+    public void send(long workerID, SaturationStatusMessage status, Runnable onAcknowledgement) {
         StateInfoMessage stateInfoMessage = new StateInfoMessage(controlNodeID, status);
-        send(receiverSocketID, stateInfoMessage, onAcknowledgement);
+        send(workerID, stateInfoMessage, onAcknowledgement);
     }
 
-    public void send(long receiverSocketID, MessageModel<C, A, T> message, Runnable onAcknowledgement) {
+    public void send(long workerID, MessageModel<C, A, T> message, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(message.getMessageID(), onAcknowledgement);
-        networkingComponent.sendMessage(receiverSocketID, message);
+        networkingComponent.sendMessage(workerID, message);
     }
 
-    public void send(long receiverSocketID, Serializable message) {
-        networkingComponent.sendMessage(receiverSocketID, message);
+    public void send(long workerID, Serializable message) {
+        workerIDToOutboundMessages.get(workerID).emitNext(message, emitFailureHandler);
     }
 
     public void requestAxiomCountsFromAllWorkers() {
         this.saturationStage.incrementAndGet();
-        for (Long socketID : this.socketIDToWorkerID.keySet()) {
+        for (Sinks.Many<Object> workerOutboundMessages : this.workerIDToOutboundMessages.values()) {
             RequestAxiomMessageCount requestAxiomMessageCount = new RequestAxiomMessageCount(controlNodeID,
                     this.saturationStage.get());
-            send(socketID, requestAxiomMessageCount);
+            workerOutboundMessages.emitNext(requestAxiomMessageCount, emitFailureHandler);
         }
     }
 
@@ -229,24 +175,9 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         return sumOfAllSentAxioms;
     }
 
-    private class WorkerConnectionEstablishmentListener extends ConnectionEstablishmentListener {
-
-        private final DistributedWorkerModel<C, A, T> workerModel;
-
-        public WorkerConnectionEstablishmentListener(ServerData serverData,
-                                                     DistributedWorkerModel<C, A, T> workerModel) {
-            super(serverData, new MessageHandler() {
-                @Override
-                public void process(long socketID, Object message) {
-                    receivedMessages.add(message);
-                    onNewMessageReceived.run();
-                }
-            });
-            this.workerModel = workerModel;
-        }
-
-        @Override
-        public void onConnectionEstablished(SocketManager socketManager) {
+    private NettyConnectionModel getWorkerConnectionModel(DistributedWorkerModel<C, A, T> workerModel) {
+        ServerData serverData = workerModel.getServerData();
+        Consumer<NettySocketManager> onConnectionEstablished = socketManager -> {
             log.info("Connection established to worker server " + workerModel.getID() + ".");
 
             // get worker ID to socket ID mapping
@@ -267,17 +198,32 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                     config
             );
 
-            send(socketManager.getSocketID(), initializeWorkerMessage, new Runnable() {
-                @Override
-                public void run() {
-                    initializedWorkers.getAndIncrement();
+            send(socketManager.getSocketID(), initializeWorkerMessage, () -> initializedWorkers.getAndIncrement());
+        };
 
-                }
-            });
+        // TODO define queue buffer for Sink
+        Sinks.Many<Object> workerOutboundMessages = ReactorSinkFactory.getSink();
+        this.workerIDToOutboundMessages.put(workerModel.getID(), workerOutboundMessages);
 
+        NettyConnectionModel conModel = new NettyConnectionModel(
+                serverData,
+                onConnectionEstablished,
+                (msg) -> receivedMessages.emitNext(msg, emitFailureHandler),
+                workerOutboundMessages.asFlux(),
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+        return conModel;
+    }
+
+    private class EmitFailureHandlerImpl implements Sinks.EmitFailureHandler {
+
+        @Override
+        public boolean onEmitFailure(SignalType signalType, Sinks.EmitResult emitResult) {
+            System.err.println(signalType);
+            System.err.println(emitResult);
+            return false;
         }
-
-
     }
 
 }

@@ -36,6 +36,8 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     private ExecutorService threadPool;
     private int numberOfThreads;
 
+    private BlockingQueue<C> closureResultQueue = new ArrayBlockingQueue<>(1);
+
     private AtomicBoolean mainSaturationTaskSubmittedToThreadPool = new AtomicBoolean(false);
 
     protected SaturationControlNode(List<DistributedWorkerModel<C, A, T>> workers,
@@ -67,12 +69,13 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     public C saturate() {
         threadPool.submit(this);
         try {
-            threadPool.awaitTermination(Integer.MAX_VALUE, TimeUnit.DAYS);
+            C closure = this.closureResultQueue.take();
+            threadPool.shutdown();
+            return closure;
         } catch (InterruptedException e) {
             e.printStackTrace();
+            throw new IllegalStateException();
         }
-
-        return resultingClosure;
     }
 
     @Override
@@ -100,7 +103,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
             stats.collectStopwatchTimes();
         }
         communicationChannel.terminateAfterAllMessagesHaveBeenSent();
-        this.threadPool.shutdownNow();
+        closureResultQueue.add(resultingClosure);
     }
 
     private void trySendingMessagesWhichCouldNotBeSent() {

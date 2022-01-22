@@ -26,8 +26,8 @@ public class ReactorNettyServer {
 						PooledByteBufAllocator.DEFAULT)
 				.childOption(ChannelOption.SO_KEEPALIVE, true)
 				.doOnChannelInit((observer, channel, remoteAddress) -> {
-					channel.pipeline().addFirst(new networking.react.netty.echo.NettyKryoDecoder(),
-							new networking.react.netty.echo.NettyKryoEncoder());
+					channel.pipeline().addFirst(new NettyKryoDecoder(),
+							new NettyKryoEncoder());
 				}).handle((inbound, outbound) -> outbound
 						.sendObject(inbound.receiveObject()))
 				.bindNow();

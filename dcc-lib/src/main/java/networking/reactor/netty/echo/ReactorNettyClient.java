@@ -20,19 +20,18 @@ public class ReactorNettyClient {
 			.getLogger(ReactorNettyClient.class);
 
 	// public static final int COUNT = 100_000_000;
-	public static final int COUNT = 1_000_000;
+	public static final int COUNT = 10_000_000;
 
 	// much faster with batches, don't know why
 	// uncomment batch processing in the stream
 	public static final int BATCH_SIZE = 128;
 
 	public static void main(String[] args) {
-
 		Random rnd = new Random();
 
 		// the stream of random objects that will be sent over network and back
 		Flux<Object> stream = Flux.range(1, COUNT)
-				.map(ignore -> new networking.react.netty.echo.Edge(rnd.nextInt(1000), rnd.nextInt(1000)));
+				.map(ignore -> new Edge(rnd.nextInt(1000), rnd.nextInt(1000)));
 
 		LoopResources loop = LoopResources.create("event-loop", 1, true);
 
@@ -41,8 +40,8 @@ public class ReactorNettyClient {
 				// .doOnConnected(conn -> conn.addHandler(
 				// new ReadTimeoutHandler(10, TimeUnit.SECONDS)))
 				.doOnChannelInit((observer, channel, remoteAddress) -> {
-					channel.pipeline().addFirst(new networking.react.netty.echo.NettyKryoEncoder(),
-							new networking.react.netty.echo.NettyKryoDecoder());
+					channel.pipeline().addFirst(new NettyKryoEncoder(),
+							new NettyKryoDecoder());
 				})
 
 				.handle((inbound, outbound) -> {
@@ -57,13 +56,13 @@ public class ReactorNettyClient {
 								hashDiff[0] += h;
 							})
 					// UNCOMMENT FOR BATCHES
-//					 .buffer(BATCH_SIZE).map(l -> l.toArray())// batches
+					// .buffer(BATCH_SIZE).map(l -> l.toArray())// batches
 					, Mono.just("done"))).then()
 							.and(inbound.receiveObject()
 									.takeWhile(Predicate.not("done"::equals))
 									// UNCOMMENT FOR BATCHES
-//									 .flatMapIterable(
-//									 arr -> Arrays.asList((Object[]) arr))
+									 //.flatMapIterable(
+									 //arr -> Arrays.asList((Object[]) arr))
 									.doOnNext(obj -> {
 										int h = obj.hashCode();
 										counts[1]++;
@@ -82,6 +81,7 @@ public class ReactorNettyClient {
 											LOGGER.error(
 													"Send/receive hash mismatch!");
 										}
+										System.out.println(COUNT / timeDiff[0] * 1000);
 										LOGGER.info(
 												"Sent {} objects in {} ms. ({} obj/sec)",
 												COUNT, timeDiff[0],

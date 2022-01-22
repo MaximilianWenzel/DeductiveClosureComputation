@@ -1,7 +1,8 @@
-package networking.react.netty.echo;
+package networking.reactor.netty.echo;
 
 import java.util.List;
 
+import networking.reactor.netty.echo.KryoConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

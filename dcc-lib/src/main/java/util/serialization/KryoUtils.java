@@ -38,6 +38,7 @@ public class KryoUtils {
         sb.add(UnifiedSet.class);
         sb.add(ArrayList.class);
         sb.add(HashMap.class);
+        sb.add(Object[].class);
         sb.add(char[].class);
         sb.add(long[].class);
         sb.add(int[].class);
@@ -117,6 +118,7 @@ public class KryoUtils {
 
         // other
         sb.add(Edge.class);
+        sb.add(networking.reactor.netty.echo.Edge.class);
         sb.add(TestObject.class);
 
         return sb.build();

@@ -1,0 +1,8 @@
+benchmarkType;approach;numberOfInitialAxioms;numWorkers;minRuntimeMS;maxRuntimeMS;averageRuntimeMS
+Echo;single;10000;null;21.0;55.0;34.333333333333336
+Echo;single;20000;null;10.0;16.0;13.0
+Echo;single;50000;null;58.0;84.0;68.66666666666667
+Echo;single;100000;null;108.0;127.0;114.66666666666667
+Echo;single;200000;null;188.0;301.0;248.66666666666666
+Echo;single;500000;null;385.0;503.0;438.3333333333333
+Echo;single;1000000;null;841.0;961.0;917.0

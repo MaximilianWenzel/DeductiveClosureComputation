@@ -33,13 +33,11 @@ import java.time.Duration;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T extends Serializable> {
     private Logger log = ConsoleUtils.getLogger();
 
-    private int numberOfExperimentRepetitions = 2;
+    private int numberOfExperimentRepetitions = 3;
     private int numberOfWarmUpRounds = 2;
     private Set<SaturationApproach> includedApproaches;
     private Stopwatch stopwatch;
@@ -161,7 +159,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
 
     public void finishBenchmark() {
         try {
-            createCSVFile();
+            writeCSVFile();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -258,7 +256,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 workerGenerator = null;
                 serverDataList = new ArrayList<>();
                 for (int i = 0; i < workers.size(); i++) {
-                    String serverName = "dcc-lib_worker_" + (i + 2);
+                    String serverName = "dcc-lib_worker_" + (i + 1);
                     serverDataList.add(new ServerData(serverName, 30_000));
                 }
                 break;
@@ -293,6 +291,9 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             // run saturation
             C closure = saturation.saturate();
             assert closure.getClosureResults().size() > 0;
+
+            // time for worker restart
+            Thread.sleep(200);
 
             ControlNodeStatistics controlNodeStatistics = saturation.getControlNodeStatistics();
             List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
@@ -401,17 +402,20 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         try {
             CSVUtils.writeCSVFile(csvControlNodeStatsPath, ControlNodeStatistics.getControlNodeStatsHeader(),
                     Collections.singletonList(controlNodeStatistics.getControlNodeStatistics()), ";");
-            CSVUtils.writeCSVFile(csvWorkerStatsPath,
-                    WorkerStatistics.getWorkerStatsHeader(),
-                    workerStatistics.stream().map(WorkerStatistics::getWorkerStatistics)
-                            .collect(Collectors.toList()),
-                    ";");
+            if (workerStatistics.size() > 0) {
+                CSVUtils.writeCSVFile(csvWorkerStatsPath,
+                        WorkerStatistics.getWorkerStatsHeader(),
+                        workerStatistics.stream().map(WorkerStatistics::getWorkerStatistics)
+                                .collect(Collectors.toList()),
+                        ";");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void createCSVFile() throws IOException {
+    private void writeCSVFile() throws IOException {
+        log.info("Writing benchmark CSV file...");
         CSVFormat csvFormat = CSVFormat.Builder.create()
                 .setHeader(this.csvHeader.toArray(new String[csvHeader.size()]))
                 .setDelimiter(";")

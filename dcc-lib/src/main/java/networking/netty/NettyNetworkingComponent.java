@@ -11,6 +11,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import networking.ServerData;
+import reactor.netty.tcp.TcpClient;
 import util.ConsoleUtils;
 
 import java.io.Serializable;
@@ -156,6 +157,7 @@ public class NettyNetworkingComponent {
             NettyNetworkingComponent.this.socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
 
             socketChannel.pipeline().removeFirst();
+
 
             // outbound handler
             socketChannel.pipeline().addLast("KryoEncoder", new NettySocketManager.KryoEncoder());
