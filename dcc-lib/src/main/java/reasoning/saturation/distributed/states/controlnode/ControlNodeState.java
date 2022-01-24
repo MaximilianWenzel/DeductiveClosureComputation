@@ -33,8 +33,7 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
         this.stats = saturationControlNode.getControlNodeStatistics();
     }
 
-    public void mainControlNodeLoop() {
-        Object msg = communicationChannel.removeNextMessage();
+    public void processMessage(Object msg) {
         if (msg instanceof MessageModel) {
             MessageModel<C, A, T> message = (MessageModel<C, A, T>) msg;
             message.accept(this);

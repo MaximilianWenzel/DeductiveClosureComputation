@@ -50,7 +50,10 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
                 allWorkersInitialized = true;
                 break;
             case WORKER_SERVER_HELLO:
+                // do nothing
+                break;
             case WORKER_CLIENT_HELLO:
+                communicationChannel.getEstablishedConnections().incrementAndGet();
                 communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
                 break;
             case CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT:
@@ -77,10 +80,8 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
                 stats.stopStopwatch(StatisticsComponent.WORKER_INITIALIZING_OTHER_WORKER_CONNECTIONS);
             }
             log.info("All connections to other workers successfully initialized.");
-            this.communicationChannel.addInitialAxiomsToQueue();
-            this.communicationChannel.addAxiomsToQueue(bufferedAxiomMessages);
             this.worker.switchState(new WorkerStateRunning<>(worker));
-
+            this.communicationChannel.addAxiomsToQueue(bufferedAxiomMessages);
             communicationChannel.acknowledgeMessage(communicationChannel.getControlNodeID(), allWorkersInitializedMessageID);
         }
     }

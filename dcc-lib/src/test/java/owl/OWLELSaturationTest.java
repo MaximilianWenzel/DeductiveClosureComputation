@@ -76,11 +76,11 @@ public class OWLELSaturationTest {
     @Test
     public void testDistributedSaturation() {
         OWLELSaturationInitializationFactory factory = new OWLELSaturationInitializationFactory(elOntology, 2);
-        ClosureComputationTestUtil.distributedClosureComputation(factory, false, 2);
+        ClosureComputationTestUtil.distributedClosureComputation(factory, false);
 
         init();
         factory = new OWLELSaturationInitializationFactory(elOntology, 4);
-        ClosureComputationTestUtil.distributedClosureComputation(factory, false, 2);
+        ClosureComputationTestUtil.distributedClosureComputation(factory, false);
     }
 
 

@@ -30,7 +30,7 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
         this.workers = workers;
         this.config = new SaturationConfiguration();
         this.controlNode = new SaturationControlNode<>(workers, workloadDistributor, initialAxioms, resultingClosure,
-                config, numberOfThreadsForControlNode);
+                config);
     }
 
     public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
@@ -43,7 +43,7 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
         this.workers = workers;
         this.config = config;
         this.controlNode = new SaturationControlNode<>(workers, workloadDistributor, initialAxioms, resultingClosure,
-                config, numberOfThreadsForControlNode);
+                config);
     }
 
 

@@ -61,6 +61,15 @@ public class TransitiveReachabilityTest {
         assertEquals(expectedResults, ClosureComputationTestUtil.singleThreadedClosureComputation(initializationFactory));
     }
 
+    @Test
+    void testAtomic() {
+        ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
+                initialAxioms,
+                2,
+                0
+        );
+        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false);
+    }
 
     @Test
     void testDistributedClosureComputation() {
@@ -75,7 +84,7 @@ public class TransitiveReachabilityTest {
                     2,
                     0
             );
-            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
 
             ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
             initializationFactory = new ReachabilitySaturationInitializationFactory(
@@ -83,7 +92,7 @@ public class TransitiveReachabilityTest {
                     4,
                     0
             );
-            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
 
             if (!workersInSeparateJVM) {
                 generator = new ReachabilityBinaryTreeGenerator(7);
@@ -92,7 +101,7 @@ public class TransitiveReachabilityTest {
                         20,
                         0
                 );
-                ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
+                ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM);
             }
 
         }

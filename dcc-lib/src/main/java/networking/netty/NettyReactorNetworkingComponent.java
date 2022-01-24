@@ -1,11 +1,14 @@
 package networking.netty;
 
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.socket.SocketChannel;
 import networking.ServerData;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.netty.*;
+import reactor.netty.channel.ChannelOperations;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
@@ -20,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 public class NettyReactorNetworkingComponent {
@@ -31,7 +35,6 @@ public class NettyReactorNetworkingComponent {
 
     private ConcurrentMap<Long, NettySocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
     private List<DisposableServer> serverSocketChannels = new ArrayList<>();
-    private int numberOfThreads = 1;
     private LoopResources loop;
 
 
@@ -43,14 +46,12 @@ public class NettyReactorNetworkingComponent {
         loop = LoopResources.create("event-loop", 1, false);
     }
 
-    public void listenToPort(NettyConnectionModel conEstablishment) {
+    public void listenToPort(ServerData serverData,
+                             NettyConnectionModel connectionModel) {
         DefaultChannelInitializer channelInitializer = new DefaultChannelInitializer(
-                conEstablishment.getOnConnectionEstablished(),
-                conEstablishment.getInboundHandlersForPipeline(),
-                conEstablishment.getOutboundHandlersForPipeline()
+                connectionModelsForNewConnectedClients
         );
 
-        ServerData serverData = conEstablishment.getServerData();
         DisposableServer server = TcpServer.create().runOn(loop)
                 .host(serverData.getHostname())
                 .port(serverData.getPortNumber())
@@ -60,8 +61,7 @@ public class NettyReactorNetworkingComponent {
                 //.childOption(ChannelOption.SO_RCVBUF, BUFFER_SIZE)
                 //.childOption(ChannelOption.SO_SNDBUF, BUFFER_SIZE)
                 .doOnChannelInit(channelInitializer)
-                .handle(new DefaultBatchHandler(conEstablishment.getOutboundFlux(),
-                        conEstablishment.getOnNewMessageReceived()))
+                .handle(new DefaultBatchHandler())
                 .bindNow();
         this.serverSocketChannels.add(server);
     }
@@ -92,6 +92,7 @@ public class NettyReactorNetworkingComponent {
 
     public void terminate() {
         closeAllSockets();
+        this.loop.dispose();
     }
 
     public void closeAllSockets() {
@@ -115,8 +116,13 @@ public class NettyReactorNetworkingComponent {
     }
 
     private static class DefaultBatchHandler implements BiFunction<NettyInbound, NettyOutbound, Publisher<Void>> {
+        private Supplier<NettyConnectionModel> connectionModelFactory;
         private Flux<?> outboundFlux;
         private Consumer<Object> onNewMessageReceived;
+
+        public DefaultBatchHandler(Supplier<NettyConnectionModel> connectionModelFactory) {
+            this.connectionModelFactory = connectionModelFactory;
+        }
 
         public DefaultBatchHandler(Flux<?> outboundFlux, Consumer<Object> onNewMessageReceived) {
             this.outboundFlux = outboundFlux;
@@ -140,10 +146,7 @@ public class NettyReactorNetworkingComponent {
         private List<? extends ChannelHandler> inboundHandlers;
         private Consumer<NettySocketManager> onConnectionEstablished;
 
-        public DefaultChannelInitializer(Consumer<NettySocketManager> onConnectionEstablished,
-                                         List<? extends ChannelHandler> inboundHandler,
-                                         List<? extends ChannelHandler> outboundHandler) {
-            this.inboundHandlers = inboundHandler;
+        public DefaultChannelInitializer() {
             this.outboundHandlers = outboundHandler;
             this.onConnectionEstablished = onConnectionEstablished;
         }

@@ -1,8 +1,5 @@
 package reasoning.saturation.distributed.communication;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Maps;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import networking.ServerData;
@@ -17,6 +14,7 @@ import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
+import util.ReactorSinkFactory;
 
 import java.io.Serializable;
 import java.util.*;
@@ -29,18 +27,13 @@ import java.util.logging.Logger;
 
 public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
-    // TODO: adjust if workers are not running on localhost
-    private static final boolean WORKERS_ON_LOCALHOST = false;
-
     private final Logger log = ConsoleUtils.getLogger();
 
     protected NettyReactorNetworkingComponent networkingComponent;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
-    protected BiMap<Long, Long> socketIDToWorkerID;
-    protected BiMap<Long, Long> workerIDToSocketID;
     protected long controlNodeID = 0L;
-    protected Sinks.Many<Object> receivedMessages = ReactorSinkFactory.getSink(); // TODO: define queue buffer
+    protected Sinks.Many<Object> receivedMessages = ReactorSinkFactory.getSink();
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected Iterator<? extends A> initialAxioms;
 
@@ -49,6 +42,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected EmitFailureHandlerImpl emitFailureHandler = new EmitFailureHandlerImpl();
 
     protected boolean allConnectionsEstablished = false;
+    protected AtomicInteger establishedConnections = new AtomicInteger(0);
     protected AtomicInteger initializedWorkers = new AtomicInteger(0);
     protected AtomicInteger receivedClosureResults = new AtomicInteger(0);
 
@@ -58,33 +52,20 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     protected Map<Long, Sinks.Many<Object>> workerIDToOutboundMessages = new HashMap<>();
 
-    protected ExecutorService threadPool;
-    protected BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent;
-    protected Runnable onNewMessageReceived;
-
     protected SaturationConfiguration config;
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
                                            WorkloadDistributor<C, A, T> workloadDistributor,
                                            Iterator<? extends A> initialAxioms,
-                                           SaturationConfiguration config,
-                                           ExecutorService threadPool,
-                                           BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent,
-                                           Runnable onNewMessageReceived) {
+                                           SaturationConfiguration config) {
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
         this.config = config;
-        this.threadPool = threadPool;
-        this.messagesThatCouldNotBeSent = messagesThatCouldNotBeSent;
-        this.onNewMessageReceived = onNewMessageReceived;
         init();
     }
 
     private void init() {
-        this.socketIDToWorkerID = Maps.synchronizedBiMap(HashBiMap.create());
-        this.workerIDToSocketID = this.socketIDToWorkerID.inverse();
-
         this.workerIDToWorker = new ConcurrentHashMap<>();
         workers.forEach(p -> workerIDToWorker.put(p.getID(), p));
 
@@ -102,7 +83,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         this.initialAxioms.forEachRemaining(axiom -> {
             workloadDistributor.getRelevantWorkerIDsForAxiom(axiom).forEach(workerID -> {
                 sumOfAllSentAxioms.incrementAndGet();
-                send(workerIDToSocketID.get(workerID), axiom);
+                send(workerID, axiom);
             });
         });
     }
@@ -120,8 +101,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     public void acknowledgeMessage(long receiverWorkerID, long messageID) {
         AcknowledgementMessage ack = new AcknowledgementMessage(controlNodeID, messageID);
-        long workerID = workerIDToSocketID.get(receiverWorkerID);
-        send(workerID, ack);
+        send(receiverWorkerID, ack);
     }
 
     public void send(long workerID, SaturationStatusMessage status, Runnable onAcknowledgement) {
@@ -180,18 +160,17 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         Consumer<NettySocketManager> onConnectionEstablished = socketManager -> {
             log.info("Connection established to worker server " + workerModel.getID() + ".");
 
-            // get worker ID to socket ID mapping
-            socketIDToWorkerID.put(socketManager.getSocketID(), workerModel.getID());
-            if (socketIDToWorkerID.size() == ControlNodeCommunicationChannel.this.workers.size()) {
+            establishedConnections.incrementAndGet();
+            if (establishedConnections.get() == workers.size()) {
                 allConnectionsEstablished = true;
             }
 
             // send initialization message
             log.info("Sending initialization message to worker " + workerModel.getID() + ".");
             InitializeWorkerMessage<C, A, T> initializeWorkerMessage = new InitializeWorkerMessage<>(
-                    ControlNodeCommunicationChannel.this.controlNodeID,
+                    controlNodeID,
                     workerModel.getID(),
-                    ControlNodeCommunicationChannel.this.workers,
+                    workers,
                     workloadDistributor,
                     workerModel.getClosure(),
                     workerModel.getRules(),
@@ -201,7 +180,6 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
             send(socketManager.getSocketID(), initializeWorkerMessage, () -> initializedWorkers.getAndIncrement());
         };
 
-        // TODO define queue buffer for Sink
         Sinks.Many<Object> workerOutboundMessages = ReactorSinkFactory.getSink();
         this.workerIDToOutboundMessages.put(workerModel.getID(), workerOutboundMessages);
 

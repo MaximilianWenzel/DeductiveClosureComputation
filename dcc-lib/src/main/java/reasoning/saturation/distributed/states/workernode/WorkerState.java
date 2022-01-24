@@ -24,8 +24,6 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
     protected WorkerStatistics stats;
     protected SaturationConfiguration config;
 
-    protected ExecutorService threadPool;
-
     protected SaturationWorker<C, A, T> worker;
     protected WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
     protected AcknowledgementEventManager acknowledgementEventManager;
@@ -39,11 +37,9 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         this.acknowledgementEventManager = communicationChannel.getAcknowledgementEventManager();
         this.config = worker.getConfig();
         this.stats = worker.getStats();
-        this.threadPool = worker.getThreadPool();
     }
 
-    public void mainWorkerLoop() {
-        Object msg = communicationChannel.removeNextMessage();
+    public void processMessage(Object msg) {
         if (msg instanceof MessageModel) {
             ((MessageModel<C, A, T>)msg).accept(this);
         } else {

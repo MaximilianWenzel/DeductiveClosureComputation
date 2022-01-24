@@ -49,6 +49,7 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
             case CONTROL_NODE_INFO_CLOSURE_RESULTS_RECEIVED:
                 log.info("Control node received all closure results. Saturation finished.");
                 worker.switchState(new WorkerStateFinished<>(worker));
+                communicationChannel.onSaturationFinished();
                 break;
             default:
                 messageProtocolViolation(message);

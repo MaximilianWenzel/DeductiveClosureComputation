@@ -10,6 +10,7 @@ import networking.netty.NettyConnectionModel;
 import networking.netty.NettyReactorNetworkingComponent;
 import networking.netty.NettySocketManager;
 import org.reactivestreams.Subscriber;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -35,12 +36,11 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
     private final AtomicLong establishedConnections = new AtomicLong(0);
-    private Sinks.Many<Object> receivedMessages = ReactorSinkFactory.getSink(); // TODO adjust queue buffer
-
-    private NettyReactorNetworkingComponent networkingComponent;
     protected Map<Long, Sinks.Many<Object>> connectionIDToOutboundMessages = new HashMap<>();
     protected EmitFailureHandlerImpl emitFailureHandler = new EmitFailureHandlerImpl();
-
+    private Sinks.Many<Object> receivedMessages = ReactorSinkFactory.getSink();
+    private Subscriber<Object> receivedMessagesSubscriber;
+    private NettyReactorNetworkingComponent networkingComponent;
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A, T>> workers;
     private WorkloadDistributor<C, A, T> workloadDistributor;
@@ -50,22 +50,41 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private boolean allConnectionsEstablished = false;
     private AcknowledgementEventManager acknowledgementEventManager;
     private long initializationMessageID = -1;
-    private AtomicInteger saturationStage = new AtomicInteger(0);
+    final private AtomicInteger saturationStage = new AtomicInteger(0);
 
     private SaturationConfiguration config;
     private WorkerStatistics stats;
 
     public WorkerNodeCommunicationChannel(ServerData serverData, Subscriber<Object> receivedMessagesSubscriber) {
         this.serverData = serverData;
-        this.receivedMessages.asFlux().subscribe(receivedMessagesSubscriber);
-        this.receivedMessages.asFlux().switchIfEmpty() // TODO adjust if empty
+        this.receivedMessagesSubscriber = receivedMessagesSubscriber;
         init();
     }
 
     private void init() {
         this.acknowledgementEventManager = new AcknowledgementEventManager();
-
         networkingComponent = new NettyReactorNetworkingComponent();
+        networkingComponent.listenToPort(serverData, this::getWorkerServerConnectionModel);
+    }
+
+    public void reset() {
+        networkingComponent.closeAllSockets();
+
+        sentAxiomMessages.set(0);
+        receivedAxiomMessages.set(0);
+        establishedConnections.set(0);
+        saturationStage.set(0);
+        connectionIDToOutboundMessages.clear();
+        emitFailureHandler = new EmitFailureHandlerImpl();
+        receivedMessages = ReactorSinkFactory.getSink();
+        workerID = -1L;
+        workers = null;
+        workloadDistributor = null;
+        allConnectionsEstablished = false;
+        acknowledgementEventManager = new AcknowledgementEventManager();
+        initializationMessageID = -1;
+        config = null;
+        stats = null;
     }
 
     public void connectToWorkerServers() {
@@ -76,11 +95,18 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 networkingComponent.connectToServer(workerConModel);
             }
         }
+        this.receivedMessages.asFlux().subscribe(receivedMessagesSubscriber);
+        this.receivedMessages.asFlux()
+                .switchIfEmpty(Mono.just(SaturationStatusMessage.TODO_IS_EMPTY_EVENT)); // TODO adjust if flux is empty
     }
 
     public void acknowledgeMessage(long receiverID, long messageID) {
         AcknowledgementMessage ack = new AcknowledgementMessage(this.workerID, messageID);
         send(receiverID, ack);
+    }
+
+    public void onSaturationFinished() {
+        this.receivedMessages.emitComplete(emitFailureHandler);
     }
 
     public void distributeInferences(Stream<A> inferenceStream) {
@@ -111,7 +137,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     public void sendToControlNode(SaturationStatusMessage status, Runnable onAcknowledgement) {
-        send(0, status, onAcknowledgement);
+        send(controlNodeID, status, onAcknowledgement);
     }
 
     public void sendAxiomCountToControlNode() {
@@ -150,7 +176,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         networkingComponent.sendMessage(workerID, message);
     }
 
-    public void terminateNow() {
+    public void terminate() {
         this.networkingComponent.terminate();
     }
 
@@ -239,19 +265,26 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
             send(workerModel.getID(), stateInfoMessage, this.establishedConnections::getAndIncrement);
         };
 
-        // TODO define queue buffer for Sink
         Sinks.Many<Object> workerOutboundMessages = ReactorSinkFactory.getSink();
         this.connectionIDToOutboundMessages.put(workerModel.getID(), workerOutboundMessages);
+
+        Sinks.Many<Object> receivedMessagesSink = ReactorSinkFactory.getSink();
+        ConsumerForNewConnectionMessages consumer = new ConsumerForNewConnectionMessages(workerOutboundMessages, true);
+        receivedMessagesSink.asFlux().doOnNext(consumer);
 
         NettyConnectionModel conModel = new NettyConnectionModel(
                 serverData,
                 onConnectionEstablished,
-                (msg) -> receivedMessages.emitNext(msg, emitFailureHandler),
+                receivedMessagesSink,
                 workerOutboundMessages.asFlux(),
                 Collections.emptyList(),
                 Collections.emptyList()
         );
         return conModel;
+    }
+
+    public AtomicLong getEstablishedConnections() {
+        return establishedConnections;
     }
 
     private NettyConnectionModel getWorkerServerConnectionModel() {
@@ -260,16 +293,16 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         Consumer<NettySocketManager> onConnectionEstablished = socketManager -> {
             log.info("Client connected to worker.");
             // client will send WORKER_CLIENT_HELLO message
-            StateInfoMessage stateInfoMessage = new StateInfoMessage(this.workerID,
-                    SaturationStatusMessage.WORKER_SERVER_HELLO);
-            send(socketManager.getSocketID(), stateInfoMessage,
-                    WorkerNodeCommunicationChannel.this.establishedConnections::getAndIncrement);
         };
+
+        Sinks.Many<Object> receivedMessagesSink = ReactorSinkFactory.getSink();
+        ConsumerForNewConnectionMessages consumer = new ConsumerForNewConnectionMessages(workerOutboundMessages, false);
+        receivedMessagesSink.asFlux().doOnNext(consumer);
 
         NettyConnectionModel conModel = new NettyConnectionModel(
                 serverData,
                 onConnectionEstablished,
-                (msg) -> new ConsumerForNewConnectionMessages(workerOutboundMessages),
+                receivedMessagesSink,
                 workerOutboundMessages.asFlux(),
                 Collections.emptyList(),
                 Collections.emptyList()
@@ -280,9 +313,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private class ConsumerForNewConnectionMessages implements Consumer<Object> {
 
         private Sinks.Many<Object> outboundMessages;
+        private boolean workerIDOfConnectionIsKnown;
 
-        public ConsumerForNewConnectionMessages(Sinks.Many<Object> outboundMessages) {
+        public ConsumerForNewConnectionMessages(Sinks.Many<Object> outboundMessages,
+                                                boolean workerIDOfConnectionIsKnown) {
             this.outboundMessages = outboundMessages;
+            this.workerIDOfConnectionIsKnown = workerIDOfConnectionIsKnown;
         }
 
         @Override
@@ -306,9 +342,15 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         }
 
         private void initializeConnection(MessageModel messageModel) {
-            connectionIDToOutboundMessages.put(messageModel.getSenderID(), outboundMessages);
+            if (!workerIDOfConnectionIsKnown) {
+                Object obj = connectionIDToOutboundMessages.put(messageModel.getSenderID(), outboundMessages);
+                if (obj == null) {
+                    // worker ID of remote connection is now known
+                    this.workerIDOfConnectionIsKnown = true;
+                    establishedConnections.incrementAndGet();
+                }
+            }
 
-            // get worker ID / control node ID to socket ID mapping
             if (workers != null && workers.size() == establishedConnections.get()) {
                 //  if all connections (i.e., # workers - 1 + single control node) are established
                 allConnectionsEstablished = true;

@@ -244,13 +244,13 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         // initialize workers
         switch (distributedApproach) {
             case DISTRIBUTED_MULTITHREADED:
-                workerGenerator = new SaturationWorkerThreadGenerator(workers.size(), numberOfThreadsForSingleDistributedWorker);
+                workerGenerator = new SaturationWorkerThreadGenerator(workers.size());
                 break;
             case DISTRIBUTED_SEPARATE_DOCKER_CONTAINER:
                 workerGenerator = new SaturationDockerWorkerGenerator(workers.size());
                 break;
             case DISTRIBUTED_SEPARATE_JVM:
-                workerGenerator = new SaturationJVMWorkerGenerator(workers.size(), numberOfThreadsForSingleDistributedWorker);
+                workerGenerator = new SaturationJVMWorkerGenerator(workers.size());
                 break;
             case DISTRIBUTED_DOCKER_BENCHMARK:
                 workerGenerator = null;

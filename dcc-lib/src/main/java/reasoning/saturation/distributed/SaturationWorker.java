@@ -4,7 +4,6 @@ import data.Closure;
 import exceptions.NotImplementedException;
 import networking.ServerData;
 import networking.messages.InitializeWorkerMessage;
-import networking.messages.MessageEnvelope;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reasoning.reasoner.IncrementalStreamReasoner;
@@ -13,13 +12,11 @@ import reasoning.saturation.distributed.communication.WorkerNodeCommunicationCha
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.distributed.states.workernode.WorkerState;
-import reasoning.saturation.distributed.states.workernode.WorkerStateFinished;
 import reasoning.saturation.distributed.states.workernode.WorkerStateInitializing;
 import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -38,9 +35,10 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private IncrementalStreamReasoner<C, A> incrementalReasoner;
     private SaturationConfiguration config;
     private WorkerStatistics stats = new WorkerStatistics();
+    private AtomicBoolean workerIsStarted = new AtomicBoolean(false);
     private boolean terminateAfterSaturation = false;
 
-    private AtomicBoolean mainSaturationTaskSubmittedToThreadPool = new AtomicBoolean(true);
+    private Subscription receivedMessagesSubscription;
 
     public SaturationWorker(ServerData serverData,
                             IncrementalReasonerType incrementalReasonerType) {
@@ -57,17 +55,15 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     public static void main(String[] args) {
-        // args: <HOSTNAME> <PORT-NUMBER> <NUMBER-OF-NETWORKING-THREADS>
-
+        // args: <HOSTNAME> <PORT-NUMBER>
         log.info("Generating worker...");
 
         if (args.length != 3) {
-            throw new IllegalArgumentException("arguments: <HOSTNAME> <PORT-NUMBER> <NUMBER-OF-NETWORKING-THREADS>");
+            throw new IllegalArgumentException("arguments: <HOSTNAME> <PORT-NUMBER>");
         }
 
         String hostname = args[0];
         int portNumber = Integer.parseInt(args[1]);
-        int numberOfNetworkingThreads = Integer.parseInt(args[2]); // TODO adjust
 
         ServerData serverData = new ServerData(hostname, portNumber);
 
@@ -76,7 +72,6 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
                 IncrementalReasonerType.SINGLE_THREADED,
                 true
         );
-
         saturationWorker.start();
     }
 
@@ -85,19 +80,10 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         this.state = new WorkerStateInitializing<>(this);
     }
 
-    public void start() {
-        this.threadPool.submit(this);
-    }
-
-    public void stop() {
-        this.threadPool.shutdownNow();
-    }
-
-
     private void clearWorkerForNewSaturation() {
         log.info("Restarting worker...");
-        communicationChannel.terminateNow();
-        init();
+        communicationChannel.reset();
+        this.state = new WorkerStateInitializing<>(this);
         this.rules = null;
         this.config = null;
         this.stats = new WorkerStatistics();
@@ -137,6 +123,19 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         initializeRules();
     }
 
+    public void start() {
+        if (workerIsStarted.compareAndSet(false, true)) {
+            if (receivedMessagesSubscription != null) {
+                receivedMessagesSubscription.request(1);
+            }
+        }
+    }
+
+    public void stop() {
+        communicationChannel.terminate();
+    }
+
+
     private void initializeRules() {
         this.rules.forEach(r -> {
             r.setClosure(closure);
@@ -152,7 +151,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     public void terminate() {
-        communicationChannel.terminateNow();
+        communicationChannel.terminate();
     }
 
     public SaturationConfiguration getConfig() {
@@ -172,25 +171,34 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         PARALLEL;
     }
 
+
     @Override
     public void onSubscribe(Subscription subscription) {
-
+        this.receivedMessagesSubscription = subscription;
+        if (this.workerIsStarted.get()) {
+            this.receivedMessagesSubscription.request(1);
+        }
     }
 
     @Override
     public void onNext(Object o) {
-        state.onToDoIsEmpty();
-        state.mainWorkerLoop(); // TODO
-        log.info("Saturation finished.");
+        state.processMessage(o); // TODO
+        this.receivedMessagesSubscription.request(1);
     }
 
     @Override
     public void onError(Throwable throwable) {
-
+        log.warning(throwable.getMessage());
+        throwable.printStackTrace();
     }
 
     @Override
     public void onComplete() {
-
+        log.info("Saturation finished.");
+        if (terminateAfterSaturation) {
+            this.communicationChannel.terminate();
+        } else {
+            clearWorkerForNewSaturation();
+        }
     }
 }

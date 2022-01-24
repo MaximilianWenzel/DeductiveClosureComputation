@@ -5,11 +5,8 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.distributed.SaturationWorker;
 import util.NetworkingUtils;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,11 +17,9 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
     private int numberOfWorkers;
     private List<ServerData> serverDataList;
     private List<Process> workerProcesses = new ArrayList<>();
-    private int numberOfThreadsForSingleWorker;
 
-    public SaturationJVMWorkerGenerator(int numberOfWorkers, int numberOfThreadsForSingleWorker) {
+    public SaturationJVMWorkerGenerator(int numberOfWorkers) {
         this.numberOfWorkers = numberOfWorkers;
-        this.numberOfThreadsForSingleWorker = numberOfThreadsForSingleWorker;
         init();
     }
 
@@ -69,7 +64,7 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
                 "-cp",
                 classpath,
                 SaturationWorker.class.getName(),
-                "localhost", portNumber + "", numberOfThreadsForSingleWorker + "" // application args
+                "localhost", portNumber + ""// application args
         ).inheritIO();
         workerProcesses.add(processBuilder.start());
     }

@@ -16,16 +16,13 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
         super(worker);
     }
 
-    public void mainWorkerLoop() {
-        Object obj = communicationChannel.removeNextMessage();
-
-        if (obj instanceof MessageModel) {
-            ((MessageModel<C, A, T>)obj).accept(this);
+    public void processMessage(Object msg) {
+        if (msg instanceof MessageModel) {
+            ((MessageModel<C, A, T>)msg).accept(this);
         } else {
-            visit((A)obj);
+            visit((A)msg);
         }
-
-        lastMessageWasAxiomCountRequest = obj instanceof RequestAxiomMessageCount;
+        lastMessageWasAxiomCountRequest = msg instanceof RequestAxiomMessageCount;
     }
 
     public void onToDoIsEmpty() {
@@ -48,12 +45,15 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
     @Override
     public void visit(StateInfoMessage message) {
         switch (message.getStatusMessage()) {
+            case TODO_IS_EMPTY_EVENT:
+                onToDoIsEmpty();
+                break;
             case WORKER_SERVER_HELLO:
+                // do nothing
+                break;
             case WORKER_CLIENT_HELLO:
                 communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
                 break;
-            case CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT:
-
             default:
                 messageProtocolViolation(message);
         }

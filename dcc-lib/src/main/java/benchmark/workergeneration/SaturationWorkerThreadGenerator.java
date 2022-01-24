@@ -8,18 +8,15 @@ import util.NetworkingUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerator {
 
     private final int numberOfWorkers;
     private List<ServerData> serverDataList;
     private final List<SaturationWorker<?, ?, ?>> saturationWorkers = new ArrayList<>();
-    private final int numberOfThreadsForSingleWorker;
 
-    public SaturationWorkerThreadGenerator(int numberOfWorkers, int numberOfThreadsForSingleWorker) {
+    public SaturationWorkerThreadGenerator(int numberOfWorkers) {
         this.numberOfWorkers = numberOfWorkers;
-        this.numberOfThreadsForSingleWorker = numberOfThreadsForSingleWorker;
         init();
     }
 
@@ -41,8 +38,7 @@ public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerato
             try {
                 SaturationWorker<?, ?, ?> worker = new SaturationWorker<>(
                         serverData,
-                        SaturationWorker.IncrementalReasonerType.SINGLE_THREADED,
-                        numberOfThreadsForSingleWorker
+                        SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
                 );
                 saturationWorkers.add(worker);
             } catch (Exception e) {

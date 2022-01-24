@@ -14,7 +14,6 @@ import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.parallel.ParallelSaturation;
-import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.List;
@@ -58,14 +57,13 @@ public class ClosureComputationTestUtil {
 
     public static <C extends Closure<A>, A extends Serializable, T extends Serializable> void distributedClosureComputation(
             SaturationInitializationFactory<C, A, T> factory,
-            boolean workersInSeparateJVMs,
-            int numberOfThreadsForSingleWorker) {
+            boolean workersInSeparateJVMs) {
         List<ServerData> serverDataList = null;
         SaturationWorkerGenerator workerGenerator;
         int numberOfWorkers = factory.getWorkerModels().size();
 
         if (workersInSeparateJVMs) {
-            workerGenerator = new SaturationJVMWorkerGenerator(numberOfWorkers, numberOfThreadsForSingleWorker);
+            workerGenerator = new SaturationJVMWorkerGenerator(numberOfWorkers);
             try {
                 workerGenerator.generateAndRunWorkers();
                 Thread.sleep(1000);
@@ -75,7 +73,7 @@ public class ClosureComputationTestUtil {
 
         } else {
             workerGenerator = new SaturationWorkerThreadGenerator(
-                    numberOfWorkers, numberOfThreadsForSingleWorker);
+                    numberOfWorkers);
             workerGenerator.generateAndRunWorkers();
         }
         serverDataList = workerGenerator.getWorkerServerDataList();
