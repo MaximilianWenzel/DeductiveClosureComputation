@@ -1,14 +1,12 @@
 package networking.netty;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.socket.SocketChannel;
 import networking.ServerData;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.netty.*;
-import reactor.netty.channel.ChannelOperations;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
@@ -22,21 +20,18 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 public class NettyReactorNetworkingComponent {
 
-    private static final int BUFFER_SIZE = 512 << 10;
-    private static final int BATCH_SIZE = 300;
+    static final int BUFFER_SIZE = 512 << 10;
+    static final int BATCH_SIZE = 128;
 
     private Logger log = ConsoleUtils.getLogger();
 
     private ConcurrentMap<Long, NettySocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
     private List<DisposableServer> serverSocketChannels = new ArrayList<>();
     private LoopResources loop;
-
 
     public NettyReactorNetworkingComponent() {
         init();
@@ -46,11 +41,9 @@ public class NettyReactorNetworkingComponent {
         loop = LoopResources.create("event-loop", 1, false);
     }
 
-    public void listenToPort(ServerData serverData,
-                             NettyConnectionModel connectionModel) {
-        DefaultChannelInitializer channelInitializer = new DefaultChannelInitializer(
-                connectionModelsForNewConnectedClients
-        );
+    public void listenToPort(NettyConnectionModel connectionModel) {
+        DefaultChannelInitializer channelInitializer = new DefaultChannelInitializer(connectionModel);
+        ServerData serverData = connectionModel.getServerData();
 
         DisposableServer server = TcpServer.create().runOn(loop)
                 .host(serverData.getHostname())
@@ -61,18 +54,14 @@ public class NettyReactorNetworkingComponent {
                 //.childOption(ChannelOption.SO_RCVBUF, BUFFER_SIZE)
                 //.childOption(ChannelOption.SO_SNDBUF, BUFFER_SIZE)
                 .doOnChannelInit(channelInitializer)
-                .handle(new DefaultBatchHandler())
+                .handle(new DefaultBatchHandler(connectionModel))
                 .bindNow();
         this.serverSocketChannels.add(server);
     }
 
-    public void connectToServer(NettyConnectionModel conEstablishment) {
-        DefaultChannelInitializer channelInitializer = new DefaultChannelInitializer(
-                conEstablishment.getOnConnectionEstablished(),
-                conEstablishment.getInboundHandlersForPipeline(),
-                conEstablishment.getOutboundHandlersForPipeline()
-        );
-        ServerData serverData = conEstablishment.getServerData();
+    public void connectToServer(NettyConnectionModel connectionModel) {
+        DefaultChannelInitializer channelInitializer = new DefaultChannelInitializer(connectionModel);
+        ServerData serverData = connectionModel.getServerData();
         Connection connection = TcpClient.create().runOn(loop)
                 .host(serverData.getHostname())
                 .port(serverData.getPortNumber())
@@ -81,8 +70,7 @@ public class NettyReactorNetworkingComponent {
                 //.option(ChannelOption.SO_RCVBUF, BUFFER_SIZE)
                 //.option(ChannelOption.SO_SNDBUF, BUFFER_SIZE)
                 .doOnChannelInit(channelInitializer)
-                .handle(new DefaultBatchHandler(conEstablishment.getOutboundFlux(),
-                        conEstablishment.getOnNewMessageReceived()))
+                .handle(new DefaultBatchHandler(connectionModel))
                 .connectNow();
     }
 
@@ -116,39 +104,29 @@ public class NettyReactorNetworkingComponent {
     }
 
     private static class DefaultBatchHandler implements BiFunction<NettyInbound, NettyOutbound, Publisher<Void>> {
-        private Supplier<NettyConnectionModel> connectionModelFactory;
-        private Flux<?> outboundFlux;
-        private Consumer<Object> onNewMessageReceived;
+        private NettyConnectionModel connectionModel;
 
-        public DefaultBatchHandler(Supplier<NettyConnectionModel> connectionModelFactory) {
-            this.connectionModelFactory = connectionModelFactory;
-        }
-
-        public DefaultBatchHandler(Flux<?> outboundFlux, Consumer<Object> onNewMessageReceived) {
-            this.outboundFlux = outboundFlux;
-            this.onNewMessageReceived = onNewMessageReceived;
+        public DefaultBatchHandler(NettyConnectionModel connectionModel) {
+            this.connectionModel = connectionModel;
         }
 
         @Override
         public Publisher<Void> apply(NettyInbound nettyInbound, NettyOutbound nettyOutbound) {
-            return nettyOutbound.sendObject(outboundFlux
-                            .buffer(BATCH_SIZE)) // send messages in ArrayList batches
-                    .then()
-                    .and(((Flux<List<?>>) nettyInbound.receiveObject())
-                            .flatMapIterable(list -> list) // create single elements from ArrayList batch
-                            .doOnNext(onNewMessageReceived));
+            return ((Flux<List<?>>) nettyInbound.receiveObject())
+                    .flatMapIterable(list -> list) // create single elements from ArrayList batch
+                    .doOnNext((msg) -> {
+                            connectionModel.getOnNewMessageReceived().accept(msg);
+                    })
+                    .then();
         }
     }
 
     private class DefaultChannelInitializer implements ChannelPipelineConfigurer {
 
-        private List<? extends ChannelHandler> outboundHandlers;
-        private List<? extends ChannelHandler> inboundHandlers;
-        private Consumer<NettySocketManager> onConnectionEstablished;
+        private NettyConnectionModel connectionModel;
 
-        public DefaultChannelInitializer() {
-            this.outboundHandlers = outboundHandler;
-            this.onConnectionEstablished = onConnectionEstablished;
+        public DefaultChannelInitializer(NettyConnectionModel connectionModel) {
+            this.connectionModel = connectionModel;
         }
 
         @Override
@@ -165,18 +143,12 @@ public class NettyReactorNetworkingComponent {
 
             String decoderName = "KryoDecoder";
             socketChannel.pipeline().addFirst(decoderName, new NettySocketManager.KryoDecoder());
-            for (int i = inboundHandlers.size() - 1; i >= 0; i--) {
-                socketChannel.pipeline().addAfter(decoderName, "inboundHandler" + i, inboundHandlers.get(i));
-            }
 
             String encoderName = "KryoEncoder";
             socketChannel.pipeline().addLast(encoderName, new NettySocketManager.KryoEncoder());
-            for (int i = 0; i < outboundHandlers.size(); i++) {
-                socketChannel.pipeline().addAfter(encoderName, "outboundHandler" + i, outboundHandlers.get(i));
-            }
 
             System.out.println(socketChannel.pipeline());
-            onConnectionEstablished.accept(socketManager);
+            connectionModel.getOnConnectionEstablished().accept(socketManager);
         }
     }
 }

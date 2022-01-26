@@ -64,7 +64,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     private void init() {
         this.acknowledgementEventManager = new AcknowledgementEventManager();
         networkingComponent = new NettyReactorNetworkingComponent();
-        networkingComponent.listenToPort(serverData, this::getWorkerServerConnectionModel);
+        networkingComponent.listenToPort(getWorkerServerConnectionModel());
     }
 
     public void reset() {
@@ -272,6 +272,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         ConsumerForNewConnectionMessages consumer = new ConsumerForNewConnectionMessages(workerOutboundMessages, true);
         receivedMessagesSink.asFlux().doOnNext(consumer);
 
+        /* TODO
         NettyConnectionModel conModel = new NettyConnectionModel(
                 serverData,
                 onConnectionEstablished,
@@ -281,6 +282,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 Collections.emptyList()
         );
         return conModel;
+
+         */
+        return null;
     }
 
     public AtomicLong getEstablishedConnections() {
@@ -299,6 +303,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         ConsumerForNewConnectionMessages consumer = new ConsumerForNewConnectionMessages(workerOutboundMessages, false);
         receivedMessagesSink.asFlux().doOnNext(consumer);
 
+        /* TODO
         NettyConnectionModel conModel = new NettyConnectionModel(
                 serverData,
                 onConnectionEstablished,
@@ -308,6 +313,9 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 Collections.emptyList()
         );
         return conModel;
+
+         */
+        return null;
     }
 
     private class ConsumerForNewConnectionMessages implements Consumer<Object> {

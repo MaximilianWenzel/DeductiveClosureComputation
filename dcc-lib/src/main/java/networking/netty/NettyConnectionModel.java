@@ -1,38 +1,32 @@
 package networking.netty;
 
-import io.netty.channel.ChannelHandler;
 import networking.ServerData;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
+import networking.io.SocketManager;
 
-import java.util.List;
+import java.util.function.Consumer;
 
-public abstract class NettyConnectionModel {
+public class NettyConnectionModel {
 
     private ServerData serverData;
-    private List<? extends ChannelHandler> inboundHandlersForPipeline;
-    private List<? extends ChannelHandler> outboundHandlersForPipeline;
+    private Consumer<Object> onNewMessageReceived;
+    private Consumer<SocketManager> onConnectionEstablished;
 
-    public NettyConnectionModel(ServerData serverData,
-                                List<? extends ChannelHandler> inboundHandlersForPipeline,
-                                List<? extends ChannelHandler> outboundHandlersForPipeline) {
+    public NettyConnectionModel(ServerData serverData, Consumer<Object> onNewMessageReceived,
+                                Consumer<SocketManager> onConnectionEstablished) {
         this.serverData = serverData;
-        this.inboundHandlersForPipeline = inboundHandlersForPipeline;
-        this.outboundHandlersForPipeline = outboundHandlersForPipeline;
+        this.onNewMessageReceived = onNewMessageReceived;
+        this.onConnectionEstablished = onConnectionEstablished;
     }
 
     public ServerData getServerData() {
         return serverData;
     }
 
-    public List<? extends ChannelHandler> getInboundHandlersForPipeline() {
-        return inboundHandlersForPipeline;
+    public Consumer<Object> getOnNewMessageReceived() {
+        return onNewMessageReceived;
     }
 
-    public List<? extends ChannelHandler> getOutboundHandlersForPipeline() {
-        return outboundHandlersForPipeline;
+    public Consumer<SocketManager> getOnConnectionEstablished() {
+        return onConnectionEstablished;
     }
-
-    public abstract void onConnectionEstablished(Flux<?> outboundFlux, Sinks.Many<Object> receivedMessagesSink);
-
 }

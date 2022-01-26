@@ -183,6 +183,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         Sinks.Many<Object> workerOutboundMessages = ReactorSinkFactory.getSink();
         this.workerIDToOutboundMessages.put(workerModel.getID(), workerOutboundMessages);
 
+        /*
         NettyConnectionModel conModel = new NettyConnectionModel(
                 serverData,
                 onConnectionEstablished,
@@ -192,6 +193,9 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                 Collections.emptyList()
         );
         return conModel;
+        TODO
+         */
+        return null;
     }
 
     private class EmitFailureHandlerImpl implements Sinks.EmitFailureHandler {

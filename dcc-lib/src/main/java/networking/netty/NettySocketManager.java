@@ -7,11 +7,16 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
 import networking.io.SocketManager;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+import reactor.core.publisher.Sinks;
+import util.ReactorSinkFactory;
 import util.serialization.KryoSerializer;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -21,14 +26,21 @@ public class NettySocketManager implements SocketManager {
     private final static int MESSAGE_SIZE_BYTES = 4;
     protected long socketID;
     private SocketChannel socketChannel;
+    private Sinks.Many<Object> outboundSink = ReactorSinkFactory.getSink();
 
     public NettySocketManager(SocketChannel socketChannel) {
         this.socketChannel = socketChannel;
+        init();
+    }
+
+    private void init() {
+        outboundSink.asFlux().bufferTimeout(NettyReactorNetworkingComponent.BATCH_SIZE, Duration.ofMillis(100))
+                .subscribe(new BatchMessageSender());
     }
 
     @Override
     public boolean sendMessage(Serializable message) {
-        socketChannel.write(message);
+        outboundSink.emitNext(message, Sinks.EmitFailureHandler.FAIL_FAST);
         return true;
     }
 
@@ -52,6 +64,31 @@ public class NettySocketManager implements SocketManager {
         return socketID;
     }
 
+    private class BatchMessageSender implements Subscriber<Object> {
+        private Subscription subscription;
+
+        @Override
+        public void onSubscribe(Subscription subscription) {
+            this.subscription = subscription;
+            subscription.request(1);
+        }
+
+        @Override
+        public void onNext(Object o) {
+           socketChannel.writeAndFlush(o);
+           subscription.request(1);
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+        }
+
+        @Override
+        public void onComplete() {
+            socketChannel.flush();
+        }
+    }
+
     public static class KryoDecoder extends ByteToMessageDecoder {
 
         private boolean newMessageStarts = true;
@@ -64,7 +101,7 @@ public class NettySocketManager implements SocketManager {
 
         @Override
         protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> out) {
-            System.out.println("decoding... ");
+            //System.out.println("decoding... ");
 
             ByteBuffer buffer = byteBuf.nioBuffer();
             initialPosition = byteBuf.readerIndex();
@@ -112,7 +149,8 @@ public class NettySocketManager implements SocketManager {
 
         @Override
         protected void encode(ChannelHandlerContext channelHandlerContext, Object serializable, ByteBuf byteBuf) {
-            System.out.println("encoding... ");
+            //System.out.println("encoding... ");
+
             // reserve bytes for length
             buffer.position(buffer.position() + MESSAGE_SIZE_BYTES);
 
