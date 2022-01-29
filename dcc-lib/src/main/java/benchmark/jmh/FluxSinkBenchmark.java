@@ -70,9 +70,11 @@ public class FluxSinkBenchmark {
         }
 
         sinkRequestRate_1_000_000_Elements = Sinks.many().multicast().onBackpressureBuffer(10, false);
+
         for (int i = 0; i < NUM_SUBSCRIBERS; i++) {
             sinkRequestRate_1_000_000_Elements.asFlux().subscribe(new TestSubscriber(1_000_000));
         }
+
     }
 
 

@@ -12,7 +12,7 @@ public class JavaSerializer implements Serializer {
     private ByteBufferOutput bbo = new ByteBufferOutput();
 
     @Override
-    public byte[] serialize(Serializable object) throws IOException {
+    public byte[] serialize(Object object) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream out = new ObjectOutputStream(bos);
         out.writeObject(object);
@@ -20,7 +20,7 @@ public class JavaSerializer implements Serializer {
     }
 
     @Override
-    public void serializeToByteBuffer(Serializable object, ByteBuffer buffer) throws IOException {
+    public void serializeToByteBuffer(Object object, ByteBuffer buffer) throws IOException {
         ByteBufferOutput bbo = new ByteBufferOutput(buffer);
         ObjectOutputStream out = new ObjectOutputStream(bbo);
         out.writeObject(object);

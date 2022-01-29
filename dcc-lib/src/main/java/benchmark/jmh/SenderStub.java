@@ -1,9 +1,6 @@
 package benchmark.jmh;
 
-import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
-import networking.NIONetworkingComponent;
-import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.connectors.ConnectionEstablishmentListener;
 import networking.io.MessageHandler;
@@ -19,30 +16,19 @@ import java.util.function.Consumer;
 
 public class SenderStub {
 
-    NetworkingComponent networkingComponent;
+    NIO2NetworkingComponent networkingComponent;
     ServerData serverData;
     SocketManager destinationSocket;
-    NetworkingComponentType type;
-
-    // used in case of NIO2
-    Consumer<MessageEnvelope> onMessageCouldNotBeSent;
     ExecutorService threadPool;
 
+    int hashSum = 0;
 
-    public SenderStub(ServerData serverData, NetworkingComponentType type) {
+
+    public SenderStub(ServerData serverData) {
         this.serverData = serverData;
-        this.type = type;
-        this.threadPool = Executors.newFixedThreadPool(1);
         init();
     }
 
-    public SenderStub(ServerData serverData, Consumer<MessageEnvelope> onMessageCouldNotBeSent, ExecutorService threadPool) {
-        this.serverData = serverData;
-        this.type = NetworkingComponentType.ASYNC_NIO2;
-        this.onMessageCouldNotBeSent = onMessageCouldNotBeSent;
-        this.threadPool = threadPool;
-        init();
-    }
 
     private void init() {
         MessageHandler messageHandler = new MessageHandler() {
@@ -59,7 +45,8 @@ public class SenderStub {
         }
 
         AtomicInteger connectionEstablished = new AtomicInteger(0);
-        ConnectionEstablishmentListener serverConnector = new ConnectionEstablishmentListener(serverData, messageHandler) {
+        ConnectionEstablishmentListener serverConnector = new ConnectionEstablishmentListener(serverData,
+                messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 destinationSocket = socketManager;
@@ -69,23 +56,12 @@ public class SenderStub {
         };
 
         System.out.println("Connecting to server...");
-        switch (type) {
-            case NIO:
-                networkingComponent = new NIONetworkingComponent(
-                        Collections.emptyList(),
-                        Collections.singletonList(serverConnector),
-                        () -> {}
-                );
-                break;
-            case ASYNC_NIO2:
-                networkingComponent = new NIO2NetworkingComponent(
-                        Collections.emptyList(),
-                        Collections.singletonList(serverConnector),
-                        onMessageCouldNotBeSent,
-                        threadPool
-                );
-                break;
-        }
+        this.threadPool = Executors.newFixedThreadPool(1);
+        networkingComponent = new NIO2NetworkingComponent(
+                Collections.emptyList(),
+                Collections.singletonList(serverConnector),
+                threadPool
+        );
 
 
         // wait until connection established
@@ -104,5 +80,20 @@ public class SenderStub {
 
     public void terminate() {
         networkingComponent.terminate();
+        if (threadPool != null) {
+            threadPool.shutdown();
+        }
+    }
+
+    public NIO2NetworkingComponent getNetworkingComponent() {
+        return networkingComponent;
+    }
+
+    public void increaseHashSum(Object obj) {
+        this.hashSum += obj.hashCode();
+    }
+
+    public int getHashSum() {
+        return hashSum;
     }
 }

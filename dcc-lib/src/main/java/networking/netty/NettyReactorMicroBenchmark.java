@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class NettyReactorMicroBenchmark {
 
-    public static final int MESSAGE_COUNT = 100_000_000;
+    public static final int MESSAGE_COUNT = 30_000_000;
 
     public static final ServerData serverData = new ServerData("localhost", 8080);
     private static final AtomicReference<Stopwatch> sw = new AtomicReference<>(Stopwatch.createUnstarted());
@@ -56,7 +56,7 @@ public class NettyReactorMicroBenchmark {
                     receivedObjects.incrementAndGet();
 
                     if (receivedObjects.get() % 1_000_000 == 0) {
-                        System.out.println("Received objects: " + receivedObjects.get());
+                        //System.out.println("Received objects: " + receivedObjects.get());
                     }
 
                     if (receivedObjects.get() == MESSAGE_COUNT) {
@@ -92,15 +92,17 @@ public class NettyReactorMicroBenchmark {
                 },
                 (socket) -> {
                     System.out.println("Client: Connection established.");
-                    sw.set(Stopwatch.createStarted());
                     socketManager.set(socket);
                 }
         );
         clientNetworkingComponent.connectToServer(conClient);
 
         try {
+            Thread.sleep(1000);
             System.out.println("Sending messages...");
+            sw.set(Stopwatch.createStarted());
             messages.subscribe(msg -> socketManager.get().sendMessage((Serializable) msg));
+
             result.take();
             System.out.println("Finished.");
         } catch (InterruptedException e) {

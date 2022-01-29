@@ -4,13 +4,13 @@ import java.io.Serializable;
 
 public class MessageEnvelope implements Serializable {
     private long socketID;
-    private Serializable message;
+    private Object message;
 
     MessageEnvelope() {
 
     }
 
-    public MessageEnvelope(long receiverSocketID, Serializable message) {
+    public MessageEnvelope(long receiverSocketID, Object message) {
         this.socketID = receiverSocketID;
         this.message = message;
     }
@@ -19,7 +19,7 @@ public class MessageEnvelope implements Serializable {
         return socketID;
     }
 
-    public Serializable getMessage() {
+    public Object getMessage() {
         return message;
     }
 }

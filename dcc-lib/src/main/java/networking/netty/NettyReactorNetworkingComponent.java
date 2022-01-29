@@ -2,6 +2,7 @@ package networking.netty;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.socket.SocketChannel;
 import networking.ServerData;
 import org.reactivestreams.Publisher;
@@ -25,7 +26,7 @@ import java.util.logging.Logger;
 public class NettyReactorNetworkingComponent {
 
     static final int BUFFER_SIZE = 512 << 10;
-    static final int BATCH_SIZE = 128;
+    static final int BATCH_SIZE = 4000;
 
     private Logger log = ConsoleUtils.getLogger();
 
@@ -51,8 +52,8 @@ public class NettyReactorNetworkingComponent {
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 //.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK,
                 //        new WriteBufferWaterMark(0, (int) (BUFFER_SIZE * 0.9)))
-                //.childOption(ChannelOption.SO_RCVBUF, BUFFER_SIZE)
-                //.childOption(ChannelOption.SO_SNDBUF, BUFFER_SIZE)
+                .childOption(ChannelOption.SO_RCVBUF, BUFFER_SIZE)
+                .childOption(ChannelOption.SO_SNDBUF, BUFFER_SIZE)
                 .doOnChannelInit(channelInitializer)
                 .handle(new DefaultBatchHandler(connectionModel))
                 .bindNow();
@@ -67,8 +68,8 @@ public class NettyReactorNetworkingComponent {
                 .port(serverData.getPortNumber())
                 //.option(ChannelOption.WRITE_BUFFER_WATER_MARK,
                 //        new WriteBufferWaterMark(0, (int) (BUFFER_SIZE * 0.9)))
-                //.option(ChannelOption.SO_RCVBUF, BUFFER_SIZE)
-                //.option(ChannelOption.SO_SNDBUF, BUFFER_SIZE)
+                .option(ChannelOption.SO_RCVBUF, BUFFER_SIZE)
+                .option(ChannelOption.SO_SNDBUF, BUFFER_SIZE)
                 .doOnChannelInit(channelInitializer)
                 .handle(new DefaultBatchHandler(connectionModel))
                 .connectNow();
@@ -148,6 +149,7 @@ public class NettyReactorNetworkingComponent {
             socketChannel.pipeline().addLast(encoderName, new NettySocketManager.KryoEncoder());
 
             System.out.println(socketChannel.pipeline());
+
             connectionModel.getOnConnectionEstablished().accept(socketManager);
         }
     }

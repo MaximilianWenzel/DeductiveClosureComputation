@@ -1,88 +1,89 @@
 package benchmark.jmh;
 
 import com.google.common.base.Stopwatch;
-import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
-import networking.NIONetworkingComponent;
 import networking.ServerData;
 import networking.messages.MessageEnvelope;
 import nio2kryo.Edge;
-import org.openjdk.jmh.annotations.*;
-import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
+import reactor.core.publisher.Flux;
 
-import java.util.Collections;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-@State(Scope.Benchmark)
-@BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.SECONDS)
-@Fork(value = 1, warmups = 0)
-@Warmup(iterations = 2, time = 2000, timeUnit = MILLISECONDS)
-@Measurement(iterations = 3, time = 5000, timeUnit = MILLISECONDS)
+
 public class NIO2NetworkingComponentBenchmark {
 
     private SenderStub nio2SenderStub;
     private ReceiverStub nio2ReceiverStub;
 
+    private static final int MESSAGE_COUNT = 100_000_000;
+    private static final int BATCH_SIZE = 300;
+
+
     private BlockingQueue<Object> queue;
     private Random rnd = new Random();
 
     public static void main(String[] args) throws RunnerException {
-        runJMH();
+        runExperiment();
     }
 
-    public static void runJMH() throws RunnerException {
-        Options opt = new OptionsBuilder()
-                .include(NIO2NetworkingComponentBenchmark.class.getSimpleName())
-                .forks(1)
-                .build();
-
-        new Runner(opt).run();
-    }
 
     public static void runExperiment() {
-        Scanner scanner = new Scanner(System.in);
-        //scanner.nextLine();
-
         NIO2NetworkingComponentBenchmark benchmark = new NIO2NetworkingComponentBenchmark();
         benchmark.setUp();
-        int MESSAGE_COUNT = 100_000_000;
         Stopwatch sw = Stopwatch.createStarted();
-        for (int i = 0; i < MESSAGE_COUNT; i++) {
-            benchmark.sendObjectNIO2();
+        Random rnd = new Random();
+
+        long destinationSocket = benchmark.nio2SenderStub.destinationSocket.getSocketID();
+        Flux<MessageEnvelope> messages = Flux.range(1, MESSAGE_COUNT)
+                .map(ignore -> new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)))
+                .buffer(100)
+                .map(obj -> new MessageEnvelope(destinationSocket, obj))
+                .doOnNext(obj -> benchmark.nio2SenderStub.increaseHashSum(obj));
+
+        BlockingQueue<Integer> result = new ArrayBlockingQueue<>(1);
+        benchmark.nio2ReceiverStub.setOnAllMessagesReceived(() -> result.add(benchmark.nio2ReceiverStub.getHashSum()));
+
+        NIO2NetworkingComponent senderNetworkingComponent = benchmark.nio2SenderStub.getNetworkingComponent();
+        senderNetworkingComponent.setCallBackAfterAllMessagesHaveBeenSent(() -> result.add(benchmark.nio2SenderStub.getHashSum()));
+
+        benchmark.nio2SenderStub.threadPool.submit(() -> {
+            messages.subscribe(senderNetworkingComponent.getSubscriberForMessagesToSend());
+        });
+
+        try {
+            int hashSum1 = result.take();
+            int hashSum2 = result.take();
+            assert hashSum1 == hashSum2;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+
         long objPerSec = MESSAGE_COUNT * 1000L / sw.elapsed(MILLISECONDS);
         benchmark.tearDown();
         System.out.println(objPerSec + " obj/s");
     }
 
-    @Setup(Level.Trial)
     public void setUp() {
-        queue = new ArrayBlockingQueue<>(1000);
-        nio2ReceiverStub = new ReceiverStub(queue, NetworkingComponentType.ASYNC_NIO2);
-        nio2SenderStub = new SenderStub(new ServerData("localhost", nio2ReceiverStub.getServerPort()),
-                NetworkingComponentType.ASYNC_NIO2);
+        queue = new ArrayBlockingQueue<>(10);
+        nio2ReceiverStub = new ReceiverStub((long) Math.ceil((double)MESSAGE_COUNT / BATCH_SIZE));
+        nio2SenderStub = new SenderStub(new ServerData("localhost", nio2ReceiverStub.getServerPort())
+        );
     }
 
-    @TearDown(Level.Trial)
     public void tearDown() {
         System.out.println("Terminating networking components...");
         nio2SenderStub.terminate();
         nio2ReceiverStub.terminate();
     }
 
-    @Benchmark
     public void sendObjectNIO2() {
         nio2SenderStub.sendMessage(new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)));
     }
+
 
 
 }

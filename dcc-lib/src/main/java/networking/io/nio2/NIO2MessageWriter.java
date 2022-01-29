@@ -1,16 +1,13 @@
 package networking.io.nio2;
 
-import networking.messages.MessageEnvelope;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 public class NIO2MessageWriter {
 
@@ -25,20 +22,15 @@ public class NIO2MessageWriter {
     private ByteBuffer messageBufferToReadFrom = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private ByteBuffer messageBufferToWriteTo = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
-    private long socketID;
-    private Consumer<MessageEnvelope> onMessageCouldNotBeSent;
 
-    public NIO2MessageWriter(long socketID, AsynchronousSocketChannel socketChannel,
-                             Consumer<MessageEnvelope> onMessageCouldNotBeSent) {
+    public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {
         this.socketChannel = socketChannel;
-        this.socketID = socketID;
-        this.onMessageCouldNotBeSent = onMessageCouldNotBeSent;
     }
 
     /**
      * Returns whether message could be transmitted.
      */
-    public boolean send(Serializable message) {
+    public boolean send(Object message) {
         try {
             serializeMessageToBuffer(message);
         } catch (IOException e) {
@@ -62,7 +54,7 @@ public class NIO2MessageWriter {
         }
     }
 
-    private void serializeMessageToBuffer(Serializable message) throws IOException {
+    private boolean serializeMessageToBuffer(Object message) throws IOException {
         synchronized (messageBufferToWriteTo) {
             if (messageBufferToWriteTo.remaining() > STOP_SERIALIZATION_REMAINING_BYTES) {
 
@@ -82,15 +74,24 @@ public class NIO2MessageWriter {
 
                 // set position to end of object
                 messageBufferToWriteTo.position(end);
+
+                // return whether buffer is full now
+                return messageBufferToWriteTo.remaining() < STOP_SERIALIZATION_REMAINING_BYTES;
             } else {
-                onMessageCouldNotBeSent.accept(new MessageEnvelope(socketID, message));
+                throw new IllegalStateException("Cannot serialize message to buffer because it is full.");
             }
+        }
+    }
+
+    public boolean canWrite() {
+        synchronized (messageBufferToWriteTo) {
+            return messageBufferToWriteTo.remaining() > STOP_SERIALIZATION_REMAINING_BYTES;
         }
     }
 
     public void readFromBufferAndWriteToSocket() {
         messageBufferToReadFrom.flip();
-        this.socketChannel.write(messageBufferToReadFrom, null, new CompletionHandler<Integer, Object>() {
+        this.socketChannel.write(messageBufferToReadFrom, null, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Object attachment) {
                 messageBufferToReadFrom.compact();

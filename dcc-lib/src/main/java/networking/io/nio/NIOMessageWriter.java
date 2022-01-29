@@ -5,7 +5,6 @@ import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.BlockingQueue;
@@ -15,7 +14,7 @@ public class NIOMessageWriter {
     private final int BUFFER_SIZE = 2 << 20;
     private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.9);
     // TODO user defined buffer size
-    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createNIOMessageWriterQueue();
+    private BlockingQueue<Object> messagesToSend = QueueFactory.createNIOMessageWriterQueue();
     private int numBytesForLength = 4;
 
     private Serializer serializer = new KryoSerializer();
@@ -27,8 +26,10 @@ public class NIOMessageWriter {
 
     /**
      * Returns whether all messages have been transmitted.
+     *
+     * @param message
      */
-    public boolean send(Serializable message) {
+    public boolean send(Object message) {
         try {
             messagesToSend.put(message);
         } catch (InterruptedException e) {
@@ -44,7 +45,7 @@ public class NIOMessageWriter {
 
     public void serializeMessagesToBuffer() throws IOException {
         while (!messagesToSend.isEmpty() && messageBuffer.position() < STOP_SERIALIZATION_TO_BUFFER_THRESHOLD) {
-            Serializable message = messagesToSend.poll();
+            Object message = messagesToSend.poll();
 
             // reserve bytes for length
             messageBuffer.position(messageBuffer.position() + numBytesForLength);

@@ -6,7 +6,6 @@ import networking.io.nio.NIOSocketManager;
 import util.ConsoleUtils;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.util.*;
@@ -192,7 +191,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     }
 
     @Override
-    public void sendMessage(long socketID, Serializable message) {
+    public void sendMessage(long socketID, Object message) {
         NIOSocketManager socketManager = this.socketIDToSocketManager.get(socketID);
         if (!socketManager.sendMessage(message)) {
             // has still messages to send - add write selector

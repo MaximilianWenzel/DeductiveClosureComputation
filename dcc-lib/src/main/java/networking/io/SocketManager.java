@@ -1,10 +1,9 @@
 package networking.io;
 
 import java.io.IOException;
-import java.io.Serializable;
 
 public interface SocketManager {
-    public boolean sendMessage(Serializable message);
+    public boolean sendMessage(Object message);
 
     public boolean hasMessagesToSend();
 

@@ -30,7 +30,7 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
     private SocketManager socketManager;
     private boolean lastMessageCouldBeSent = true;
     private MessageEnvelope lastMessageThatCouldNotBeSent;
-    private Serializable nextMessageToBeSent;
+    private Object nextMessageToBeSent;
     private Stopwatch sw = Stopwatch.createUnstarted();
 
     private int MESSAGE_COUNT = 20_000_000;
@@ -49,8 +49,7 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
     }
 
     private void init() {
-        ArrayBlockingQueue<Object> blockingQueue = new ArrayBlockingQueue<>(10);
-        this.receiverStub = new ReceiverStub(blockingQueue, NetworkingComponentType.ASYNC_NIO2);
+        this.receiverStub = new ReceiverStub(MESSAGE_COUNT);
         ServerData receiverData = new ServerData("localhost", receiverStub.getServerPort());
 
         try {
@@ -74,10 +73,6 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
         this.sender = new NIO2NetworkingComponent(
                 Collections.emptyList(),
                 Collections.singletonList(connectionEstablishmentListener),
-                messageEnvelope -> {
-                    NIO2MicroBenchmarkWithoutQueues.this.lastMessageThatCouldNotBeSent = messageEnvelope;
-                    NIO2MicroBenchmarkWithoutQueues.this.lastMessageCouldBeSent = false;
-                },
                 senderThreadPool
         );
     }

@@ -2,13 +2,10 @@ package networking.io.nio2;
 
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
-import networking.messages.MessageEnvelope;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 public class NIO2SocketManager implements SocketManager {
 
@@ -20,13 +17,12 @@ public class NIO2SocketManager implements SocketManager {
     protected MessageHandler messageHandler;
 
     public NIO2SocketManager(AsynchronousSocketChannel socketChannel,
-                             MessageHandler messageHandler,
-                             Consumer<MessageEnvelope> onMessageCouldNotBeSent) {
+                             MessageHandler messageHandler) {
         this.socketChannel = socketChannel;
         this.socketID = socketIDCounter.getAndIncrement();
         this.messageHandler = messageHandler;
         this.messageReader = new NIO2MessageReader(socketID, socketChannel, messageHandler);
-        this.messageWriter = new NIO2MessageWriter(socketID, socketChannel, onMessageCouldNotBeSent);
+        this.messageWriter = new NIO2MessageWriter(socketChannel);
     }
 
     public void startReading() {
@@ -35,7 +31,7 @@ public class NIO2SocketManager implements SocketManager {
 
 
     @Override
-    public boolean sendMessage(Serializable message) {
+    public boolean sendMessage(Object message) {
         return messageWriter.send(message);
     }
 
@@ -57,5 +53,9 @@ public class NIO2SocketManager implements SocketManager {
     @Override
     public long getSocketID() {
         return this.socketID;
+    }
+
+    public boolean canWriteMessages() {
+        return messageWriter.canWrite();
     }
 }

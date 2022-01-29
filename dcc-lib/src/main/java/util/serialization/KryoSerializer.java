@@ -29,7 +29,7 @@ public class KryoSerializer implements Serializer {
     }
 
     @Override
-    public byte[] serialize(Serializable object) {
+    public byte[] serialize(Object object) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         Output output = new Output(bos);
         kryo.writeClassAndObject(output, object);
@@ -38,7 +38,7 @@ public class KryoSerializer implements Serializer {
     }
 
     @Override
-    public void serializeToByteBuffer(Serializable object, ByteBuffer buffer) {
+    public void serializeToByteBuffer(Object object, ByteBuffer buffer) {
         bbo.setBuffer(buffer);
         kryo.writeClassAndObject(bbo, object);
     }

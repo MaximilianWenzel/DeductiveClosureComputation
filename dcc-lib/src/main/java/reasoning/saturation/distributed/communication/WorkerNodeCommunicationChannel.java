@@ -3,10 +3,12 @@ package reasoning.saturation.distributed.communication;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import enums.StatisticsComponent;
+import networking.NIO2NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.messages.*;
 import networking.netty.NettyConnectionModel;
+import networking.netty.NettyNetworkingComponent;
 import networking.netty.NettyReactorNetworkingComponent;
 import networking.netty.NettySocketManager;
 import org.reactivestreams.Subscriber;
@@ -22,6 +24,8 @@ import util.ReactorSinkFactory;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -40,7 +44,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     protected EmitFailureHandlerImpl emitFailureHandler = new EmitFailureHandlerImpl();
     private Sinks.Many<Object> receivedMessages = ReactorSinkFactory.getSink();
     private Subscriber<Object> receivedMessagesSubscriber;
-    private NettyReactorNetworkingComponent networkingComponent;
+    private NettyNetworkingComponent networkingComponent;
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A, T>> workers;
     private WorkloadDistributor<C, A, T> workloadDistributor;
@@ -63,8 +67,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     private void init() {
         this.acknowledgementEventManager = new AcknowledgementEventManager();
-        networkingComponent = new NettyReactorNetworkingComponent();
-        networkingComponent.listenToPort(getWorkerServerConnectionModel());
+        //networkingComponent = new NIO2NetworkingComponent(Executors.newFixedThreadPool(1)); TODO
+        //networkingComponent.listenToPort(getWorkerServerConnectionModel()); TODO
     }
 
     public void reset() {
@@ -92,7 +96,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         for (DistributedWorkerModel<C, A, T> workerModel : this.workers) {
             if (workerModel.getID() > this.workerID) {
                 NettyConnectionModel workerConModel = getWorkerClientConnectionModel(workerModel);
-                networkingComponent.connectToServer(workerConModel);
+                //networkingComponent.connectToServer(workerConModel); TODO
             }
         }
         this.receivedMessages.asFlux().subscribe(receivedMessagesSubscriber);

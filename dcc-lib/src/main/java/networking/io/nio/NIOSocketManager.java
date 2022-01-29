@@ -4,7 +4,6 @@ import networking.io.MessageHandler;
 import networking.io.SocketManager;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -29,9 +28,10 @@ public class NIOSocketManager implements SocketManager {
 
     /**
      * Returns whether the complete message could be transmitted.
+     * @param message
      */
     @Override
-    public boolean sendMessage(Serializable message) {
+    public boolean sendMessage(Object message) {
         return this.messageWriter.send(message);
     }
 

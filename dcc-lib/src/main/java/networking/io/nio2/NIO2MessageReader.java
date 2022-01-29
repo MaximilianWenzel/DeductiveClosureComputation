@@ -40,7 +40,7 @@ public class NIO2MessageReader {
 
     public void startReading() {
         currentlyReading.set(true);
-        this.socketChannel.read(messageBuffer, null, new CompletionHandler<Integer, Object>() {
+        this.socketChannel.read(messageBuffer, null, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Object attachment) {
                 readBytes += result;

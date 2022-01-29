@@ -2,7 +2,6 @@ package benchmark.jmh;
 
 import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
-import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.connectors.ConnectionEstablishmentListener;
@@ -11,21 +10,29 @@ import networking.io.SocketManager;
 import util.NetworkingUtils;
 
 import java.util.Collections;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ReceiverStub {
 
     private int serverPort = -1;
     private String hostname;
     private NetworkingComponent networkingComponent;
-    private NetworkingComponentType type;
-    private BlockingQueue<Object> queue;
+    private ExecutorService threadPool;
+    private int hashSum = 0;
+    private AtomicLong receivedMessages = new AtomicLong(0);
+    private long numberOfExpectedMessagesToReceive;
+    private Runnable onAllMessagesReceived = () -> {};
 
-    public ReceiverStub(BlockingQueue<Object> queue, NetworkingComponentType type) {
-        this.type = type;
-        this.queue = queue;
+    public ReceiverStub(long numberOfExpectedMessagesToReceive) {
+        this.numberOfExpectedMessagesToReceive = numberOfExpectedMessagesToReceive;
         init();
+    }
+
+    public void setOnAllMessagesReceived(Runnable onAllMessagesReceived) {
+        this.onAllMessagesReceived = onAllMessagesReceived;
     }
 
     private void init() {
@@ -33,6 +40,11 @@ public class ReceiverStub {
             @Override
             public void process(long socketID, Object message) {
                 assert message.hashCode() > 0;
+                increaseHashSum(message);
+                receivedMessages.incrementAndGet();
+                if (receivedMessages.get() == numberOfExpectedMessagesToReceive) {
+                    onAllMessagesReceived.run();
+                }
             }
         };
 
@@ -40,30 +52,20 @@ public class ReceiverStub {
         if (serverPort == -1) {
             serverPort = NetworkingUtils.getFreePort();
         }
-        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(new ServerData(hostname, serverPort), messageHandler) {
+        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(
+                new ServerData(hostname, serverPort), messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected.");
             }
         };
 
-        switch (type) {
-            case NIO:
-                networkingComponent = new NIONetworkingComponent(
-                        Collections.singletonList(portListener),
-                        Collections.emptyList(),
-                        () -> {}
-                );
-                break;
-            case ASYNC_NIO2:
-                networkingComponent = new NIO2NetworkingComponent(
-                        Collections.singletonList(portListener),
-                        Collections.emptyList(),
-                        Executors.newFixedThreadPool(1)
-                );
-                break;
-
-        }
+        threadPool = Executors.newFixedThreadPool(1);
+        networkingComponent = new NIO2NetworkingComponent(
+                Collections.singletonList(portListener),
+                Collections.emptyList(),
+                threadPool
+        );
 
         try {
             Thread.sleep(500);
@@ -78,5 +80,16 @@ public class ReceiverStub {
 
     public void terminate() {
         networkingComponent.terminate();
+        if (threadPool != null) {
+            threadPool.shutdown();
+        }
+    }
+
+    public void increaseHashSum(Object obj) {
+        this.hashSum += obj.hashCode();
+    }
+
+    public int getHashSum() {
+        return hashSum;
     }
 }

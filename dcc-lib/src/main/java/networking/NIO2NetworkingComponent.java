@@ -5,10 +5,11 @@ import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.io.nio2.NIO2SocketManager;
 import networking.messages.MessageEnvelope;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import util.ConsoleUtils;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
@@ -16,8 +17,10 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
 public class NIO2NetworkingComponent implements NetworkingComponent {
@@ -25,23 +28,19 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     protected List<ConnectionEstablishmentListener> portNumbersToListen;
     protected List<ConnectionEstablishmentListener> serversToConnectTo;
 
-    protected Consumer<MessageEnvelope> onMessageCouldNotBeSent;
-
     protected ConcurrentMap<Long, NIO2SocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
     protected List<AsynchronousServerSocketChannel> serverSocketChannels = new ArrayList<>();
 
     protected AsynchronousChannelGroup asynchronousChannelGroup;
     protected ExecutorService threadPool;
+
+    protected Subscriber<MessageEnvelope> messagesToSendSubscriber = new MessagesToSendSubscriber();
+    protected Runnable callbackAfterAllMessagesHaveBeenSent;
+
     private Logger log = ConsoleUtils.getLogger();
 
-    public NIO2NetworkingComponent(List<ConnectionEstablishmentListener> portNumbersToListen,
-                                   List<ConnectionEstablishmentListener> serversToConnectTo,
-                                   Consumer<MessageEnvelope> onMessageCouldNotBeSent,
-                                   ExecutorService threadPool) {
-        this.portNumbersToListen = portNumbersToListen;
-        this.serversToConnectTo = serversToConnectTo;
+    public NIO2NetworkingComponent(ExecutorService threadPool) {
         this.threadPool = threadPool;
-        this.onMessageCouldNotBeSent = onMessageCouldNotBeSent;
         try {
             init();
         } catch (IOException e) {
@@ -55,10 +54,6 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         this.portNumbersToListen = portNumbersToListen;
         this.serversToConnectTo = serversToConnectTo;
         this.threadPool = threadPool;
-        // TODO: implement other default consumer method if messages cannot be send
-        this.onMessageCouldNotBeSent = messageEnvelope -> threadPool.submit(
-                () -> sendMessage(messageEnvelope.getSocketID(), messageEnvelope.getMessage())
-        );
         try {
             init();
         } catch (IOException e) {
@@ -114,8 +109,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         try {
             log.info("Connecting to server: " + hostAddress);
             client.connect(hostAddress).get();
-            NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor(),
-                    onMessageCouldNotBeSent);
+            NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor());
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
             socketManager.startReading();
             serverConnector.onConnectionEstablished(socketManager);
@@ -125,7 +119,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     }
 
     @Override
-    public void sendMessage(long socketID, Serializable message) {
+    public void sendMessage(long socketID, Object message) {
         NIO2SocketManager socketManager = this.socketIDToSocketManager.get(socketID);
         if (socketManager == null) {
             throw new IllegalArgumentException("No socket exists with ID: " + socketID);
@@ -178,11 +172,75 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     @Override
     public void terminate() {
         closeAllSockets();
+        this.asynchronousChannelGroup.shutdown();
     }
 
     @Override
     public void terminateAfterAllMessagesHaveBeenSent() {
         closeAllSockets();
+    }
+
+    public void setCallBackAfterAllMessagesHaveBeenSent(Runnable callbackAfterAllMessagesHaveBeenSent) {
+        this.callbackAfterAllMessagesHaveBeenSent = callbackAfterAllMessagesHaveBeenSent;
+    }
+
+    public Subscriber<MessageEnvelope> getSubscriberForMessagesToSend() {
+        return messagesToSendSubscriber;
+    }
+
+    public ExecutorService getThreadPool() {
+        return threadPool;
+    }
+
+    private class MessagesToSendSubscriber implements Subscriber<MessageEnvelope>, Runnable {
+
+        private final int NUM_ELEMENTS_TO_REQUEST = 1;
+        private Subscription subscription;
+
+        @Override
+        public void onSubscribe(Subscription subscription) {
+            this.subscription = subscription;
+            if (allSocketsCanWrite()) {
+                subscription.request(NUM_ELEMENTS_TO_REQUEST);
+            }
+        }
+
+        @Override
+        public void onNext(MessageEnvelope messageEnvelope) {
+            sendMessage(messageEnvelope.getSocketID(), messageEnvelope.getMessage());
+            if (allSocketsCanWrite()) {
+                subscription.request(NUM_ELEMENTS_TO_REQUEST);
+            } else {
+                threadPool.submit(this);
+            }
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+            System.err.println(throwable.getMessage());
+            throwable.printStackTrace();
+        }
+
+        @Override
+        public void onComplete() {
+            if (NIO2NetworkingComponent.this.callbackAfterAllMessagesHaveBeenSent != null) {
+                NIO2NetworkingComponent.this.callbackAfterAllMessagesHaveBeenSent.run();
+            }
+        }
+
+        private boolean allSocketsCanWrite() {
+            return socketIDToSocketManager.values().stream()
+                    .allMatch(NIO2SocketManager::canWriteMessages);
+        }
+
+        @Override
+        public void run() {
+            if (allSocketsCanWrite()) {
+                subscription.request(NUM_ELEMENTS_TO_REQUEST);
+            } else {
+                threadPool.submit(this);
+            }
+        }
     }
 
     private class ServerSocketCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {
@@ -198,8 +256,8 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         @Override
         public void completed(AsynchronousSocketChannel socket, Object attachment) {
             serverSocket.accept(portListener.getMessageProcessor(), this);
-            NIO2SocketManager socketManager = new NIO2SocketManager(socket, (MessageHandler) attachment,
-                    onMessageCouldNotBeSent);
+            NIO2SocketManager socketManager = new NIO2SocketManager(socket, (MessageHandler) attachment
+            );
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
             socketManager.startReading();
             portListener.onConnectionEstablished(socketManager);
@@ -210,5 +268,4 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
 
         }
     }
-
 }

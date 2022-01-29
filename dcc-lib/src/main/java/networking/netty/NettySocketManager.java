@@ -1,7 +1,6 @@
 package networking.netty;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -9,6 +8,7 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import networking.io.SocketManager;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
 import util.ReactorSinkFactory;
 import util.serialization.KryoSerializer;
@@ -28,6 +28,15 @@ public class NettySocketManager implements SocketManager {
     private SocketChannel socketChannel;
     private Sinks.Many<Object> outboundSink = ReactorSinkFactory.getSink();
 
+    private Sinks.EmitFailureHandler emitFailureHandler = new Sinks.EmitFailureHandler() {
+        @Override
+        public boolean onEmitFailure(SignalType signalType, Sinks.EmitResult emitResult) {
+            System.out.println(signalType);
+            System.out.println(emitResult);
+            return false;
+        }
+    };
+
     public NettySocketManager(SocketChannel socketChannel) {
         this.socketChannel = socketChannel;
         init();
@@ -39,8 +48,8 @@ public class NettySocketManager implements SocketManager {
     }
 
     @Override
-    public boolean sendMessage(Serializable message) {
-        outboundSink.emitNext(message, Sinks.EmitFailureHandler.FAIL_FAST);
+    public boolean sendMessage(Object message) {
+        outboundSink.emitNext(message, emitFailureHandler);
         return true;
     }
 
@@ -70,13 +79,15 @@ public class NettySocketManager implements SocketManager {
         @Override
         public void onSubscribe(Subscription subscription) {
             this.subscription = subscription;
-            subscription.request(1);
+            subscription.request(Long.MAX_VALUE);
         }
 
         @Override
         public void onNext(Object o) {
-           socketChannel.writeAndFlush(o);
-           subscription.request(1);
+            socketChannel.write(o);
+            if (!socketChannel.isWritable()) {
+                socketChannel.flush();
+            }
         }
 
         @Override
