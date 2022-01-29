@@ -1,10 +1,8 @@
 package networking.reactor.netty.echo;
 
-import java.util.Arrays;
 import java.util.Random;
 import java.util.function.Predicate;
 
-import networking.reactor.netty.echo.ReactorNettyServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,13 +18,14 @@ public class ReactorNettyClient {
 			.getLogger(ReactorNettyClient.class);
 
 	// public static final int COUNT = 100_000_000;
-	public static final int COUNT = 10_000_000;
+	public static final int COUNT = 1_000_000;
 
 	// much faster with batches, don't know why
 	// uncomment batch processing in the stream
 	public static final int BATCH_SIZE = 128;
 
 	public static void main(String[] args) {
+
 		Random rnd = new Random();
 
 		// the stream of random objects that will be sent over network and back
@@ -61,8 +60,8 @@ public class ReactorNettyClient {
 							.and(inbound.receiveObject()
 									.takeWhile(Predicate.not("done"::equals))
 									// UNCOMMENT FOR BATCHES
-									 //.flatMapIterable(
-									 //arr -> Arrays.asList((Object[]) arr))
+									// .flatMapIterable(
+									// arr -> Arrays.asList((Object[]) arr))
 									.doOnNext(obj -> {
 										int h = obj.hashCode();
 										counts[1]++;
@@ -81,7 +80,6 @@ public class ReactorNettyClient {
 											LOGGER.error(
 													"Send/receive hash mismatch!");
 										}
-										System.out.println(COUNT / timeDiff[0] * 1000);
 										LOGGER.info(
 												"Sent {} objects in {} ms. ({} obj/sec)",
 												COUNT, timeDiff[0],
