@@ -38,27 +38,44 @@ public class Nio2ChannelPublisher<T extends Serializable> implements
 	 * deserialization can start.
 	 */
 	private int toReadBytes_ = 0;
-
 	/**
 	 * Manages downstream subscribers to this publisher.
 	 */
 	private final Flow.Processor<T, T> subscriberManager_;
 
+	/**
+	 * Creates a {@link Publisher} that reads data from
+	 * {@link AsynchronousSocketChannel} using the buffer size which is
+	 * sufficient to deserialize the data.
+	 * 
+	 * @param channel
+	 *            the socket channel from which to read the data
+	 * 
+	 */
 	public Nio2ChannelPublisher(AsynchronousSocketChannel channel) {
 		this(channel, Nio2ChannelSubscriber.MAX_BUFFER_SIZE);
 	}
 
+	/**
+	 * Creates a {@link Publisher} that reads data from
+	 * {@link AsynchronousSocketChannel} using the byte buffer of the given
+	 * size.
+	 * 
+	 * @param channel
+	 *            the socket channel from which to read the data
+	 * 
+	 * @param bufferSize
+	 *            the number of bytes used for storing the data before it can be
+	 *            deserialized; this should be at least the size of the buffer
+	 *            used for writing the data to the channel!
+	 */
 	public Nio2ChannelPublisher(AsynchronousSocketChannel channel,
 			int bufferSize) {
-		if (bufferSize > Nio2ChannelSubscriber.MAX_BUFFER_SIZE) {
-			throw new IllegalArgumentException("The buffer size cannot exceed "
-					+ Nio2ChannelSubscriber.MAX_BUFFER_SIZE);
-		}
 		this.channel_ = channel;
 		ByteBuffer buf = ByteBuffer.allocateDirect(bufferSize);
 		buf.flip(); // switch to read mode
 		kryoInput_ = new ByteBufferInput(buf);
-		subscriberManager_ = new MulticastProcessor<T>();
+		subscriberManager_ = new MulticastProcessor<>();
 		subscriberManager_.onSubscribe(this);
 	}
 
@@ -92,7 +109,7 @@ public class Nio2ChannelPublisher<T extends Serializable> implements
 	private boolean readingItems_ = false;
 
 	@SuppressWarnings("unchecked")
-	void readItems() {
+	private void readItems() {
 		if (readingItems_) {
 			return; // already reading in a (recursive) call
 		}
@@ -101,15 +118,19 @@ public class Nio2ChannelPublisher<T extends Serializable> implements
 			while (requested_ > 0) {
 				if (toReadBytes_ == 0) {
 					if (kryoInput_.limit() - kryoInput_
-							.position() < Nio2ChannelSubscriber.SIZE_BYTES
-							&& pull()) {
-						return; // asynchronous pull
+							.position() < Nio2ChannelSubscriber.SIZE_BYTES) {
+						pull();
+						if (pendingRead_) {
+							return; // continue from the callback
+						}
 					}
 					toReadBytes_ = kryoInput_.readShortUnsigned();
 				}
-				if (kryoInput_.limit() - kryoInput_.position() < toReadBytes_
-						&& pull()) {
-					return; // asynchronous pull
+				if (kryoInput_.limit() - kryoInput_.position() < toReadBytes_) {
+					pull();
+					if (pendingRead_) {
+						return; // continue from the callback
+					}
 				}
 				toReadBytes_ += kryoInput_.position();
 				Object object = KryoConfig.get().readClassAndObject(kryoInput_);
@@ -123,38 +144,35 @@ public class Nio2ChannelPublisher<T extends Serializable> implements
 	}
 
 	/**
-	 * The flag to determine if the {@link #pull()} is asynchronous.
+	 * The flag indicating that there is a pending read operation from the
+	 * channel
 	 */
-	private boolean asyncPull_ = false;
+	private boolean pendingRead_ = false;
 
 	/**
-	 * Read the data from socket to the buffer.
-	 * 
-	 * @return {@code true} if this is an asynchronous call and {@code false}
-	 *         otherwise
+	 * Reads the data from the channel to the buffer.
 	 */
-	boolean pull() {
-		if (asyncPull_) {
+	private void pull() {
+		if (pendingRead_) {
 			throw new IllegalStateException(
-					"The previous pull operation did not complete yet!");
+					"The previous channel read operation did not complete yet!");
 		}
-		asyncPull_ = true;
 		ByteBuffer buf = kryoInput_.getByteBuffer();
 		buf.compact();
 		if (toReadBytes_ > buf.capacity()) {
 			throw new RuntimeException("No space left in buffer!");
 		}
+		pendingRead_ = true;
 		channel_.read(buf, null, this); // may complete immediately
-		return asyncPull_;
 	}
 
 	@Override
 	public void completed(Integer result, Void attachment) {
-		asyncPull_ = false;
+		pendingRead_ = false;
 		ByteBuffer buf = kryoInput_.getByteBuffer();
 		buf.flip();
 		kryoInput_.setBuffer(buf);
-		readItems();		
+		readItems();
 	}
 
 	@Override

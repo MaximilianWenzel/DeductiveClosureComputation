@@ -60,13 +60,49 @@ public class Nio2ChannelSubscriber<T extends Serializable>
 	 */
 	private int startWritePos_ = 0;
 
+	/**
+	 * The flag indicated that the content of the buffer is being flushed to the
+	 * channel. No data should be written to the buffer during this time.
+	 */
+	private boolean flushing_ = false;
+
+	/**
+	 * The flag indicating that there is an (asynchronous) pending write
+	 * operation of the buffer to the output channel: {@link #pendingWrite_} =
+	 * {@code true} implies {@link #flushing_} = {@code true}.
+	 */
+	private boolean pendingWrite_ = false;
+
+	/**
+	 * The flag indicating that the subscription is complete, so no further data
+	 * comes from the upstream.
+	 */
 	private boolean isComplete_ = false;
 
-	Nio2ChannelSubscriber(AsynchronousSocketChannel channel) {
+	/**
+	 * Creates {@link Subscriber} that writes received the messages to the given
+	 * socket channel.
+	 * 
+	 * @param channel
+	 *            the channel to which to write the messages
+	 */
+	public Nio2ChannelSubscriber(AsynchronousSocketChannel channel) {
 		this(channel, MAX_BUFFER_SIZE);
 	}
 
-	Nio2ChannelSubscriber(AsynchronousSocketChannel channel, int bufferSize) {
+	/**
+	 * Creates {@link Subscriber} that writes received the messages to the given
+	 * socket channel.
+	 * 
+	 * @param channel
+	 *            the channel to which to write the messages
+	 * @param bufferSize
+	 *            the number of bytes used for storing serialized messages
+	 *            before they are sent to the channel; one fourth of this value
+	 *            must be sufficient to store the serialized message sent to
+	 *            this subscriber.
+	 */
+	public Nio2ChannelSubscriber(AsynchronousSocketChannel channel, int bufferSize) {
 		if (bufferSize > MAX_BUFFER_SIZE) {
 			throw new IllegalArgumentException(
 					"The buffer size cannot exceed " + MAX_BUFFER_SIZE);
@@ -77,6 +113,9 @@ public class Nio2ChannelSubscriber<T extends Serializable>
 		this.minBufferFreeBytes_ = this.minBufferSentBytes_ = bufferSize >> 2;
 	}
 
+	/**
+	 * The subscription of this subscriber; should be only one
+	 */
 	private Subscription subscription_ = null;
 
 	@Override
@@ -86,25 +125,48 @@ public class Nio2ChannelSubscriber<T extends Serializable>
 					"Already subscribed to " + this.subscription_);
 		}
 		this.subscription_ = subscription;
-		readItems();
+		initWriting();
 	}
 
-	private void readItems() {
+	private void initWriting() {
 		if (isComplete_) {
 			return;
 		}
 		kryoOutput_.setPosition(startWritePos_ + SIZE_BYTES);
-		// TODO: request more items and buffer them
-		subscription_.request(1);
+		subscription_.request(1); // may call onNext immediately
 	}
+
+	// Avoid (unbound) recursion onNext -> request -> onNext -> request ..
+	private boolean callingOnNext_ = false;
+	private T next;
 
 	@Override
 	public void onNext(T item) {
-		KryoConfig.get().writeClassAndObject(kryoOutput_, item);
-		if (kryoOutput_.getByteBuffer().remaining() > minBufferFreeBytes_) {
-			subscription_.request(1);
-		} else {
-			flush();
+		if (flushing_) {
+			throw new IllegalStateException(
+					"Cannot process items while flushing!");
+		}
+		next = item; // save to process in the loop instead of recursion
+		if (callingOnNext_) {
+			callingOnNext_ = false;
+			return; // continues in the loop
+		}
+		try {
+			while (!callingOnNext_) {
+				callingOnNext_ = true;
+				KryoConfig.get().writeClassAndObject(kryoOutput_, next);
+				if (kryoOutput_.getByteBuffer()
+						.remaining() < minBufferFreeBytes_) {
+					flush();
+					if (pendingWrite_) {
+						return; // will finish flushing later
+					}
+				} else {
+					subscription_.request(1); // may immediately call onNext
+				}
+			}
+		} finally {
+			callingOnNext_ = false;
 		}
 	}
 
@@ -121,51 +183,45 @@ public class Nio2ChannelSubscriber<T extends Serializable>
 	}
 
 	private void flush() {
+		if (flushing_) {
+			throw new IllegalStateException("Already flushing!");
+		}
 		int end = kryoOutput_.position();
-		kryoOutput_.setPosition(startWritePos_);
 		int writtenBytes = end - startWritePos_ - SIZE_BYTES;
 		if (writtenBytes == 0) {
-			throw new RuntimeException(
+			throw new IllegalStateException(
 					"Flushing buffer but nothing was written!");
 		}
+		kryoOutput_.setPosition(startWritePos_);
 		kryoOutput_.writeShort(writtenBytes);
 		kryoOutput_.setPosition(end);
-		ByteBuffer buf = kryoOutput_.getByteBuffer();
-		buf.flip();
-		channel_.write(buf, null, this);
+		kryoOutput_.getByteBuffer().flip();
+		writeToChannel();
 	}
 
-	/**
-	 * A flag to verify if the callback was made immediately in the same thread.
-	 * This is to avoid potential stack overflow.
-	 */
-	private boolean immediateCallback_ = false;
+	private void writeToChannel() {
+		ByteBuffer buf = kryoOutput_.getByteBuffer();
+		while (!flushing_ && buf.hasRemaining()
+				&& (isComplete_ || buf.position() < minBufferSentBytes_)) {
+			flushing_ = true;
+			channel_.write(buf, null, this);
+		}
+		if (flushing_) {
+			pendingWrite_ = true;
+			return; // will complete later
+		}
+		buf.compact();
+		kryoOutput_.setBuffer(buf);
+		startWritePos_ = kryoOutput_.position();
+		initWriting(); // may call flush()
+	}
 
 	@Override
 	public void completed(Integer written, Void attachment) {
-		try {
-			if (immediateCallback_) {
-				return; // will be continued in the loop
-			}
-			while (!immediateCallback_) {
-				ByteBuffer buf = kryoOutput_.getByteBuffer();
-				immediateCallback_ = true; // to continue in the loop
-				while (buf.hasRemaining() && (isComplete_
-						|| buf.position() < minBufferSentBytes_)) {
-					channel_.write(buf, null, this);
-					if (immediateCallback_) {
-						// callback was not called immediately, continue later
-						return;
-					}
-				}
-				buf.compact();
-				kryoOutput_.setBuffer(buf);
-				startWritePos_ = kryoOutput_.position();
-				readItems(); // may call flush() and this (blocked) callback
-				// so instead continue in the loop
-			}
-		} finally {
-			immediateCallback_ = false; // left the loop, callback as usual
+		flushing_ = false;
+		if (pendingWrite_) { // continue writing to channel
+			pendingWrite_ = false;
+			writeToChannel();
 		}
 	}
 
