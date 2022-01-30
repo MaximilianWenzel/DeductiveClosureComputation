@@ -2,10 +2,12 @@ package networking;
 
 import benchmark.jmh.ReceiverStub;
 import benchmark.jmh.SenderStub;
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.NIO2ConnectionModel;
+import networking.connectors.NIOConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 import util.NetworkingUtils;
 import util.QueueFactory;
 
@@ -40,14 +42,14 @@ public class NetworkingTest {
             }
         };
 
-        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(serverData, messageHandler) {
+        NIOConnectionModel portListener = new NIOConnectionModel(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
 
-        ConnectionEstablishmentListener serverConnector1 = new ConnectionEstablishmentListener(serverData,
+        NIOConnectionModel serverConnector1 = new NIOConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -55,14 +57,14 @@ public class NetworkingTest {
             }
         };
 
-        ConnectionEstablishmentListener serverConnector2 = new ConnectionEstablishmentListener(serverData,
+        NIOConnectionModel serverConnector2 = new NIOConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
-        List<ConnectionEstablishmentListener> serverConnectors = new ArrayList<>();
+        List<NIOConnectionModel> serverConnectors = new ArrayList<>();
         serverConnectors.add(serverConnector1);
         serverConnectors.add(serverConnector2);
 
@@ -90,7 +92,7 @@ public class NetworkingTest {
             }
         }
 
-        ConnectionEstablishmentListener serverConnector3 = new ConnectionEstablishmentListener(serverData,
+        NIOConnectionModel serverConnector3 = new NIOConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -130,27 +132,16 @@ public class NetworkingTest {
         ServerData serverData = new ServerData("localhost", NetworkingUtils.getFreePort());
         List<Long> socketIDs = new ArrayList<>();
         BlockingQueue<String> receivedMessages = QueueFactory.createSaturationToDo();
-        MessageHandler messageHandler = new MessageHandler() {
-            @Override
-            public void process(long socketID, Object message) {
-                try {
-                    receivedMessages.put((String) message);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println(LocalDateTime.now() + " - Received message: " + message);
-            }
-        };
 
-        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(serverData, messageHandler) {
+
+        NIO2ConnectionModel portListener = new NIO2ConnectionModel(serverData) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected to server socket.");
             }
         };
 
-        ConnectionEstablishmentListener serverConnector1 = new ConnectionEstablishmentListener(serverData,
-                messageHandler) {
+        NIO2ConnectionModel serverConnector1 = new NIO2ConnectionModel(serverData) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
@@ -158,14 +149,13 @@ public class NetworkingTest {
             }
         };
 
-        ConnectionEstablishmentListener serverConnector2 = new ConnectionEstablishmentListener(serverData,
-                messageHandler) {
+        NIO2ConnectionModel serverConnector2 = new NIO2ConnectionModel(serverData) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
-        List<ConnectionEstablishmentListener> serverConnectors = new ArrayList<>();
+        List<NIO2ConnectionModel> serverConnectors = new ArrayList<>();
         serverConnectors.add(serverConnector1);
         serverConnectors.add(serverConnector2);
 
@@ -192,8 +182,7 @@ public class NetworkingTest {
             }
         }
 
-        ConnectionEstablishmentListener serverConnector3 = new ConnectionEstablishmentListener(serverData,
-                messageHandler) {
+        NIO2ConnectionModel serverConnector3 = new NIO2ConnectionModel(serverData) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Connection established!");
@@ -207,6 +196,19 @@ public class NetworkingTest {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        Flux.from(networkingComponent.getReceivedMessagesPublisher())
+                .subscribe(messageEnvelope -> {
+                    if (messageEnvelope.getMessage() == null) {
+                        return;
+                    }
+                    try {
+                        receivedMessages.put((String) messageEnvelope.getMessage());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    System.out.println(LocalDateTime.now() + " - Received message: " + messageEnvelope.getMessage());
+                });
 
         try {
             Thread.sleep(5000);

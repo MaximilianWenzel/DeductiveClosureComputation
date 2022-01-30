@@ -1,20 +1,18 @@
 package benchmark.jmh;
 
 import com.google.common.base.Stopwatch;
-import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.NIO2ConnectionModel;
+import networking.connectors.NIOConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.MessageEnvelope;
 import nio2kryo.Edge;
 import util.ConsoleUtils;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.Random;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -59,10 +57,8 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
         }
 
         this.senderThreadPool = Executors.newFixedThreadPool(1);
-        MessageHandler messageHandler = (socketID, message) -> {
-        };
-        ConnectionEstablishmentListener connectionEstablishmentListener = new ConnectionEstablishmentListener(
-                receiverData, messageHandler) {
+        MessageHandler messageHandler = (socketID, message) -> {};
+        NIO2ConnectionModel connectionModel = new NIO2ConnectionModel(receiverData) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 NIO2MicroBenchmarkWithoutQueues.this.socketManager = socketManager;
@@ -72,7 +68,7 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
         };
         this.sender = new NIO2NetworkingComponent(
                 Collections.emptyList(),
-                Collections.singletonList(connectionEstablishmentListener),
+                Collections.singletonList(connectionModel),
                 senderThreadPool
         );
     }

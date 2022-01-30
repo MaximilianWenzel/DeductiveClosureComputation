@@ -48,7 +48,7 @@ public class AddElementComparison {
         array = new TestObject[SIZE];
         arrayPosition = new AtomicInteger(0);
     }
-
+/*
     @Benchmark
     public void addElementUnifiedSet() {
         unifiedSet.add(new TestObject());
@@ -61,6 +61,8 @@ public class AddElementComparison {
         linkedBlockingQueue.clear();
     }
 
+
+ */
     @Benchmark
     public void addElementArrayBlockingQueue() {
         arrayBlockingQueue.add(new TestObject());

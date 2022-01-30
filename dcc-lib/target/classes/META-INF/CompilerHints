@@ -3,6 +3,6 @@ dontinline,*.*_avgt_jmhStub
 dontinline,*.*_sample_jmhStub
 dontinline,*.*_ss_jmhStub
 dontinline,*.*_thrpt_jmhStub
-inline,benchmark/jmh/NIONetworkingComponentBenchmark.sendObjectNIO
-inline,benchmark/jmh/NIONetworkingComponentBenchmark.setUp
-inline,benchmark/jmh/NIONetworkingComponentBenchmark.tearDown
+inline,benchmark/jmh/AddElementComparison.addElementArray
+inline,benchmark/jmh/AddElementComparison.addElementArrayBlockingQueue
+inline,benchmark/jmh/AddElementComparison.setUp

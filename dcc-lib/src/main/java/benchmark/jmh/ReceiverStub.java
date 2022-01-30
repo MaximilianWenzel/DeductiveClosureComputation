@@ -1,25 +1,25 @@
 package benchmark.jmh;
 
-import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
-import networking.NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.ConnectionEstablishmentListener;
-import networking.io.MessageHandler;
+import networking.connectors.NIO2ConnectionModel;
+import networking.connectors.NIOConnectionModel;
 import networking.io.SocketManager;
+import networking.messages.MessageEnvelope;
+import reactor.core.publisher.Flux;
 import util.NetworkingUtils;
 
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 public class ReceiverStub {
 
     private int serverPort = -1;
     private String hostname;
-    private NetworkingComponent networkingComponent;
+    private NIO2NetworkingComponent networkingComponent;
     private ExecutorService threadPool;
     private int hashSum = 0;
     private AtomicLong receivedMessages = new AtomicLong(0);
@@ -36,9 +36,13 @@ public class ReceiverStub {
     }
 
     private void init() {
-        MessageHandler messageHandler = new MessageHandler() {
+        Consumer<MessageEnvelope> messageHandler = new Consumer<MessageEnvelope>() {
             @Override
-            public void process(long socketID, Object message) {
+            public void accept(MessageEnvelope messageEnvelope) {
+                if (messageEnvelope.getMessage() == null) {
+                    return;
+                }
+                Object message = messageEnvelope.getMessage();
                 assert message.hashCode() > 0;
                 increaseHashSum(message);
                 receivedMessages.incrementAndGet();
@@ -52,8 +56,8 @@ public class ReceiverStub {
         if (serverPort == -1) {
             serverPort = NetworkingUtils.getFreePort();
         }
-        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(
-                new ServerData(hostname, serverPort), messageHandler) {
+        NIO2ConnectionModel portListener = new NIO2ConnectionModel(
+                new ServerData(hostname, serverPort)) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected.");
@@ -66,6 +70,12 @@ public class ReceiverStub {
                 Collections.emptyList(),
                 threadPool
         );
+
+        threadPool.submit(() -> {
+            Flux.from(networkingComponent.getReceivedMessagesPublisher())
+                    .subscribe(messageHandler);
+        });
+
 
         try {
             Thread.sleep(500);

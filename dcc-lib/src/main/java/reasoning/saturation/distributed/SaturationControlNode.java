@@ -38,9 +38,8 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
 
     private BlockingQueue<C> closureResultQueue = new ArrayBlockingQueue<>(1);
 
+    private ExecutorService threadPool;
     private Subscription receivedMessagesSubscription;
-
-    private Future<C> saturationTask;
 
     protected SaturationControlNode(List<DistributedWorkerModel<C, A, T>> workers,
                                     WorkloadDistributor<C, A, T> workloadDistributor,
@@ -50,8 +49,16 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
         this.workers = workers;
         this.resultingClosure = resultingClosure;
         this.config = config;
+
+        this.threadPool = Executors.newFixedThreadPool(1);
         this.communicationChannel = new ControlNodeCommunicationChannel<>(
-                workers, workloadDistributor, initialAxioms, config);
+                threadPool,
+                this,
+                workers,
+                workloadDistributor,
+                initialAxioms,
+                config
+        );
         init();
     }
 
@@ -60,15 +67,13 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     }
 
     public C saturate() {
+        init();
         try {
-            init();
-            this.wait();
-            //C closure = this.closureResultQueue.take();
-            return this.resultingClosure; // TODO thread communication working?
+            this.closureResultQueue.take();
         } catch (InterruptedException e) {
             e.printStackTrace();
-            throw new IllegalStateException();
         }
+        return this.resultingClosure;
     }
 
 

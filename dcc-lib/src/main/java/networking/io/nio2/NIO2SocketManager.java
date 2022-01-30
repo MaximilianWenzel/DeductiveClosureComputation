@@ -1,11 +1,11 @@
 package networking.io.nio2;
 
-import networking.io.MessageHandler;
 import networking.io.SocketManager;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 public class NIO2SocketManager implements SocketManager {
 
@@ -14,19 +14,27 @@ public class NIO2SocketManager implements SocketManager {
     protected AsynchronousSocketChannel socketChannel;
     protected NIO2MessageReader messageReader;
     protected NIO2MessageWriter messageWriter;
-    protected MessageHandler messageHandler;
 
     public NIO2SocketManager(AsynchronousSocketChannel socketChannel,
-                             MessageHandler messageHandler) {
+                             Runnable onSocketCanReadNewMessages,
+                             Consumer<Long> onSocketCanWriteMessages) {
         this.socketChannel = socketChannel;
         this.socketID = socketIDCounter.getAndIncrement();
-        this.messageHandler = messageHandler;
-        this.messageReader = new NIO2MessageReader(socketID, socketChannel, messageHandler);
-        this.messageWriter = new NIO2MessageWriter(socketChannel);
+        this.messageReader = new NIO2MessageReader(socketID, socketChannel, onSocketCanReadNewMessages);
+        this.messageWriter = new NIO2MessageWriter(socketID, socketChannel, onSocketCanWriteMessages);
     }
 
     public void startReading() {
         messageReader.startReading();
+    }
+
+    public Object readNextMessage() {
+        try {
+            return messageReader.readNextMessage();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 

@@ -17,6 +17,8 @@ import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -37,6 +39,8 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private WorkerStatistics stats = new WorkerStatistics();
     private AtomicBoolean workerIsStarted = new AtomicBoolean(false);
     private boolean terminateAfterSaturation = false;
+
+    private ExecutorService threadPool;
 
     private Subscription receivedMessagesSubscription;
 
@@ -76,7 +80,8 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     private void init() {
-        this.communicationChannel = new WorkerNodeCommunicationChannel<>(serverData, this);
+        this.threadPool = Executors.newFixedThreadPool(1);
+        this.communicationChannel = new WorkerNodeCommunicationChannel<>(threadPool, serverData, this);
         this.state = new WorkerStateInitializing<>(this);
     }
 

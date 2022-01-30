@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class NIO2MessageWriter {
 
@@ -18,13 +19,17 @@ public class NIO2MessageWriter {
     private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
     private int MESSAGE_SIZE_BYTES = 4;
     private Serializer serializer = new KryoSerializer();
+    private Consumer<Long> onSocketCanWriteMessages;
+    private long socketID;
 
     private ByteBuffer messageBufferToReadFrom = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private ByteBuffer messageBufferToWriteTo = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
 
-    public NIO2MessageWriter(AsynchronousSocketChannel socketChannel) {
+    public NIO2MessageWriter(long socketID, AsynchronousSocketChannel socketChannel, Consumer<Long> onSocketCanWriteMessages) {
+        this.socketID = socketID;
         this.socketChannel = socketChannel;
+        this.onSocketCanWriteMessages = onSocketCanWriteMessages;
     }
 
     /**
@@ -41,6 +46,10 @@ public class NIO2MessageWriter {
     }
 
     private void writeMessagesIfRequired() {
+        if (canWrite()) {
+            onSocketCanWriteMessages.accept(this.socketID);
+        }
+
         if (messageBufferToWriteTo.position() == 0 && messageBufferToReadFrom.position() == 0) {
             // no messages to send
             return;

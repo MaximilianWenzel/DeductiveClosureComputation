@@ -1,13 +1,19 @@
 package reasoning.saturation.distributed.communication;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import data.Closure;
 import enums.SaturationStatusMessage;
+import networking.NIO2NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
+import networking.connectors.NIO2ConnectionModel;
+import networking.io.SocketManager;
 import networking.messages.*;
 import networking.netty.NettyConnectionModel;
-import networking.netty.NettyReactorNetworkingComponent;
 import networking.netty.NettySocketManager;
+import org.reactivestreams.Subscriber;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -16,9 +22,12 @@ import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
 import util.ReactorSinkFactory;
 
+import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
-import java.util.concurrent.BlockingQueue;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,17 +38,20 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     private final Logger log = ConsoleUtils.getLogger();
 
-    protected NettyReactorNetworkingComponent networkingComponent;
+    protected NIO2NetworkingComponent networkingComponent;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
     protected long controlNodeID = 0L;
-    protected Sinks.Many<Object> receivedMessages = ReactorSinkFactory.getSink();
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected Iterator<? extends A> initialAxioms;
 
-    protected AcknowledgementEventManager acknowledgementEventManager;
+    protected BiMap<Long, Long> socketIDToWorkerIDMap = HashBiMap.create();
+    protected BiMap<Long, Long> workerIDToSocketIDMap = socketIDToWorkerIDMap.inverse();
 
-    protected EmitFailureHandlerImpl emitFailureHandler = new EmitFailureHandlerImpl();
+    protected ExecutorService threadPool;
+    protected Subscriber<Object> receivedMessagesSubscriber;
+
+    protected AcknowledgementEventManager acknowledgementEventManager;
 
     protected boolean allConnectionsEstablished = false;
     protected AtomicInteger establishedConnections = new AtomicInteger(0);
@@ -50,14 +62,16 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected AtomicInteger sumOfAllReceivedAxioms = new AtomicInteger(0);
     protected AtomicInteger sumOfAllSentAxioms = new AtomicInteger(0);
 
-    protected Map<Long, Sinks.Many<Object>> workerIDToOutboundMessages = new HashMap<>();
-
     protected SaturationConfiguration config;
 
-    public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
+    public ControlNodeCommunicationChannel(ExecutorService threadPool,
+                                           Subscriber<Object> receivedMessagesSubscriber,
+                                           List<DistributedWorkerModel<C, A, T>> workers,
                                            WorkloadDistributor<C, A, T> workloadDistributor,
                                            Iterator<? extends A> initialAxioms,
                                            SaturationConfiguration config) {
+        this.threadPool = threadPool;
+        this.receivedMessagesSubscriber = receivedMessagesSubscriber;
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
@@ -71,12 +85,21 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         acknowledgementEventManager = new AcknowledgementEventManager();
 
-        networkingComponent = new NettyReactorNetworkingComponent();
+        networkingComponent = new NIO2NetworkingComponent(threadPool);
+        Flux.from(networkingComponent.getReceivedMessagesPublisher())
+                .map(MessageEnvelope::getMessage)
+                .subscribe(receivedMessagesSubscriber);
     }
 
     public void initializeConnectionToWorkerServers() {
         workers.stream().map(this::getWorkerConnectionModel)
-                .forEach(s -> networkingComponent.connectToServer(s));
+                .forEach(s -> {
+                    try {
+                        networkingComponent.connectToServer(s);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     public void distributeInitialAxioms() {
@@ -93,7 +116,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     }
 
     public void broadcast(SaturationStatusMessage statusMessage, Runnable onAcknowledgement) {
-        for (Long workerID : this.workerIDToOutboundMessages.keySet()) {
+        for (Long workerID : this.socketIDToWorkerIDMap.values()) {
             StateInfoMessage stateInfoMessage = new StateInfoMessage(controlNodeID, statusMessage);
             send(workerID, stateInfoMessage, onAcknowledgement);
         }
@@ -111,19 +134,21 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     public void send(long workerID, MessageModel<C, A, T> message, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(message.getMessageID(), onAcknowledgement);
-        networkingComponent.sendMessage(workerID, message);
+        send(workerID, message);
     }
 
     public void send(long workerID, Serializable message) {
-        workerIDToOutboundMessages.get(workerID).emitNext(message, emitFailureHandler);
+        long socketID = workerIDToSocketIDMap.get(workerID);
+        networkingComponent.sendMessage(socketID, message);
     }
 
     public void requestAxiomCountsFromAllWorkers() {
         this.saturationStage.incrementAndGet();
-        for (Sinks.Many<Object> workerOutboundMessages : this.workerIDToOutboundMessages.values()) {
+        for (Long workerID : this.workerIDToSocketIDMap.keySet()) {
             RequestAxiomMessageCount requestAxiomMessageCount = new RequestAxiomMessageCount(controlNodeID,
                     this.saturationStage.get());
-            workerOutboundMessages.emitNext(requestAxiomMessageCount, emitFailureHandler);
+
+            send(workerID, requestAxiomMessageCount);
         }
     }
 
@@ -155,57 +180,34 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         return sumOfAllSentAxioms;
     }
 
-    private NettyConnectionModel getWorkerConnectionModel(DistributedWorkerModel<C, A, T> workerModel) {
+    private NIO2ConnectionModel getWorkerConnectionModel(DistributedWorkerModel<C, A, T> workerModel) {
         ServerData serverData = workerModel.getServerData();
-        Consumer<NettySocketManager> onConnectionEstablished = socketManager -> {
-            log.info("Connection established to worker server " + workerModel.getID() + ".");
+        return new NIO2ConnectionModel(serverData) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                log.info("Connection established to worker server " + workerModel.getID() + ".");
 
-            establishedConnections.incrementAndGet();
-            if (establishedConnections.get() == workers.size()) {
-                allConnectionsEstablished = true;
+                workerIDToSocketIDMap.put(workerModel.getID(), socketManager.getSocketID());
+
+                establishedConnections.incrementAndGet();
+                if (establishedConnections.get() == workers.size()) {
+                    allConnectionsEstablished = true;
+                }
+
+                // send initialization message
+                log.info("Sending initialization message to worker " + workerModel.getID() + ".");
+                InitializeWorkerMessage<C, A, T> initializeWorkerMessage = new InitializeWorkerMessage<>(
+                        controlNodeID,
+                        workerModel.getID(),
+                        workers,
+                        workloadDistributor,
+                        workerModel.getClosure(),
+                        workerModel.getRules(),
+                        config
+                );
+                send(workerModel.getID(), initializeWorkerMessage, () -> initializedWorkers.getAndIncrement());
             }
-
-            // send initialization message
-            log.info("Sending initialization message to worker " + workerModel.getID() + ".");
-            InitializeWorkerMessage<C, A, T> initializeWorkerMessage = new InitializeWorkerMessage<>(
-                    controlNodeID,
-                    workerModel.getID(),
-                    workers,
-                    workloadDistributor,
-                    workerModel.getClosure(),
-                    workerModel.getRules(),
-                    config
-            );
-
-            send(socketManager.getSocketID(), initializeWorkerMessage, () -> initializedWorkers.getAndIncrement());
         };
-
-        Sinks.Many<Object> workerOutboundMessages = ReactorSinkFactory.getSink();
-        this.workerIDToOutboundMessages.put(workerModel.getID(), workerOutboundMessages);
-
-        /*
-        NettyConnectionModel conModel = new NettyConnectionModel(
-                serverData,
-                onConnectionEstablished,
-                (msg) -> receivedMessages.emitNext(msg, emitFailureHandler),
-                workerOutboundMessages.asFlux(),
-                Collections.emptyList(),
-                Collections.emptyList()
-        );
-        return conModel;
-        TODO
-         */
-        return null;
-    }
-
-    private class EmitFailureHandlerImpl implements Sinks.EmitFailureHandler {
-
-        @Override
-        public boolean onEmitFailure(SignalType signalType, Sinks.EmitResult emitResult) {
-            System.err.println(signalType);
-            System.err.println(emitResult);
-            return false;
-        }
     }
 
 }

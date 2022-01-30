@@ -6,6 +6,8 @@ public class MessageEnvelope implements Serializable {
     private long socketID;
     private Object message;
 
+    public static final MessageEnvelope EMPTY = new MessageEnvelope(-1, null);
+
     MessageEnvelope() {
 
     }

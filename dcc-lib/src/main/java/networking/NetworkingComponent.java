@@ -1,13 +1,13 @@
 package networking;
 
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.NIOConnectionModel;
 
 import java.io.IOException;
 
 public interface NetworkingComponent {
-    void listenToPort(ConnectionEstablishmentListener portListener) throws IOException;
+    void listenToPort(NIOConnectionModel portListener) throws IOException;
 
-    void connectToServer(ConnectionEstablishmentListener serverConnector) throws IOException;
+    void connectToServer(NIOConnectionModel serverConnector) throws IOException;
 
     void sendMessage(long socketID, Object message);
 

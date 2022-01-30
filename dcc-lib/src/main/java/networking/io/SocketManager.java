@@ -3,11 +3,11 @@ package networking.io;
 import java.io.IOException;
 
 public interface SocketManager {
-    public boolean sendMessage(Object message);
+    boolean sendMessage(Object message);
 
-    public boolean hasMessagesToSend();
+    boolean hasMessagesToSend();
 
-    public void close() throws IOException;
+    void close() throws IOException;
 
     boolean hasMessagesToRead();
 

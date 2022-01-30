@@ -2,17 +2,16 @@ package benchmark.jmh;
 
 import networking.NIO2NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.NIO2ConnectionModel;
+import networking.connectors.NIOConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
-import networking.messages.MessageEnvelope;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
 public class SenderStub {
 
@@ -31,13 +30,6 @@ public class SenderStub {
 
 
     private void init() {
-        MessageHandler messageHandler = new MessageHandler() {
-            @Override
-            public void process(long socketID, Object message) {
-            }
-        };
-
-
         try {
             Thread.sleep(500);
         } catch (InterruptedException e) {
@@ -45,8 +37,7 @@ public class SenderStub {
         }
 
         AtomicInteger connectionEstablished = new AtomicInteger(0);
-        ConnectionEstablishmentListener serverConnector = new ConnectionEstablishmentListener(serverData,
-                messageHandler) {
+        NIO2ConnectionModel serverConnector = new NIO2ConnectionModel(serverData) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 destinationSocket = socketManager;

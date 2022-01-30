@@ -1,31 +1,38 @@
 package reasoning.saturation.distributed.communication;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import data.Closure;
 import enums.SaturationStatusMessage;
 import enums.StatisticsComponent;
 import networking.NIO2NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
+import networking.connectors.NIO2ConnectionModel;
+import networking.io.SocketManager;
 import networking.messages.*;
-import networking.netty.NettyConnectionModel;
-import networking.netty.NettyNetworkingComponent;
-import networking.netty.NettyReactorNetworkingComponent;
-import networking.netty.NettySocketManager;
+import org.reactivestreams.Processor;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
-import reactor.core.publisher.Sinks;
+import reasoning.reasoner.IncrementalStreamReasoner;
+import reasoning.rules.Rule;
+import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
+import reasoning.saturation.distributed.states.workernode.WorkerState;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
-import util.ReactorSinkFactory;
 
+import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -36,30 +43,36 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     private final Logger log = ConsoleUtils.getLogger();
 
+    private final SaturationWorker.IncrementalReasonerType incrementalReasonerType = SaturationWorker.IncrementalReasonerType.SINGLE_THREADED;
     private final ServerData serverData;
+    private final long controlNodeID = 0L;
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
     private final AtomicLong establishedConnections = new AtomicLong(0);
-    protected Map<Long, Sinks.Many<Object>> connectionIDToOutboundMessages = new HashMap<>();
-    protected EmitFailureHandlerImpl emitFailureHandler = new EmitFailureHandlerImpl();
-    private Sinks.Many<Object> receivedMessages = ReactorSinkFactory.getSink();
-    private Subscriber<Object> receivedMessagesSubscriber;
-    private NettyNetworkingComponent networkingComponent;
-    private long workerID = -1L;
+    private final AtomicInteger saturationStage = new AtomicInteger(0);
+    private C closure;
+    private Collection<? extends Rule<C, A>> rules;
+    private WorkerState<C, A, T> state;
+    private IncrementalStreamReasoner<C, A> incrementalReasoner;
+    private SaturationConfiguration config;
+    private WorkerStatistics stats = new WorkerStatistics();
     private List<DistributedWorkerModel<C, A, T>> workers;
     private WorkloadDistributor<C, A, T> workloadDistributor;
+    private ExecutorService threadPool;
+    private long workerID = -1L;
 
-    private long controlNodeID = 0L;
-
+    private NIO2NetworkingComponent networkingComponent;
+    private Subscriber<Object> receivedMessagesSubscriber;
     private boolean allConnectionsEstablished = false;
-    private AcknowledgementEventManager acknowledgementEventManager;
     private long initializationMessageID = -1;
-    final private AtomicInteger saturationStage = new AtomicInteger(0);
+    private AcknowledgementEventManager acknowledgementEventManager;
+    private BiMap<Long, Long> socketIDToWorkerIDMap = HashBiMap.create();
+    private BiMap<Long, Long> workerIDToSocketIDMap = socketIDToWorkerIDMap.inverse();
+    private Flux<Object> receivedMessagesFlux;
 
-    private SaturationConfiguration config;
-    private WorkerStatistics stats;
-
-    public WorkerNodeCommunicationChannel(ServerData serverData, Subscriber<Object> receivedMessagesSubscriber) {
+    public WorkerNodeCommunicationChannel(ExecutorService threadPool, ServerData serverData,
+                                          Subscriber<Object> receivedMessagesSubscriber) {
+        this.threadPool = threadPool;
         this.serverData = serverData;
         this.receivedMessagesSubscriber = receivedMessagesSubscriber;
         init();
@@ -67,8 +80,40 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     private void init() {
         this.acknowledgementEventManager = new AcknowledgementEventManager();
-        //networkingComponent = new NIO2NetworkingComponent(Executors.newFixedThreadPool(1)); TODO
-        //networkingComponent.listenToPort(getWorkerServerConnectionModel()); TODO
+        networkingComponent = new NIO2NetworkingComponent(threadPool);
+        try {
+            networkingComponent.listenToPort(getWorkerServerConnectionModel());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        receivedMessagesFlux = Flux.from(networkingComponent.getReceivedMessagesPublisher())
+                .doOnNext(new ConsumerForNewConnectionMessages())
+                .map(messageEnvelope -> {
+                    if (messageEnvelope.getMessage() != null) {
+                        return messageEnvelope.getMessage();
+                    } else {
+                        return new StateInfoMessage(0, SaturationStatusMessage.TODO_IS_EMPTY_EVENT);
+                    }
+                })
+                .map(msg -> {
+                    if (msg instanceof MessageModel) {
+                        state.processMessage(msg);
+                        // TODO return saturation messages from current iteration
+                        return null;
+                    } else {
+                        return this.incrementalReasoner.getStreamOfInferencesForGivenAxiom((A) msg)
+                                .flatMap(this::getAxiomMessagesFromInferenceStream);
+                    }
+                });
+                //  group by axiom and non-axiom objects
+                //  non-axioms:
+                //  process using state object -> map to MessageModel objects
+                // axioms:
+                // if state == converged -> change to running
+                //         communicationChannel.distributeInferences(incrementalReasoner.getStreamOfInferencesForGivenAxiom(axiom)
+                //                .filter(inference -> !this.worker.getClosure().contains(inference)) // only those which are not contained in closure
+                //        );
+                        receivedMessagesFlux.subscribe(this.receivedMessagesSubscriber);
     }
 
     public void reset() {
@@ -78,9 +123,6 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         receivedAxiomMessages.set(0);
         establishedConnections.set(0);
         saturationStage.set(0);
-        connectionIDToOutboundMessages.clear();
-        emitFailureHandler = new EmitFailureHandlerImpl();
-        receivedMessages = ReactorSinkFactory.getSink();
         workerID = -1L;
         workers = null;
         workloadDistributor = null;
@@ -95,13 +137,14 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         // connect to all worker nodes with a higher worker ID
         for (DistributedWorkerModel<C, A, T> workerModel : this.workers) {
             if (workerModel.getID() > this.workerID) {
-                NettyConnectionModel workerConModel = getWorkerClientConnectionModel(workerModel);
-                //networkingComponent.connectToServer(workerConModel); TODO
+                NIO2ConnectionModel workerConModel = getWorkerClientConnectionModel(workerModel);
+                try {
+                    networkingComponent.connectToServer(workerConModel);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
-        this.receivedMessages.asFlux().subscribe(receivedMessagesSubscriber);
-        this.receivedMessages.asFlux()
-                .switchIfEmpty(Mono.just(SaturationStatusMessage.TODO_IS_EMPTY_EVENT)); // TODO adjust if flux is empty
     }
 
     public void acknowledgeMessage(long receiverID, long messageID) {
@@ -110,7 +153,7 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
     public void onSaturationFinished() {
-        this.receivedMessages.emitComplete(emitFailureHandler);
+        this.receivedMessagesSubscriber.onComplete();
     }
 
     public void distributeInferences(Stream<A> inferenceStream) {
@@ -130,7 +173,8 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                     sendAxiom(currentReceiverWorkerID, inference);
                 } else {
                     // add axioms from this worker directly to the queue
-                    receivedMessages.emitNext(inference, emitFailureHandler);
+                    // TODO serialize messages over the network
+                    Mono.just(inference).subscribe(receivedMessagesSubscriber);
                 }
             }
 
@@ -138,6 +182,40 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
                 stats.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
             }
         });
+    }
+
+    public Stream<MessageEnvelope> getAxiomMessagesFromInferenceStream(A inference) {
+        Stream.Builder<MessageEnvelope> streamBuilder = Stream.builder();
+
+        if (config.collectWorkerNodeStatistics()) {
+            stats.getNumberOfDerivedInferences().incrementAndGet();
+            stats.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+        }
+
+        Iterator<Long> receiverWorkerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(inference).iterator();
+        long currentReceiverWorkerID;
+
+        while (receiverWorkerIDs.hasNext()) {
+            currentReceiverWorkerID = receiverWorkerIDs.next();
+
+            if (currentReceiverWorkerID != this.workerID) {
+                long receiverSocketID = workerIDToSocketIDMap.get(currentReceiverWorkerID);
+                streamBuilder.add(new MessageEnvelope(receiverSocketID, inference));
+            } else {
+                // add axioms from this worker directly to the queue
+                // TODO serialize messages over the network
+                // TODO remove recursive call
+                incrementalReasoner.getStreamOfInferencesForGivenAxiom(inference)
+                        .flatMap(this::getAxiomMessagesFromInferenceStream)
+                        .forEach(streamBuilder::add);
+            }
+        }
+
+        if (config.collectWorkerNodeStatistics()) {
+            stats.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+        }
+
+        return streamBuilder.build();
     }
 
     public void sendToControlNode(SaturationStatusMessage status, Runnable onAcknowledgement) {
@@ -173,11 +251,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
 
     public void send(long workerID, MessageModel messageModel, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(messageModel.getMessageID(), onAcknowledgement);
-        networkingComponent.sendMessage(workerID, messageModel);
+        send(workerID, messageModel);
     }
 
     public void send(long workerID, Serializable message) {
-        networkingComponent.sendMessage(workerID, message);
+        long socketID = this.workerIDToSocketIDMap.get(workerID);
+        networkingComponent.sendMessage(socketID, message);
     }
 
     public void terminate() {
@@ -205,14 +284,12 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
         this.workerID = workerID;
     }
 
-    public void setWorkloadDistributor(WorkloadDistributor workloadDistributor) {
+    public void setWorkloadDistributor(WorkloadDistributor<C, A, T> workloadDistributor) {
         this.workloadDistributor = workloadDistributor;
     }
 
     public void addAxiomsToQueue(List<A> axioms) {
-        for (A a : axioms) {
-            this.receivedMessages.emitNext(a, emitFailureHandler);
-        }
+        Flux.fromStream(axioms.stream()).subscribe(receivedMessagesSubscriber);
     }
 
     public AcknowledgementEventManager getAcknowledgementEventManager() {
@@ -257,110 +334,110 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
     }
 
 
-    private NettyConnectionModel getWorkerClientConnectionModel(DistributedWorkerModel<C, A, T> workerModel) {
-        ServerData serverData = workerModel.getServerData();
-        Consumer<NettySocketManager> onConnectionEstablished = socketManager -> {
-            log.info("Connection to worker server established.");
+    private NIO2ConnectionModel getWorkerClientConnectionModel(DistributedWorkerModel<C, A, T> workerModel) {
+        ServerData workerServerData = workerModel.getServerData();
 
-            StateInfoMessage stateInfoMessage = new StateInfoMessage(
-                    this.workerID,
-                    SaturationStatusMessage.WORKER_CLIENT_HELLO
-            );
-            send(workerModel.getID(), stateInfoMessage, this.establishedConnections::getAndIncrement);
+        return new NIO2ConnectionModel(workerServerData) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                log.info("Connection to worker server established.");
+
+                StateInfoMessage stateInfoMessage = new StateInfoMessage(
+                        workerID,
+                        SaturationStatusMessage.WORKER_CLIENT_HELLO
+                );
+                send(workerModel.getID(), stateInfoMessage, establishedConnections::getAndIncrement);
+            }
         };
-
-        Sinks.Many<Object> workerOutboundMessages = ReactorSinkFactory.getSink();
-        this.connectionIDToOutboundMessages.put(workerModel.getID(), workerOutboundMessages);
-
-        Sinks.Many<Object> receivedMessagesSink = ReactorSinkFactory.getSink();
-        ConsumerForNewConnectionMessages consumer = new ConsumerForNewConnectionMessages(workerOutboundMessages, true);
-        receivedMessagesSink.asFlux().doOnNext(consumer);
-
-        /* TODO
-        NettyConnectionModel conModel = new NettyConnectionModel(
-                serverData,
-                onConnectionEstablished,
-                receivedMessagesSink,
-                workerOutboundMessages.asFlux(),
-                Collections.emptyList(),
-                Collections.emptyList()
-        );
-        return conModel;
-
-         */
-        return null;
     }
 
     public AtomicLong getEstablishedConnections() {
         return establishedConnections;
     }
 
-    private NettyConnectionModel getWorkerServerConnectionModel() {
-        Sinks.Many<Object> workerOutboundMessages = ReactorSinkFactory.getSink();
-
-        Consumer<NettySocketManager> onConnectionEstablished = socketManager -> {
-            log.info("Client connected to worker.");
-            // client will send WORKER_CLIENT_HELLO message
+    private NIO2ConnectionModel getWorkerServerConnectionModel() {
+        return new NIO2ConnectionModel(serverData) {
+            @Override
+            public void onConnectionEstablished(SocketManager socketManager) {
+                log.info("Client connected to worker.");
+                // client will send WORKER_CLIENT_HELLO message
+            }
         };
-
-        Sinks.Many<Object> receivedMessagesSink = ReactorSinkFactory.getSink();
-        ConsumerForNewConnectionMessages consumer = new ConsumerForNewConnectionMessages(workerOutboundMessages, false);
-        receivedMessagesSink.asFlux().doOnNext(consumer);
-
-        /* TODO
-        NettyConnectionModel conModel = new NettyConnectionModel(
-                serverData,
-                onConnectionEstablished,
-                receivedMessagesSink,
-                workerOutboundMessages.asFlux(),
-                Collections.emptyList(),
-                Collections.emptyList()
-        );
-        return conModel;
-
-         */
-        return null;
     }
 
-    private class ConsumerForNewConnectionMessages implements Consumer<Object> {
+    private class ProcessorTest implements Processor<MessageEnvelope, Object> {
 
-        private Sinks.Many<Object> outboundMessages;
-        private boolean workerIDOfConnectionIsKnown;
+        @Override
+        public void subscribe(Subscriber<? super Object> subscriber) {
 
-        public ConsumerForNewConnectionMessages(Sinks.Many<Object> outboundMessages,
-                                                boolean workerIDOfConnectionIsKnown) {
-            this.outboundMessages = outboundMessages;
-            this.workerIDOfConnectionIsKnown = workerIDOfConnectionIsKnown;
         }
 
         @Override
-        public void accept(Object message) {
+        public void onSubscribe(Subscription subscription) {
+
+        }
+
+        @Override
+        public void onNext(MessageEnvelope messageEnvelope) {
+
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+
+        }
+
+        @Override
+        public void onComplete() {
+
+        }
+    }
+
+    private class MessagesToSendPublisher implements Publisher<Object>, Subscription {
+
+        @Override
+        public void subscribe(Subscriber<? super Object> subscriber) {
+
+        }
+
+        @Override
+        public void request(long l) {
+
+        }
+
+        @Override
+        public void cancel() {
+
+        }
+    }
+
+
+    private class ConsumerForNewConnectionMessages implements Consumer<MessageEnvelope> {
+
+        @Override
+        public void accept(MessageEnvelope messageEnvelope) {
+            Object message = messageEnvelope.getMessage();
             if (!(message instanceof MessageModel)) {
                 // must be an axiom
                 receivedAxiomMessages.getAndIncrement();
                 if (config.collectWorkerNodeStatistics()) {
                     stats.getNumberOfReceivedAxioms().incrementAndGet();
                 }
-                receivedMessages.emitNext(message, emitFailureHandler);
                 return;
             }
-
-            MessageModel messageModel = (MessageModel) message;
-
             if (!allConnectionsEstablished) {
-                initializeConnection(messageModel);
+                initializeConnection(messageEnvelope);
             }
-            receivedMessages.emitNext(message, emitFailureHandler);
         }
 
-        private void initializeConnection(MessageModel messageModel) {
-            if (!workerIDOfConnectionIsKnown) {
-                Object obj = connectionIDToOutboundMessages.put(messageModel.getSenderID(), outboundMessages);
-                if (obj == null) {
-                    // worker ID of remote connection is now known
-                    this.workerIDOfConnectionIsKnown = true;
-                    establishedConnections.incrementAndGet();
-                }
+        private void initializeConnection(MessageEnvelope messageEnvelope) {
+            MessageModel<C, A, T> messageModel = (MessageModel<C, A, T>) messageEnvelope.getMessage();
+            long socketID = messageEnvelope.getSocketID();
+            long senderSaturationID = messageModel.getSenderID();
+
+            boolean newConnection = socketIDToWorkerIDMap.put(socketID, senderSaturationID) == null;
+            if (newConnection) {
+                establishedConnections.incrementAndGet();
             }
 
             if (workers != null && workers.size() == establishedConnections.get()) {
@@ -369,19 +446,10 @@ public class WorkerNodeCommunicationChannel<C extends Closure<A>, A extends Seri
             }
 
             if (messageModel instanceof InitializeWorkerMessage) {
-                // first message from control node
+                // first message from control node - get message ID for acknowledgement
                 initializationMessageID = messageModel.getMessageID();
             }
         }
     }
 
-    private class EmitFailureHandlerImpl implements Sinks.EmitFailureHandler {
-
-        @Override
-        public boolean onEmitFailure(SignalType signalType, Sinks.EmitResult emitResult) {
-            System.err.println(signalType);
-            System.err.println(emitResult);
-            return false;
-        }
-    }
 }

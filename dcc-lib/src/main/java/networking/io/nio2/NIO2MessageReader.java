@@ -1,6 +1,5 @@
 package networking.io.nio2;
 
-import networking.io.MessageHandler;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -8,65 +7,80 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
 public class NIO2MessageReader {
 
+    // TODO user defined buffer size
+    private final int BUFFER_SIZE = 512 << 10;
+    private final int STOP_SERIALIZATION_REMAINING_BYTES = (int) (BUFFER_SIZE * 0.1);
+    private final int MESSAGE_SIZE_BYTES = 4;
+    private final Serializer serializer = new KryoSerializer();
     protected AsynchronousSocketChannel socketChannel;
-
     protected int messageSizeInBytes;
     protected int readBytes;
     protected boolean newMessageStarts = true;
     protected boolean endOfStreamReached = false;
-    // TODO user defined buffer size
-    private final int BUFFER_SIZE = 512 << 10;
-    private final int MESSAGE_SIZE_BYTES = 4;
-    protected ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-    private final Serializer serializer = new KryoSerializer();
-
-    private MessageHandler messageHandler;
+    protected ByteBuffer messageBufferToWriteTo = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    protected ByteBuffer messageBufferToDeserializeFrom = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private long socketID;
+    private Runnable onSocketCanReadNewMessages;
 
-    private AtomicBoolean currentlyReading = new AtomicBoolean(false);
-
-    public NIO2MessageReader(long socketID, AsynchronousSocketChannel socketChannel,
-                             MessageHandler messageHandler) {
+    public NIO2MessageReader(long socketID, AsynchronousSocketChannel socketChannel, Runnable onSocketCanReadNewMessages) {
         this.socketChannel = socketChannel;
         this.socketID = socketID;
-        this.messageHandler = messageHandler;
+        this.onSocketCanReadNewMessages = onSocketCanReadNewMessages;
+        init();
+    }
+
+    private void init() {
+        // initialize buffer as if all messages have been read from it
+        messageBufferToDeserializeFrom.compact();
     }
 
     public void startReading() {
-        currentlyReading.set(true);
-        this.socketChannel.read(messageBuffer, null, new CompletionHandler<>() {
+        this.socketChannel.read(messageBufferToWriteTo, null, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Object attachment) {
                 readBytes += result;
-                try {
-                    deserializeMessagesFromBuffer();
-                } catch (IOException | ClassNotFoundException | ExecutionException | InterruptedException e) {
-                    e.printStackTrace();
+
+                // copy to 'deserialize'-buffer
+                messageBufferToDeserializeFrom.compact();
+                if (messageBufferToDeserializeFrom.remaining() > STOP_SERIALIZATION_REMAINING_BYTES) {
+                    messageBufferToWriteTo.flip();
+
+                    int maxNumberOfBytesToCopy = Math.min(messageBufferToDeserializeFrom.remaining(),
+                            messageBufferToWriteTo.remaining());
+
+                    // set limit to max number of bytes to write
+                    int limitBefore = messageBufferToWriteTo.limit();
+                    messageBufferToWriteTo.limit(messageBufferToWriteTo.position() + maxNumberOfBytesToCopy);
+
+                    messageBufferToDeserializeFrom.put(messageBufferToWriteTo);
+
+                    messageBufferToWriteTo.limit(limitBefore);
+                    messageBufferToWriteTo.compact();
+                }
+                // prepare 'deserialize'-buffer for reading
+                messageBufferToDeserializeFrom.flip();
+
+                if (readBytes > 0) {
+                    onSocketCanReadNewMessages.run();
                 }
                 if (readBytes == -1) {
                     endOfStreamReached = true;
                     return;
                 }
-                socketChannel.read(messageBuffer, null, this);
+                socketChannel.read(messageBufferToWriteTo, null, this);
             }
 
             @Override
             public void failed(Throwable exc, Object attachment) {
-
             }
         });
     }
 
-    public void deserializeMessagesFromBuffer() throws IOException, ClassNotFoundException, ExecutionException,
-            InterruptedException {
-        messageBuffer.flip();
-        while (readBytes > 0) {
+    public Object readNextMessage() throws IOException, ClassNotFoundException {
+        if (readBytes > 0) {
             // read messages from buffer
             if (newMessageStarts) {
                 if (readBytes >= MESSAGE_SIZE_BYTES) {
@@ -74,25 +88,26 @@ public class NIO2MessageReader {
                     onNewMessageSizeHasBeenRead();
                 } else {
                     // more bytes required
-                    break;
+                    return null;
                 }
-            } else {
+            }
+            if (!newMessageStarts) {
                 if (readBytes >= messageSizeInBytes) {
                     // if message size is known
-                    Object message = serializer.deserializeFromByteBuffer(messageBuffer);
+                    Object message = serializer.deserializeFromByteBuffer(messageBufferToDeserializeFrom);
                     prepareBufferForNewMessage();
-                    messageHandler.process(socketID, message);
+                    return message;
                 } else {
-                    break;
+                    return null;
                 }
             }
         }
-        messageBuffer.compact();
+        return null;
     }
 
     protected void onNewMessageSizeHasBeenRead() {
         newMessageStarts = false;
-        messageSizeInBytes = messageBuffer.getInt();
+        messageSizeInBytes = messageBufferToDeserializeFrom.getInt();
         readBytes -= MESSAGE_SIZE_BYTES;
     }
 
@@ -104,10 +119,6 @@ public class NIO2MessageReader {
 
     public boolean hasMessagesOrReadsCurrentlyMessage() {
         return readBytes > 0 || messageSizeInBytes != -1 || !newMessageStarts;
-    }
-
-    public boolean endOfStreamReached() {
-        return endOfStreamReached;
     }
 
 }
