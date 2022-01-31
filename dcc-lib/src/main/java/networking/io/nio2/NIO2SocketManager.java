@@ -50,6 +50,7 @@ public class NIO2SocketManager implements SocketManager {
 
     @Override
     public void close() throws IOException {
+        this.messageReader.close();
         this.socketChannel.close();
     }
 

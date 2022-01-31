@@ -11,6 +11,7 @@ import networking.messages.MessageEnvelope;
 import nio2kryo.Edge;
 import util.ConsoleUtils;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -57,7 +58,6 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
         }
 
         this.senderThreadPool = Executors.newFixedThreadPool(1);
-        MessageHandler messageHandler = (socketID, message) -> {};
         NIO2ConnectionModel connectionModel = new NIO2ConnectionModel(receiverData) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -67,10 +67,14 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
 
         };
         this.sender = new NIO2NetworkingComponent(
-                Collections.emptyList(),
-                Collections.singletonList(connectionModel),
-                senderThreadPool
+                senderThreadPool,
+                receivedMessages -> {}
         );
+        try {
+            sender.connectToServer(connectionModel);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void runExperiment() {

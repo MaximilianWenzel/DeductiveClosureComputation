@@ -22,5 +22,13 @@ public class StateInfoMessage extends MessageModel {
     @Override
     public void accept(MessageModelVisitor visitor) {
         visitor.visit(this);
+
+    }
+
+    @Override
+    public String toString() {
+        return "StateInfoMessage{" +
+                "state=" + state +
+                '}';
     }
 }

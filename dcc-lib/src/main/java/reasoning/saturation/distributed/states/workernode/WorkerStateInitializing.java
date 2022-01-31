@@ -32,7 +32,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
         this.config = this.worker.getConfig();
         this.stats = this.worker.getStats();
         log.info("Worker successfully initialized.");
-        communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
+        worker.acknowledgeMessage(message.getSenderID(), message.getMessageID());
     }
 
     @Override
@@ -46,20 +46,22 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
                 }
 
                 allWorkersInitializedMessageID = message.getMessageID();
-                communicationChannel.connectToWorkerServers();
+                worker.connectToWorkerServers();
                 allWorkersInitialized = true;
                 break;
             case WORKER_SERVER_HELLO:
                 // do nothing
                 break;
             case WORKER_CLIENT_HELLO:
-                communicationChannel.getEstablishedConnections().incrementAndGet();
-                communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
+                worker.acknowledgeMessage(message.getSenderID(), message.getMessageID());
                 break;
             case CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT:
                 WorkerStateConverged<C, A, T> stateConverged = new WorkerStateConverged<>(worker);
                 this.worker.switchState(stateConverged);
                 stateConverged.visit(message);
+                break;
+            case TODO_IS_EMPTY_EVENT:
+                // ignore
                 break;
             default:
                 messageProtocolViolation(message);
@@ -75,20 +77,20 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
     }
 
     private void checkIfAllConnectionsEstablished() {
-        if (communicationChannel.allConnectionsEstablished() && allWorkersInitialized) {
+        if (worker.allConnectionsEstablished() && allWorkersInitialized) {
             if (config.collectWorkerNodeStatistics()) {
                 stats.stopStopwatch(StatisticsComponent.WORKER_INITIALIZING_OTHER_WORKER_CONNECTIONS);
             }
             log.info("All connections to other workers successfully initialized.");
             this.worker.switchState(new WorkerStateRunning<>(worker));
-            this.communicationChannel.addAxiomsToQueue(bufferedAxiomMessages);
-            communicationChannel.acknowledgeMessage(communicationChannel.getControlNodeID(), allWorkersInitializedMessageID);
+            this.worker.addAxiomsToToDoQueue(bufferedAxiomMessages);
+            worker.acknowledgeMessage(worker.getControlNodeID(), allWorkersInitializedMessageID);
         }
     }
 
     @Override
     public void visit(RequestAxiomMessageCount message) {
-        communicationChannel.getSaturationStageCounter().set(message.getStage());
+        worker.getSaturationStageCounter().set(message.getStage());
     }
 
     @Override

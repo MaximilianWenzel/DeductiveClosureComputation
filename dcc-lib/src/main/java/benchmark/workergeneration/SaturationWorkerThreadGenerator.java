@@ -37,8 +37,7 @@ public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerato
         for (ServerData serverData : serverDataList) {
             try {
                 SaturationWorker<?, ?, ?> worker = new SaturationWorker<>(
-                        serverData,
-                        SaturationWorker.IncrementalReasonerType.SINGLE_THREADED
+                        serverData
                 );
                 saturationWorkers.add(worker);
             } catch (Exception e) {

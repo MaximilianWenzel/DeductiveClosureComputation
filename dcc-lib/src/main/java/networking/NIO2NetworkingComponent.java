@@ -1,7 +1,6 @@
 package networking;
 
 import networking.connectors.NIO2ConnectionModel;
-import networking.connectors.NIOConnectionModel;
 import networking.io.SocketManager;
 import networking.io.nio2.NIO2SocketManager;
 import networking.messages.MessageEnvelope;
@@ -30,8 +29,8 @@ import java.util.logging.Logger;
 
 public class NIO2NetworkingComponent {
 
-    protected List<NIO2ConnectionModel> portNumbersToListen;
-    protected List<NIO2ConnectionModel> serversToConnectTo;
+    protected List<NIO2ConnectionModel> portNumbersToListen = new ArrayList<>();
+    protected List<NIO2ConnectionModel> serversToConnectTo = new ArrayList<>();
 
     protected ConcurrentMap<Long, NIO2SocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
     protected List<AsynchronousServerSocketChannel> serverSocketChannels = new ArrayList<>();
@@ -54,31 +53,21 @@ public class NIO2NetworkingComponent {
     };
 
     // read messages from socket
+    boolean receivedMessagesPipelineIsRunning = false;
     protected ReceivedMessagesPublisher receivedMessagesPublisher = new ReceivedMessagesPublisher();
-    protected AtomicBoolean moreRequestedMessages = new AtomicBoolean(false);
+    protected Consumer<ReceivedMessagesPublisher> onNewMessagesReceived;
     protected Runnable onSocketCanReadNewMessages = () -> {
-        if (moreRequestedMessages.compareAndSet(true, false)) {
-            threadPool.submit(receivedMessagesPublisher);
+        // TODO implement functionality to start worker
+        if (!receivedMessagesPipelineIsRunning) {
+            receivedMessagesPipelineIsRunning = true;
+            onNewMessagesReceived.accept(receivedMessagesPublisher);
         }
     };
-
     private Logger log = ConsoleUtils.getLogger();
 
-    public NIO2NetworkingComponent(ExecutorService threadPool) {
+    public NIO2NetworkingComponent(ExecutorService threadPool, Consumer<ReceivedMessagesPublisher> onNewMessagesReceived) {
         this.threadPool = threadPool;
-        try {
-            init();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public NIO2NetworkingComponent(List<NIO2ConnectionModel> portNumbersToListen,
-                                   List<NIO2ConnectionModel> serversToConnectTo,
-                                   ExecutorService threadPool) {
-        this.portNumbersToListen = portNumbersToListen;
-        this.serversToConnectTo = serversToConnectTo;
-        this.threadPool = threadPool;
+        this.onNewMessagesReceived = onNewMessagesReceived;
         try {
             init();
         } catch (IOException e) {
@@ -127,7 +116,7 @@ public class NIO2NetworkingComponent {
         }
     }
 
-    public void sendMessage(long socketID, Object message) {
+    private void sendMessage(long socketID, Object message) {
         NIO2SocketManager socketManager = this.socketIDToSocketManager.get(socketID);
         if (socketManager == null) {
             throw new IllegalArgumentException("No socket exists with ID: " + socketID);
@@ -187,8 +176,8 @@ public class NIO2NetworkingComponent {
         this.callbackAfterAllMessagesHaveBeenSent = callbackAfterAllMessagesHaveBeenSent;
     }
 
-    public Subscriber<MessageEnvelope> getSubscriberForMessagesToSend() {
-        return messagesToSendSubscriber;
+    public Subscriber<MessageEnvelope> getNewSubscriberForMessagesToSend() {
+        return new MessagesToSendSubscriber();
     }
 
     public ExecutorService getThreadPool() {
@@ -217,17 +206,13 @@ public class NIO2NetworkingComponent {
             }
         }
 
-        int written = 0;
-
         @Override
         public void onNext(MessageEnvelope messageEnvelope) {
             sendMessage(messageEnvelope.getSocketID(), messageEnvelope.getMessage());
             // request next elements only if all sockets can write again
             if (allSocketsCanWrite()) {
-                written++;
                 subscription.request(NUM_ELEMENTS_TO_REQUEST);
             } else {
-                written = 0;
                 allSocketsCanWrite.set(false);
             }
         }
@@ -255,16 +240,13 @@ public class NIO2NetworkingComponent {
         }
     }
 
-    public class ReceivedMessagesPublisher implements Publisher<MessageEnvelope>, Subscription, Runnable {
+    public class ReceivedMessagesPublisher implements Publisher<MessageEnvelope>, Subscription {
         private Subscriber<? super MessageEnvelope> subscriber;
         private Collection<NIO2SocketManager> socketManager = NIO2NetworkingComponent.this.socketIDToSocketManager.values();
         private AtomicLong requestedMessages = new AtomicLong(0);
 
         @Override
         public void subscribe(Subscriber<? super MessageEnvelope> subscriber) {
-            if (this.subscriber != null) {
-                throw new IllegalArgumentException("Only one subscriber allowed for the given publisher.");
-            }
             this.subscriber = subscriber;
             this.subscriber.onSubscribe(this);
         }
@@ -283,18 +265,21 @@ public class NIO2NetworkingComponent {
             for (NIO2SocketManager sm : socketManager) {
                 message = sm.readNextMessage();
                 while (message != null && this.requestedMessages.get() > 0) {
+
                     messageEnvelope = new MessageEnvelope(sm.getSocketID(), message);
                     subscriber.onNext(messageEnvelope);
                     this.requestedMessages.decrementAndGet();
                     message = sm.readNextMessage();
                 }
             }
+
             if (this.requestedMessages.get() > 0) {
-                moreRequestedMessages.set(true);
-                // not enough messages available from sockets
-                // TODO probably occurs too often
                 subscriber.onNext(MessageEnvelope.EMPTY);
-                // resume when messages available again
+                subscriber.onComplete();
+                receivedMessagesPipelineIsRunning = false;
+
+                this.requestedMessages.set(0);
+                // not enough messages available from sockets
             }
         }
 
@@ -303,11 +288,6 @@ public class NIO2NetworkingComponent {
             subscriber = null;
         }
 
-        @Override
-        public void run() {
-            // resume with current number requested messages
-            request(0);
-        }
     }
 
     public class ServerSocketCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {

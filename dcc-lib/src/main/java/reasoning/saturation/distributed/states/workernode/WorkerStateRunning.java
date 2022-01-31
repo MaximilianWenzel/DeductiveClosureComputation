@@ -10,19 +10,16 @@ import java.io.Serializable;
 
 public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
 
-    private boolean lastMessageWasAxiomCountRequest = false;
-
     public WorkerStateRunning(SaturationWorker<C, A, T> worker) {
         super(worker);
     }
 
     public void processMessage(Object msg) {
         if (msg instanceof MessageModel) {
-            ((MessageModel<C, A, T>)msg).accept(this);
+            ((MessageModel<C, A, T>) msg).accept(this);
         } else {
-            visit((A)msg);
+            this.visit((A) msg);
         }
-        lastMessageWasAxiomCountRequest = msg instanceof RequestAxiomMessageCount;
     }
 
     public void onToDoIsEmpty() {
@@ -31,8 +28,9 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
             stats.getTodoIsEmptyEvent().incrementAndGet();
             stats.startStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
         }
-        if (!lastMessageWasAxiomCountRequest) {
-            communicationChannel.sendAxiomCountToControlNode();
+        if (worker.getSentAxiomMessages().get() > 0
+            || worker.getReceivedAxiomMessages().get() > 0) {
+            worker.sendAxiomCountMessageToControlNode();
         }
     }
 
@@ -52,7 +50,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
                 // do nothing
                 break;
             case WORKER_CLIENT_HELLO:
-                communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
+                worker.acknowledgeMessage(message.getSenderID(), message.getMessageID());
                 break;
             default:
                 messageProtocolViolation(message);
@@ -66,16 +64,17 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     @Override
     public void visit(RequestAxiomMessageCount message) {
-        communicationChannel.getSaturationStageCounter().set(message.getStage());
-        communicationChannel.sendAxiomCountToControlNode();
+        worker.getSaturationStageCounter().set(message.getStage());
+        worker.sendAxiomCountMessageToControlNode();
     }
 
     @Override
     public void visit(A axiom) {
-        communicationChannel.distributeInferences(incrementalReasoner.getStreamOfInferencesForGivenAxiom(axiom)
-                .filter(inference -> !this.worker.getClosure().contains(inference)) // only those which are not contained in closure
-        );
+        this.incrementalReasoner.getStreamOfInferencesForGivenAxiom(axiom)
+                // only those which are not contained in closure
+                .filter(inference -> !worker.getClosure().contains(inference))
+                .flatMap(inference -> worker.getAxiomMessagesFromInferenceStream(inference))
+                .forEach(worker::sendMessage);
     }
-
 }
 

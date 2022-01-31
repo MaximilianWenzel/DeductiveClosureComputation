@@ -5,7 +5,6 @@ import exceptions.MessageProtocolViolationException;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.messages.*;
 import reasoning.saturation.distributed.SaturationControlNode;
-import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.states.AxiomVisitor;
@@ -13,13 +12,13 @@ import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public abstract class ControlNodeState<C extends Closure<A>, A extends Serializable, T extends Serializable> implements MessageModelVisitor<C, A, T>,
         AxiomVisitor<A> {
 
     protected final Logger log = ConsoleUtils.getLogger();
 
-    protected ControlNodeCommunicationChannel<C, A, T> communicationChannel;
     protected SaturationControlNode<C, A, T> saturationControlNode;
     protected AcknowledgementEventManager acknowledgementEventManager;
     protected SaturationConfiguration config;
@@ -27,8 +26,7 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
 
     public ControlNodeState(SaturationControlNode<C, A, T> saturationControlNode) {
         this.saturationControlNode = saturationControlNode;
-        this.communicationChannel = saturationControlNode.getCommunicationChannel();
-        this.acknowledgementEventManager = communicationChannel.getAcknowledgementEventManager();
+        this.acknowledgementEventManager = saturationControlNode.getAcknowledgementEventManager();
         this.config = saturationControlNode.getConfig();
         this.stats = saturationControlNode.getControlNodeStatistics();
     }
@@ -82,4 +80,5 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
         log.warning("State: " + this.getClass() + ", message type: " + message.getStatusMessage());
         throw new MessageProtocolViolationException();
     }
+
 }

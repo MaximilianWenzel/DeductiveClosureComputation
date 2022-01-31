@@ -63,14 +63,17 @@ public class NIO2MessageReader {
                 // prepare 'deserialize'-buffer for reading
                 messageBufferToDeserializeFrom.flip();
 
-                if (readBytes > 0) {
-                    onSocketCanReadNewMessages.run();
+                if (!endOfStreamReached) {
+                    if (readBytes > 0) {
+                        onSocketCanReadNewMessages.run();
+                    }
+                    if (readBytes == -1) {
+                        endOfStreamReached = true;
+                        return;
+                    }
+                    socketChannel.read(messageBufferToWriteTo, null, this);
+                    // TODO cancel task if still running after closing the connection
                 }
-                if (readBytes == -1) {
-                    endOfStreamReached = true;
-                    return;
-                }
-                socketChannel.read(messageBufferToWriteTo, null, this);
             }
 
             @Override
@@ -121,4 +124,7 @@ public class NIO2MessageReader {
         return readBytes > 0 || messageSizeInBytes != -1 || !newMessageStarts;
     }
 
+    public void close() {
+        this.endOfStreamReached = true;
+    }
 }

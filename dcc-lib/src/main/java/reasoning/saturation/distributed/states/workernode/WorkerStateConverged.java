@@ -34,13 +34,15 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
                     // finalize statistics
                     stats.stopStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
                     stats.collectStopwatchTimes();
-                    communicationChannel.sendToControlNode(stats);
+                    worker.sendMessageToControlNode(stats);
                 }
                 log.info("Control node requests closure results...");
-                communicationChannel.sendToControlNode(worker.getClosure());
-                long sendClosureResultRequestMessageID = message.getMessageID();
-                communicationChannel.acknowledgeMessage(communicationChannel.getControlNodeID(),
-                        sendClosureResultRequestMessageID);
+
+                AcknowledgementMessage acknowledgementMessage = new AcknowledgementMessage(
+                        this.worker.getWorkerID(),
+                        message.getMessageID()
+                );
+                worker.sendClosureToControlNode(worker.getClosure(), acknowledgementMessage);
                 break;
             case WORKER_SERVER_HELLO:
             case WORKER_CLIENT_HELLO:
@@ -49,7 +51,10 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
             case CONTROL_NODE_INFO_CLOSURE_RESULTS_RECEIVED:
                 log.info("Control node received all closure results. Saturation finished.");
                 worker.switchState(new WorkerStateFinished<>(worker));
-                communicationChannel.onSaturationFinished();
+                worker.onSaturationFinished();
+                break;
+            case TODO_IS_EMPTY_EVENT:
+                // ignore
                 break;
             default:
                 messageProtocolViolation(message);
@@ -60,21 +65,19 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
     public void visit(A axiom) {
         WorkerStateRunning<C, A, T> runningState = new WorkerStateRunning<>(worker);
         //log.info("Axioms received. Continuing saturation...");
-        if (config.collectWorkerNodeStatistics()) {
-            stats.stopStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
-        }
+
         worker.switchState(runningState);
         runningState.visit(axiom);
     }
 
     @Override
     public void visit(AcknowledgementMessage message) {
-        communicationChannel.getAcknowledgementEventManager().messageAcknowledged(message.getMessageID());
+        acknowledgementEventManager.messageAcknowledged(message.getMessageID());
     }
 
     @Override
     public void visit(RequestAxiomMessageCount message) {
-        communicationChannel.getSaturationStageCounter().set(message.getStage());
-        communicationChannel.sendAxiomCountToControlNode();
+        worker.getSaturationStageCounter().set(message.getStage());
+        worker.sendAxiomCountMessageToControlNode();
     }
 }

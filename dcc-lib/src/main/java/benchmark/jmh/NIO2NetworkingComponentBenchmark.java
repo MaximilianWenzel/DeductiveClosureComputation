@@ -49,7 +49,7 @@ public class NIO2NetworkingComponentBenchmark {
                 () -> result.add(benchmark.nio2SenderStub.getHashSum()));
 
         benchmark.nio2SenderStub.threadPool.submit(() -> {
-            messages.subscribe(senderNetworkingComponent.getSubscriberForMessagesToSend());
+            messages.subscribe(senderNetworkingComponent.getNewSubscriberForMessagesToSend());
         });
 
         try {
@@ -74,10 +74,6 @@ public class NIO2NetworkingComponentBenchmark {
         System.out.println("Terminating networking components...");
         nio2SenderStub.terminate();
         nio2ReceiverStub.terminate();
-    }
-
-    public void sendObjectNIO2() {
-        nio2SenderStub.sendMessage(new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)));
     }
 
 

@@ -6,11 +6,11 @@ import enums.StatisticsComponent;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
-import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 
 import java.io.Serializable;
 
-public class CNSInitializing<C extends Closure<A>, A extends Serializable, T extends Serializable> extends ControlNodeState<C, A, T> {
+public class CNSInitializing<C extends Closure<A>, A extends Serializable, T extends Serializable>
+        extends ControlNodeState<C, A, T> {
 
     protected int numberOfWorkers;
 
@@ -20,14 +20,15 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
             stats.startStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
         }
         this.numberOfWorkers = saturationControlNode.getWorkers().size();
-        this.communicationChannel.initializeConnectionToWorkerServers();
+        this.saturationControlNode.initializeConnectionToWorkerServers();
     }
 
     @Override
     public void visit(StateInfoMessage message) {
         switch (message.getStatusMessage()) {
             case WORKER_SERVER_HELLO:
-                // do nothing
+            case TODO_IS_EMPTY_EVENT:
+                // ignore
                 break;
             default:
                 messageProtocolViolation(message);
@@ -38,16 +39,13 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
     public void visit(AcknowledgementMessage message) {
         acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
         log.info("ACK");
-        log.info("Initialized workers: " + communicationChannel.getInitializedWorkers().get());
+        log.info("Initialized workers: " + saturationControlNode.getInitializedWorkers().get());
 
-        if (communicationChannel.allWorkersInitialized()) {
+        if (saturationControlNode.allWorkersInitialized()) {
             log.info("All workers successfully initialized.");
-            communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_INFO_ALL_WORKERS_INITIALIZED,
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            // do nothing when message acknowledged
-                        }
+            saturationControlNode.broadcast(SaturationStatusMessage.CONTROL_NODE_INFO_ALL_WORKERS_INITIALIZED,
+                    () -> {
+                        // do nothing when message acknowledged
                     });
             if (config.collectControlNodeStatistics()) {
                 stats.stopStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
@@ -58,7 +56,7 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
             saturationControlNode.switchState(new CNSWaitingForWorkersToConverge<>(saturationControlNode));
 
             // distribute initial axioms
-            communicationChannel.distributeInitialAxioms();
+            saturationControlNode.distributeInitialAxioms();
         }
     }
 }

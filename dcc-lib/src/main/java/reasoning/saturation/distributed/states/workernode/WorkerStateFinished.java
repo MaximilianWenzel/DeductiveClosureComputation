@@ -1,6 +1,7 @@
 package reasoning.saturation.distributed.states.workernode;
 
 import data.Closure;
+import enums.SaturationStatusMessage;
 import exceptions.MessageProtocolViolationException;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.InitializeWorkerMessage;
@@ -14,6 +15,7 @@ public class WorkerStateFinished<C extends Closure<A>, A extends Serializable, T
 
     public WorkerStateFinished(SaturationWorker<C, A, T> worker) {
         super(worker);
+        worker.onSaturationFinished();
     }
 
 
@@ -24,7 +26,9 @@ public class WorkerStateFinished<C extends Closure<A>, A extends Serializable, T
 
     @Override
     public void visit(StateInfoMessage message) {
-        messageProtocolViolation(message);
+        if (!message.getStatusMessage().equals(SaturationStatusMessage.TODO_IS_EMPTY_EVENT)) {
+            messageProtocolViolation(message);
+        }
     }
 
     @Override

@@ -6,6 +6,7 @@ import networking.connectors.NIO2ConnectionModel;
 import networking.connectors.NIOConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
+import networking.messages.MessageEnvelope;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import util.NetworkingUtils;
@@ -115,16 +116,15 @@ public class NetworkingTest {
 
     @Test
     public void testSenderReceiverStubs() {
-        BlockingQueue<Object> arrayBlockingQueue = QueueFactory.createSaturationToDo();
         int numResults = 100;
 
         ReceiverStub receiverStub = new ReceiverStub(numResults);
         SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort())
         );
 
-        for (int i = 0; i < numResults; i++) {
-            senderStub.sendMessage("Test");
-        }
+        Flux.range(1, numResults)
+                .map(i -> new MessageEnvelope(senderStub.getDestinationSocket(), "Test"))
+                .subscribe(senderStub.getNetworkingComponent().getNewSubscriberForMessagesToSend());
     }
 
     @Test
@@ -161,10 +161,31 @@ public class NetworkingTest {
 
         ExecutorService threadPool = Executors.newFixedThreadPool(3);
         NIO2NetworkingComponent networkingComponent = new NIO2NetworkingComponent(
-                Collections.singletonList(portListener),
-                serverConnectors,
-                threadPool
+                threadPool,
+                receivedMessagesPublisher -> {
+                    Flux.from(receivedMessagesPublisher)
+                            .subscribe(messageEnvelope -> {
+                                if (messageEnvelope.getMessage() == null) {
+                                    return;
+                                }
+                                try {
+                                    receivedMessages.put((String) messageEnvelope.getMessage());
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                System.out.println(
+                                        LocalDateTime.now() + " - Received message: " + messageEnvelope.getMessage());
+                            });
+                }
         );
+        try {
+            networkingComponent.listenToPort(portListener);
+            for (NIO2ConnectionModel con : serverConnectors) {
+                networkingComponent.connectToServer(con);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         while (socketIDs.isEmpty()) {
             try {
@@ -174,44 +195,17 @@ public class NetworkingTest {
             }
         }
 
-        int numMessages = 0;
-        for (long id : socketIDs) {
-            for (int i = 0; i < 100; i++) {
-                networkingComponent.sendMessage(id, "Hello socket " + id + "! - " + LocalDateTime.now());
-                numMessages++;
-            }
-        }
+        int numMessages = 100;
+        long destinationSocket = socketIDs.iterator().next();
 
-        NIO2ConnectionModel serverConnector3 = new NIO2ConnectionModel(serverData) {
-            @Override
-            public void onConnectionEstablished(SocketManager socketManager) {
-                System.out.println("Connection established!");
-                networkingComponent.sendMessage(socketIDs.iterator().next(), "Message from new connection!");
-            }
-        };
-        numMessages++;
+        Flux.range(1, numMessages)
+                .map(i -> new MessageEnvelope(destinationSocket,
+                        "Hello socket " + destinationSocket + "! - " + LocalDateTime.now()))
+                .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
+
 
         try {
-            networkingComponent.connectToServer(serverConnector3);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        Flux.from(networkingComponent.getReceivedMessagesPublisher())
-                .subscribe(messageEnvelope -> {
-                    if (messageEnvelope.getMessage() == null) {
-                        return;
-                    }
-                    try {
-                        receivedMessages.put((String) messageEnvelope.getMessage());
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println(LocalDateTime.now() + " - Received message: " + messageEnvelope.getMessage());
-                });
-
-        try {
-            Thread.sleep(5000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

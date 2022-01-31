@@ -4,6 +4,7 @@ import data.Closure;
 import enums.SaturationStatusMessage;
 import enums.StatisticsComponent;
 import networking.messages.AcknowledgementMessage;
+import networking.messages.StateInfoMessage;
 import networking.messages.StatisticsMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
 
@@ -25,17 +26,28 @@ public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Seriali
     }
 
     @Override
+    public void visit(StateInfoMessage message) {
+        switch (message.getStatusMessage()) {
+            case TODO_IS_EMPTY_EVENT:
+                // ignore
+                break;
+            default:
+                messageProtocolViolation(message);
+        }
+    }
+
+    @Override
     public void visit(AcknowledgementMessage message) {
 
         // 'closure result' requests of control node are acknowledged if all results have been transmitted
         acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
 
-        if (communicationChannel.getReceivedClosureResultsCounter().get() == this.numberOfWorkers) {
+        if (saturationControlNode.getReceivedClosureResultsCounter().get() == this.numberOfWorkers) {
             if (config.collectControlNodeStatistics()) {
                 stats.stopStopwatch(StatisticsComponent.CONTROL_NODE_WAITING_FOR_CLOSURE_RESULTS);
             }
             log.info("All closure results received.");
-            communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_INFO_CLOSURE_RESULTS_RECEIVED, () -> {});
+            saturationControlNode.broadcast(SaturationStatusMessage.CONTROL_NODE_INFO_CLOSURE_RESULTS_RECEIVED, () -> {});
             saturationControlNode.switchState(new CNSFinished<>(saturationControlNode));
         }
     }

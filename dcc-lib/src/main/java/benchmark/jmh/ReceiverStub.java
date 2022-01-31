@@ -9,6 +9,7 @@ import networking.messages.MessageEnvelope;
 import reactor.core.publisher.Flux;
 import util.NetworkingUtils;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,15 +67,17 @@ public class ReceiverStub {
 
         threadPool = Executors.newFixedThreadPool(1);
         networkingComponent = new NIO2NetworkingComponent(
-                Collections.singletonList(portListener),
-                Collections.emptyList(),
-                threadPool
+                threadPool,
+                publisher -> {
+                    Flux.from(networkingComponent.getReceivedMessagesPublisher())
+                            .subscribe(messageHandler);
+                }
         );
-
-        threadPool.submit(() -> {
-            Flux.from(networkingComponent.getReceivedMessagesPublisher())
-                    .subscribe(messageHandler);
-        });
+        try {
+            networkingComponent.listenToPort(portListener);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 
         try {

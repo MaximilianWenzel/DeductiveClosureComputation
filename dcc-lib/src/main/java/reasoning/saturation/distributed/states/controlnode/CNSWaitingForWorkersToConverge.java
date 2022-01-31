@@ -28,6 +28,7 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
     public void visit(StateInfoMessage message) {
         switch (message.getStatusMessage()) {
             case WORKER_SERVER_HELLO:
+            case TODO_IS_EMPTY_EVENT:
                 // ignore
                 break;
             default:
@@ -46,10 +47,11 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
             stats.getNumberOfReceivedAxiomCountMessages().getAndIncrement();
         }
 
-        boolean messageFromLatestSaturationStage = message.getStage() == communicationChannel.getSaturationStage().get();
+        boolean messageFromLatestSaturationStage = message.getStage() == saturationControlNode.getSaturationStage()
+                .get();
 
-        AtomicInteger sumOfAllReceivedAxioms = communicationChannel.getSumOfAllReceivedAxioms();
-        AtomicInteger sumOfAllSentAxioms = communicationChannel.getSumOfAllSentAxioms();
+        AtomicInteger sumOfAllReceivedAxioms = saturationControlNode.getSumOfAllReceivedAxioms();
+        AtomicInteger sumOfAllSentAxioms = saturationControlNode.getSumOfAllSentAxioms();
 
         sumOfAllReceivedAxioms.addAndGet(message.getReceivedAxioms());
         sumOfAllSentAxioms.addAndGet(message.getSentAxioms());
@@ -61,7 +63,8 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
         if (saturationConvergedVerificationStage) {
             if (message.getReceivedAxioms() == 0 || message.getSentAxioms() == 0) {
                 convergedWorkers.getAndIncrement();
-                log.info("Worker " + message.getSenderID() + " converged (" + convergedWorkers.get() + "/" + numberOfWorkers + ")");
+                log.info("Worker " + message.getSenderID() + " converged ("
+                        + convergedWorkers.get() + "/" + numberOfWorkers + ")");
             } else if (message.getReceivedAxioms() > 0 || message.getSentAxioms() > 0) {
                 log.info("Worker " + message.getSenderID() + " is running again.");
                 saturationConvergedVerificationStage = false;
@@ -74,9 +77,10 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
                 if (config.collectControlNodeStatistics()) {
                     stats.getSumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent().getAndIncrement();
                 }
-                log.info("Sum of received axioms equals sum of sent axioms. Entering verification stage: requesting all axiom message counts.");
+                log.info(
+                        "Sum of received axioms equals sum of sent axioms. Entering verification stage: requesting all axiom message counts.");
                 saturationConvergedVerificationStage = true;
-                communicationChannel.requestAxiomCountsFromAllWorkers();
+                saturationControlNode.requestAxiomCountsFromAllWorkers();
             } else if (convergedWorkers.get() == numberOfWorkers) {
                 // all workers converged
                 onSaturationConverged();
@@ -99,12 +103,12 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
 
         log.info("All workers converged.");
         saturationControlNode.switchState(new CNSWaitingForClosureResults<>(saturationControlNode));
-        communicationChannel.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT,
+        saturationControlNode.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT,
                 new Runnable() {
                     @Override
                     public void run() {
-                        communicationChannel.getReceivedClosureResultsCounter().getAndIncrement();
-                        log.info("(" + communicationChannel.getReceivedClosureResultsCounter()
+                        saturationControlNode.getReceivedClosureResultsCounter().getAndIncrement();
+                        log.info("(" + saturationControlNode.getReceivedClosureResultsCounter()
                                 .get() + "/" + numberOfWorkers + ")" +
                                 " workers have sent their closure results.");
                     }

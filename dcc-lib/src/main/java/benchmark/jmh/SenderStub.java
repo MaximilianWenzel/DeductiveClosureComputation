@@ -7,6 +7,7 @@ import networking.connectors.NIOConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
@@ -48,11 +49,12 @@ public class SenderStub {
 
         System.out.println("Connecting to server...");
         this.threadPool = Executors.newFixedThreadPool(1);
-        networkingComponent = new NIO2NetworkingComponent(
-                Collections.emptyList(),
-                Collections.singletonList(serverConnector),
-                threadPool
-        );
+        networkingComponent = new NIO2NetworkingComponent(threadPool, publisher -> {});
+        try {
+            networkingComponent.connectToServer(serverConnector);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 
         // wait until connection established
@@ -65,9 +67,6 @@ public class SenderStub {
         }
     }
 
-    public void sendMessage(Serializable obj) {
-        networkingComponent.sendMessage(destinationSocket.getSocketID(), obj);
-    }
 
     public void terminate() {
         networkingComponent.terminate();
@@ -86,5 +85,9 @@ public class SenderStub {
 
     public int getHashSum() {
         return hashSum;
+    }
+
+    public long getDestinationSocket() {
+        return destinationSocket.getSocketID();
     }
 }
