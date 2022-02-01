@@ -74,7 +74,6 @@ public class TransitiveReachabilityTest {
     @Test
     void testDistributedClosureComputation() {
         boolean workersInSeparateJVM = false;
-        int numberOfThreadsPerSingleWorker = 1;
         for (int i = 0; i < 2; i++) {
             if (i == 1) {
                 workersInSeparateJVM = true;

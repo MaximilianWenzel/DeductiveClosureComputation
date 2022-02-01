@@ -11,7 +11,6 @@ import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.NIO2ConnectionModel;
 import networking.io.SocketManager;
 import networking.messages.*;
-import org.reactivestreams.Subscriber;
 import reactor.core.publisher.Flux;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -37,18 +36,18 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
 
     private final List<DistributedWorkerModel<C, A, T>> workers;
     protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
-    private C resultingClosure;
+    private final C resultingClosure;
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected Iterator<? extends A> initialAxioms;
 
     private ControlNodeState<C, A, T> state;
-    private SaturationConfiguration config;
-    private ControlNodeStatistics stats = new ControlNodeStatistics();
-    private List<WorkerStatistics> workerStatistics = new ArrayList<>();
+    private final SaturationConfiguration config;
+    private final ControlNodeStatistics stats = new ControlNodeStatistics();
+    private final List<WorkerStatistics> workerStatistics = new ArrayList<>();
 
-    private BlockingQueue<C> closureResultQueue = new ArrayBlockingQueue<>(1);
+    private final BlockingQueue<C> closureResultQueue = new ArrayBlockingQueue<>(1);
 
-    private ExecutorService threadPool;
+    private final ExecutorService threadPool;
 
     protected NIO2NetworkingComponent networkingComponent;
     protected long controlNodeID = 0L;
@@ -111,6 +110,8 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
         try {
             this.closureResultQueue.take();
             networkingComponent.terminate();
+            this.threadPool.shutdownNow();
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -126,12 +127,17 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     }
 
     private void init() {
-        networkingComponent = new NIO2NetworkingComponent(threadPool, onNewMessageReceived);
+        // initialize variables which are required for 'onNewMessageReceived' callback
         acknowledgementEventManager = new AcknowledgementEventManager();
-
-        this.state = new CNSInitializing<>(this);
-        this.workerIDToWorker = new ConcurrentHashMap<>();
+        CNSInitializing<C, A, T> cnsInitializing = new CNSInitializing<>(this);
+        state = cnsInitializing;
+        workerIDToWorker = new HashMap<>();
         workers.forEach(p -> workerIDToWorker.put(p.getID(), p));
+
+        networkingComponent = new NIO2NetworkingComponent(threadPool, onNewMessageReceived);
+
+        // connect to worker servers after networking component has been generated
+        cnsInitializing.start();
     }
 
     public void initializeConnectionToWorkerServers() {
@@ -256,7 +262,8 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
                 );
                 long socketID = workerIDToSocketIDMap.get(workerModel.getID());
                 MessageEnvelope messageEnvelope = new MessageEnvelope(socketID, initializeWorkerMessage);
-                acknowledgementEventManager.messageRequiresAcknowledgment(initializeWorkerMessage.getMessageID(), () -> initializedWorkers.getAndIncrement());
+                acknowledgementEventManager.messageRequiresAcknowledgment(initializeWorkerMessage.getMessageID(),
+                        () -> initializedWorkers.getAndIncrement());
                 Flux.just(messageEnvelope).subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
             }
         };

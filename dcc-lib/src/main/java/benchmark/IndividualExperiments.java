@@ -18,7 +18,7 @@ import java.util.*;
 
 public class IndividualExperiments {
 
-    private static final boolean collectWorkerNodeStatistics = false;
+    private static final boolean collectWorkerNodeStatistics = true;
 
     private static final int EXPERIMENT_ROUNDS = 3;
     private static final int WARM_UP_ROUNDS = 2;
@@ -40,9 +40,9 @@ public class IndividualExperiments {
         //initialEchoAxioms.add(20_000);
         //initialEchoAxioms.add(50_000);
         //initialEchoAxioms.add(100_000);
-        //initialEchoAxioms.add(200_000);
-        //initialEchoAxioms.add(500_000);
-        //initialEchoAxioms.add(1_000_000);
+        initialEchoAxioms.add(200_000);
+        initialEchoAxioms.add(500_000);
+        initialEchoAxioms.add(1_000_000);
         //initialEchoAxioms.add(10_000_000);
 
         chainDepthList = new ArrayList<>();
@@ -85,9 +85,9 @@ public class IndividualExperiments {
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
 
-        binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
+        //binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
         //chainGraphBenchmark(outputDirectory, includedApproaches, chainDepthList, numberOfWorkersList);
-        //echoBenchmark(outputDirectory, includedApproaches, initialEchoAxioms, numberOfWorkersList);
+        echoBenchmark(outputDirectory, includedApproaches, initialEchoAxioms, numberOfWorkersList);
     }
 
     public static void binaryTreeBenchmark(File outputDirectory,

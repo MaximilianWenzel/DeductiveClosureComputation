@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -94,7 +95,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         // args: <HOSTNAME> <PORT-NUMBER>
         log.info("Generating worker...");
 
-        if (args.length != 3) {
+        if (args.length != 2) {
             throw new IllegalArgumentException("arguments: <HOSTNAME> <PORT-NUMBER>");
         }
 
@@ -102,11 +103,17 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         int portNumber = Integer.parseInt(args[1]);
 
         ServerData serverData = new ServerData(hostname, portNumber);
+        log.info("Worker Server Data: " + serverData);
 
         SaturationWorker<?, ?, ?> saturationWorker = new SaturationWorker<>(
                 serverData
         );
         saturationWorker.start();
+        try {
+            saturationWorker.threadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void initializeWorker(InitializeWorkerMessage<C, A, T> message) {
@@ -125,11 +132,22 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     public void start() {
-
+        try {
+            networkingComponent.listenToPort(new NIO2ConnectionModel(serverData) {
+                @Override
+                public void onConnectionEstablished(SocketManager socketManager) {
+                    log.info("Client connected to worker.");
+                    // client will send WORKER_CLIENT_HELLO message
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void stop() {
         networkingComponent.terminate();
+        threadPool.shutdown();
     }
 
     private void initializeRules() {
@@ -181,17 +199,12 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     private void init() {
-        this.threadPool = Executors.newFixedThreadPool(1);
-        this.state = new WorkerStateInitializing<>(this);
-
         this.acknowledgementEventManager = new AcknowledgementEventManager();
-        networkingComponent = new NIO2NetworkingComponent(threadPool, onNewMessagesReceived);
-        try {
-            networkingComponent.listenToPort(getWorkerServerConnectionModel());
-        } catch (IOException e) {
-            e.printStackTrace();
+        this.state = new WorkerStateInitializing<>(this);
+        if (threadPool == null) {
+            threadPool = Executors.newFixedThreadPool(1);
+            networkingComponent = new NIO2NetworkingComponent(threadPool, onNewMessagesReceived);
         }
-
     }
 
 
@@ -231,9 +244,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     public void onSaturationFinished() {
-        // TODO probably change for restart
-        networkingComponent.terminate();
-        //this.reset();
+        clearWorkerForNewSaturation();
     }
 
 
@@ -278,6 +289,14 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
                 this.saturationStage.get(),
                 this.sentAxiomMessages.getAndUpdate(count -> 0),
                 this.receivedAxiomMessages.getAndUpdate(count -> 0));
+        System.out.println(ConsoleUtils.getSeparator());
+        System.out.println("Worker " + workerID);
+        System.out.println(axiomCount);
+        System.out.println("Total received: " + stats.getNumberOfReceivedAxioms().get());
+        System.out.println("Total inferences: " + stats.getNumberOfDerivedInferences().get());
+        System.out.println("Total processed: " + stats.getNumberOfProcessedAxioms().get());
+        System.out.println("Total sent: " + stats.getNumberOfSentAxioms().get());
+        System.out.println(ConsoleUtils.getSeparator());
         sendMessage(controlNodeID, axiomCount);
     }
 
@@ -399,16 +418,6 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
                 );
                 Flux.just(new MessageEnvelope(socketManager.getSocketID(), stateInfoMessage))
                         .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
-            }
-        };
-    }
-
-    private NIO2ConnectionModel getWorkerServerConnectionModel() {
-        return new NIO2ConnectionModel(serverData) {
-            @Override
-            public void onConnectionEstablished(SocketManager socketManager) {
-                log.info("Client connected to worker.");
-                // client will send WORKER_CLIENT_HELLO message
             }
         };
     }

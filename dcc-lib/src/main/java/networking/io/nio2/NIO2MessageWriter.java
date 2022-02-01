@@ -24,6 +24,7 @@ public class NIO2MessageWriter {
 
     private ByteBuffer messageBufferToReadFrom = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private ByteBuffer messageBufferToWriteTo = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    private boolean socketIsClosed = false;
 
 
     public NIO2MessageWriter(long socketID, AsynchronousSocketChannel socketChannel, Consumer<Long> onSocketCanWriteMessages) {
@@ -99,6 +100,10 @@ public class NIO2MessageWriter {
     }
 
     public void readFromBufferAndWriteToSocket() {
+        if (socketIsClosed) {
+            return;
+        }
+
         messageBufferToReadFrom.flip();
         this.socketChannel.write(messageBufferToReadFrom, null, new CompletionHandler<>() {
             @Override
@@ -130,4 +135,7 @@ public class NIO2MessageWriter {
         return messageBufferToWriteTo.position() == 0 && messageBufferToReadFrom.position() == 0;
     }
 
+    public void close() {
+        this.socketIsClosed = true;
+    }
 }

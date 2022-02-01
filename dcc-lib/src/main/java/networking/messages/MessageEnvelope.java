@@ -24,4 +24,12 @@ public class MessageEnvelope implements Serializable {
     public Object getMessage() {
         return message;
     }
+
+    @Override
+    public String toString() {
+        return "MessageEnvelope{" +
+                "socketID=" + socketID +
+                ", message=" + message +
+                '}';
+    }
 }

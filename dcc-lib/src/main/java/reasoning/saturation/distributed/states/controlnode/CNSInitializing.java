@@ -20,6 +20,10 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
             stats.startStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
         }
         this.numberOfWorkers = saturationControlNode.getWorkers().size();
+        this.acknowledgementEventManager = saturationControlNode.getAcknowledgementEventManager();
+    }
+
+    public void start() {
         this.saturationControlNode.initializeConnectionToWorkerServers();
     }
 

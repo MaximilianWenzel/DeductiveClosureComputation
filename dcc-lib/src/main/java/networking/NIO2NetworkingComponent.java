@@ -4,6 +4,8 @@ import networking.connectors.NIO2ConnectionModel;
 import networking.io.SocketManager;
 import networking.io.nio2.NIO2SocketManager;
 import networking.messages.MessageEnvelope;
+import networking.messages.MessageModel;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -11,6 +13,8 @@ import util.ConsoleUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketOption;
+import java.net.SocketOptions;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -18,13 +22,12 @@ import java.nio.channels.CompletionHandler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
+import java.util.Set;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class NIO2NetworkingComponent {
@@ -39,15 +42,16 @@ public class NIO2NetworkingComponent {
     protected ExecutorService threadPool;
 
     // write messages to socket
-    protected MessagesToSendSubscriber messagesToSendSubscriber = new MessagesToSendSubscriber();
-    protected Runnable callbackAfterAllMessagesHaveBeenSent;
+    protected Set<MessagesToSendSubscriber> messagesToSendSubscribers = new UnifiedSet<>();
     protected AtomicBoolean allSocketsCanWrite = new AtomicBoolean(true);
     protected Consumer<Long> onSocketCanWriteMessages = (socketID) -> {
         if (!allSocketsCanWrite.get()) {
             // check if all sockets can write again
             if (allSocketsCanWrite()) {
                 allSocketsCanWrite.set(true);
-                threadPool.submit(messagesToSendSubscriber);
+                for (MessagesToSendSubscriber subscriber : messagesToSendSubscribers) {
+                    threadPool.submit(subscriber);
+                }
             }
         }
     };
@@ -57,7 +61,6 @@ public class NIO2NetworkingComponent {
     protected ReceivedMessagesPublisher receivedMessagesPublisher = new ReceivedMessagesPublisher();
     protected Consumer<ReceivedMessagesPublisher> onNewMessagesReceived;
     protected Runnable onSocketCanReadNewMessages = () -> {
-        // TODO implement functionality to start worker
         if (!receivedMessagesPipelineIsRunning) {
             receivedMessagesPipelineIsRunning = true;
             onNewMessagesReceived.accept(receivedMessagesPublisher);
@@ -65,7 +68,8 @@ public class NIO2NetworkingComponent {
     };
     private Logger log = ConsoleUtils.getLogger();
 
-    public NIO2NetworkingComponent(ExecutorService threadPool, Consumer<ReceivedMessagesPublisher> onNewMessagesReceived) {
+    public NIO2NetworkingComponent(ExecutorService threadPool,
+                                   Consumer<ReceivedMessagesPublisher> onNewMessagesReceived) {
         this.threadPool = threadPool;
         this.onNewMessagesReceived = onNewMessagesReceived;
         try {
@@ -144,15 +148,6 @@ public class NIO2NetworkingComponent {
     }
 
     public void closeAllSockets() {
-        for (SocketManager socketManager : this.socketIDToSocketManager.values()) {
-            try {
-                socketManager.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        socketIDToSocketManager.clear();
-
         for (AsynchronousServerSocketChannel socketChannel : serverSocketChannels) {
             try {
                 socketChannel.close();
@@ -161,27 +156,24 @@ public class NIO2NetworkingComponent {
             }
         }
         serverSocketChannels.clear();
+
+        for (SocketManager socketManager : this.socketIDToSocketManager.values()) {
+            try {
+                socketManager.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        socketIDToSocketManager.clear();
     }
 
     public void terminate() {
         closeAllSockets();
-        this.asynchronousChannelGroup.shutdown();
-    }
-
-    public void terminateAfterAllMessagesHaveBeenSent() {
-        closeAllSockets();
-    }
-
-    public void setCallBackAfterAllMessagesHaveBeenSent(Runnable callbackAfterAllMessagesHaveBeenSent) {
-        this.callbackAfterAllMessagesHaveBeenSent = callbackAfterAllMessagesHaveBeenSent;
+        asynchronousChannelGroup.shutdown();
     }
 
     public Subscriber<MessageEnvelope> getNewSubscriberForMessagesToSend() {
         return new MessagesToSendSubscriber();
-    }
-
-    public ExecutorService getThreadPool() {
-        return threadPool;
     }
 
     public ReceivedMessagesPublisher getReceivedMessagesPublisher() {
@@ -201,6 +193,7 @@ public class NIO2NetworkingComponent {
         @Override
         public void onSubscribe(Subscription subscription) {
             this.subscription = subscription;
+            messagesToSendSubscribers.add(this);
             if (allSocketsCanWrite()) {
                 subscription.request(NUM_ELEMENTS_TO_REQUEST);
             }
@@ -225,9 +218,7 @@ public class NIO2NetworkingComponent {
 
         @Override
         public void onComplete() {
-            if (NIO2NetworkingComponent.this.callbackAfterAllMessagesHaveBeenSent != null) {
-                NIO2NetworkingComponent.this.callbackAfterAllMessagesHaveBeenSent.run();
-            }
+            messagesToSendSubscribers.remove(this);
         }
 
         @Override
@@ -240,10 +231,12 @@ public class NIO2NetworkingComponent {
         }
     }
 
+    int count = 0;
+
     public class ReceivedMessagesPublisher implements Publisher<MessageEnvelope>, Subscription {
         private Subscriber<? super MessageEnvelope> subscriber;
         private Collection<NIO2SocketManager> socketManager = NIO2NetworkingComponent.this.socketIDToSocketManager.values();
-        private AtomicLong requestedMessages = new AtomicLong(0);
+        private long requestedMessages = 0L;
 
         @Override
         public void subscribe(Subscriber<? super MessageEnvelope> subscriber) {
@@ -252,34 +245,36 @@ public class NIO2NetworkingComponent {
         }
 
         @Override
-        public void request(long requestedMsgs) {
+        public void request(long newRequests) {
             if (subscriber == null) {
                 // no subscriber
                 return;
             }
 
-            this.requestedMessages.addAndGet(requestedMsgs);
+            requestedMessages += newRequests;
             MessageEnvelope messageEnvelope;
             Object message;
             // TODO maybe implement fair policy for next message
             for (NIO2SocketManager sm : socketManager) {
                 message = sm.readNextMessage();
-                while (message != null && this.requestedMessages.get() > 0) {
 
+                while (message != null && requestedMessages > 0) {
                     messageEnvelope = new MessageEnvelope(sm.getSocketID(), message);
                     subscriber.onNext(messageEnvelope);
-                    this.requestedMessages.decrementAndGet();
+                    requestedMessages--;
                     message = sm.readNextMessage();
                 }
             }
 
-            if (this.requestedMessages.get() > 0) {
-                subscriber.onNext(MessageEnvelope.EMPTY);
+            if (requestedMessages > 0) {
+                // not enough messages available from sockets
+
+                if (receivedMessagesPipelineIsRunning) {
+                    // problem: reactor calls this method although 'onComplete' has been called before
+                    subscriber.onNext(MessageEnvelope.EMPTY);
+                }
                 subscriber.onComplete();
                 receivedMessagesPipelineIsRunning = false;
-
-                this.requestedMessages.set(0);
-                // not enough messages available from sockets
             }
         }
 
@@ -302,7 +297,9 @@ public class NIO2NetworkingComponent {
 
         @Override
         public void completed(AsynchronousSocketChannel socket, Object attachment) {
-            serverSocket.accept(null, this);
+            if (serverSocket.isOpen()) {
+                serverSocket.accept(null, this);
+            }
             NIO2SocketManager socketManager = new NIO2SocketManager(socket, onSocketCanReadNewMessages,
                     onSocketCanWriteMessages);
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);

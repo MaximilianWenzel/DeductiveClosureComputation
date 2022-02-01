@@ -33,20 +33,20 @@ public class NIO2NetworkingComponentBenchmark {
         benchmark.setUp();
         Stopwatch sw = Stopwatch.createStarted();
         Random rnd = new Random();
+        BlockingQueue<Integer> result = new ArrayBlockingQueue<>(1);
+
 
         long destinationSocket = benchmark.nio2SenderStub.destinationSocket.getSocketID();
         Flux<MessageEnvelope> messages = Flux.range(1, MESSAGE_COUNT)
                 .map(ignore -> new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)))
                 .buffer(BATCH_SIZE)
                 .map(obj -> new MessageEnvelope(destinationSocket, obj))
-                .doOnNext(obj -> benchmark.nio2SenderStub.increaseHashSum(obj));
+                .doOnNext(obj -> benchmark.nio2SenderStub.increaseHashSum(obj))
+                .doOnComplete(() -> result.add(benchmark.nio2SenderStub.getHashSum()));
 
-        BlockingQueue<Integer> result = new ArrayBlockingQueue<>(1);
         benchmark.nio2ReceiverStub.setOnAllMessagesReceived(() -> result.add(benchmark.nio2ReceiverStub.getHashSum()));
 
         NIO2NetworkingComponent senderNetworkingComponent = benchmark.nio2SenderStub.getNetworkingComponent();
-        senderNetworkingComponent.setCallBackAfterAllMessagesHaveBeenSent(
-                () -> result.add(benchmark.nio2SenderStub.getHashSum()));
 
         benchmark.nio2SenderStub.threadPool.submit(() -> {
             messages.subscribe(senderNetworkingComponent.getNewSubscriberForMessagesToSend());

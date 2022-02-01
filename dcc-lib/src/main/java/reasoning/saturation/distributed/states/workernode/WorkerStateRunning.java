@@ -70,6 +70,9 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
     @Override
     public void visit(A axiom) {
+        if (config.collectWorkerNodeStatistics()) {
+            stats.getNumberOfProcessedAxioms().incrementAndGet();
+        }
         this.incrementalReasoner.getStreamOfInferencesForGivenAxiom(axiom)
                 // only those which are not contained in closure
                 .filter(inference -> !worker.getClosure().contains(inference))

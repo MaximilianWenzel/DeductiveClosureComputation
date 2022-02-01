@@ -1,5 +1,6 @@
 package networking.io.nio2;
 
+import networking.messages.MessageModel;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -19,7 +20,7 @@ public class NIO2MessageReader {
     protected int messageSizeInBytes;
     protected int readBytes;
     protected boolean newMessageStarts = true;
-    protected boolean endOfStreamReached = false;
+    protected boolean socketIsClosed = false;
     protected ByteBuffer messageBufferToWriteTo = ByteBuffer.allocateDirect(BUFFER_SIZE);
     protected ByteBuffer messageBufferToDeserializeFrom = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private long socketID;
@@ -63,16 +64,15 @@ public class NIO2MessageReader {
                 // prepare 'deserialize'-buffer for reading
                 messageBufferToDeserializeFrom.flip();
 
-                if (!endOfStreamReached) {
+                if (!socketIsClosed) {
                     if (readBytes > 0) {
                         onSocketCanReadNewMessages.run();
                     }
                     if (readBytes == -1) {
-                        endOfStreamReached = true;
+                        socketIsClosed = true;
                         return;
                     }
                     socketChannel.read(messageBufferToWriteTo, null, this);
-                    // TODO cancel task if still running after closing the connection
                 }
             }
 
@@ -108,6 +108,8 @@ public class NIO2MessageReader {
         return null;
     }
 
+    int count = 0;
+
     protected void onNewMessageSizeHasBeenRead() {
         newMessageStarts = false;
         messageSizeInBytes = messageBufferToDeserializeFrom.getInt();
@@ -125,6 +127,6 @@ public class NIO2MessageReader {
     }
 
     public void close() {
-        this.endOfStreamReached = true;
+        this.socketIsClosed = true;
     }
 }

@@ -82,7 +82,7 @@ public class ClosureComputationTestUtil {
         List<DistributedWorkerModel<C, A, T>> workers = factory.getDistributedWorkerModels(
                 serverDataList);
 
-        SaturationConfiguration configuration = new SaturationConfiguration(true, false);
+        SaturationConfiguration configuration = new SaturationConfiguration(true, true);
         DistributedSaturation<C, A, T> saturation = new DistributedSaturation<>(
                 workers,
                 factory.getWorkloadDistributor(),
@@ -100,6 +100,19 @@ public class ClosureComputationTestUtil {
         closure.getClosureResults().forEach(System.out::println);
 
         Set<A> singleThreadedResults = singleThreadedClosureComputation(factory);
+
+        if (!singleThreadedResults.equals(distributedResults)) {
+            System.err.println("False negatives:");
+            Set<A> falseNegatives = new UnifiedSet<>(singleThreadedResults);
+            falseNegatives.removeAll(distributedResults);
+            System.err.println(falseNegatives);
+
+            System.err.println("False positives:");
+            Set<A> falsePositives = new UnifiedSet<>(distributedResults);
+            falsePositives.removeAll(singleThreadedResults);
+            System.err.println(falsePositives);
+        }
+
         assertEquals(singleThreadedResults, distributedResults);
 
         List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
