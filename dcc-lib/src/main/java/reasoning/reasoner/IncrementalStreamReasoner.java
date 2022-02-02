@@ -47,7 +47,6 @@ public class IncrementalStreamReasoner<C extends Closure<A>, A extends Serializa
 
     public Stream<A> getStreamOfInferencesForGivenAxiom(A axiom) {
         if (closure.add(axiom)) {
-
             if (config.collectWorkerNodeStatistics()) {
                 stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
             }

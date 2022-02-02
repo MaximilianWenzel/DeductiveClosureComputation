@@ -24,7 +24,10 @@ import util.ConsoleUtils;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -35,61 +38,55 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     private final Logger log = ConsoleUtils.getLogger();
 
     private final List<DistributedWorkerModel<C, A, T>> workers;
-    protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
     private final C resultingClosure;
-    protected WorkloadDistributor<C, A, T> workloadDistributor;
-    protected Iterator<? extends A> initialAxioms;
-
-    private ControlNodeState<C, A, T> state;
     private final SaturationConfiguration config;
     private final ControlNodeStatistics stats = new ControlNodeStatistics();
     private final List<WorkerStatistics> workerStatistics = new ArrayList<>();
-
     private final BlockingQueue<C> closureResultQueue = new ArrayBlockingQueue<>(1);
-
     private final ExecutorService threadPool;
-
+    protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
+    protected WorkloadDistributor<C, A, T> workloadDistributor;
+    protected Iterator<? extends A> initialAxioms;
     protected NIO2NetworkingComponent networkingComponent;
     protected long controlNodeID = 0L;
-
     protected BiMap<Long, Long> socketIDToWorkerIDMap = HashBiMap.create();
     protected BiMap<Long, Long> workerIDToSocketIDMap = socketIDToWorkerIDMap.inverse();
-
     protected AcknowledgementEventManager acknowledgementEventManager;
-
     protected boolean allConnectionsEstablished = false;
     protected AtomicInteger establishedConnections = new AtomicInteger(0);
     protected AtomicInteger initializedWorkers = new AtomicInteger(0);
     protected AtomicInteger receivedClosureResults = new AtomicInteger(0);
-
     protected AtomicInteger saturationStage = new AtomicInteger(0);
     protected AtomicInteger sumOfAllReceivedAxioms = new AtomicInteger(0);
     protected AtomicInteger sumOfAllSentAxioms = new AtomicInteger(0);
-
     protected Stream.Builder<MessageEnvelope> messagesFromLastIteration = Stream.builder();
+    private ControlNodeState<C, A, T> state;
 
-    boolean running = true;
+    private boolean receivedMessagesPublisherIsRunning = false;
 
     protected Consumer<NIO2NetworkingComponent.ReceivedMessagesPublisher> onNewMessageReceived = publisher -> {
-        if (running) {
-            Flux.from(networkingComponent.getReceivedMessagesPublisher())
-                    .map(msg -> {
-                        if (msg.getMessage() != null) {
-                            return msg.getMessage();
-                        } else {
-                            return new StateInfoMessage(controlNodeID, SaturationStatusMessage.TODO_IS_EMPTY_EVENT);
-                        }
-                    })
-                    .flatMap(msg -> {
-                        state.processMessage(msg);
-                        Stream<MessageEnvelope> messages = messagesFromLastIteration.build();
-                        messagesFromLastIteration = Stream.builder();
-                        return Flux.fromStream(messages);
-                    })
-                    .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
+        if (receivedMessagesPublisherIsRunning) {
+            return;
         }
-    };
+        receivedMessagesPublisherIsRunning = true;
 
+        Flux.from(publisher)
+                .map(msg -> {
+                    if (msg.getMessage() != null) {
+                        return msg.getMessage();
+                    } else {
+                        return new StateInfoMessage(controlNodeID, SaturationStatusMessage.TODO_IS_EMPTY_EVENT);
+                    }
+                })
+                .flatMap(msg -> {
+                    state.processMessage(msg);
+                    Stream<MessageEnvelope> messages = messagesFromLastIteration.build();
+                    messagesFromLastIteration = Stream.builder();
+                    return Flux.fromStream(messages);
+                })
+                .doOnComplete(() -> receivedMessagesPublisherIsRunning = false)
+                .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
+    };
 
     protected SaturationControlNode(List<DistributedWorkerModel<C, A, T>> workers,
                                     WorkloadDistributor<C, A, T> workloadDistributor,
@@ -109,8 +106,9 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
         init();
         try {
             this.closureResultQueue.take();
-            networkingComponent.terminate();
-            this.threadPool.shutdownNow();
+            Thread.sleep(500);
+            this.networkingComponent.terminate();
+            this.threadPool.shutdown();
 
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -119,7 +117,6 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     }
 
     public void onSaturationFinished() {
-        running = false;
         if (config.collectControlNodeStatistics()) {
             stats.collectStopwatchTimes();
         }
@@ -151,15 +148,19 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
                 });
     }
 
+
     public void distributeInitialAxioms() {
-        // TODO probably not working yet
         threadPool.submit(() -> {
             Flux.fromStream(Streams.stream(this.initialAxioms))
                     .flatMap(axiom -> {
                         Stream.Builder<MessageEnvelope> axioms = Stream.builder();
                         workloadDistributor.getRelevantWorkerIDsForAxiom(axiom).forEach(workerID -> {
                             sumOfAllSentAxioms.incrementAndGet();
-                            sendMessage(workerID, axiom);
+                            axioms.add(
+                                    new MessageEnvelope(
+                                            workerIDToSocketIDMap.get(workerID),
+                                            axiom
+                                    ));
                         });
                         return Flux.fromStream(axioms.build());
                     })

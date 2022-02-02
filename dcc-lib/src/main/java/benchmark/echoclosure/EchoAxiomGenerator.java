@@ -10,7 +10,7 @@ public class EchoAxiomGenerator {
 
     public static List<EchoAxiom> getInitialAxioms(int numberOfEchoMessages) {
         List<EchoAxiom> echoAxioms = new ArrayList<>(numberOfEchoMessages);
-        for (int i = 0; i < numberOfEchoMessages; i++) {
+        for (int i = 1; i <= numberOfEchoMessages; i++) {
             echoAxioms.add(new EchoAxiomA(i));
         }
         return echoAxioms;

@@ -38,18 +38,8 @@ public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Seriali
 
     @Override
     public void visit(AcknowledgementMessage message) {
-
         // 'closure result' requests of control node are acknowledged if all results have been transmitted
         acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
-
-        if (saturationControlNode.getReceivedClosureResultsCounter().get() == this.numberOfWorkers) {
-            if (config.collectControlNodeStatistics()) {
-                stats.stopStopwatch(StatisticsComponent.CONTROL_NODE_WAITING_FOR_CLOSURE_RESULTS);
-            }
-            log.info("All closure results received.");
-            saturationControlNode.broadcast(SaturationStatusMessage.CONTROL_NODE_INFO_CLOSURE_RESULTS_RECEIVED, () -> {});
-            saturationControlNode.switchState(new CNSFinished<>(saturationControlNode));
-        }
     }
 
     @Override

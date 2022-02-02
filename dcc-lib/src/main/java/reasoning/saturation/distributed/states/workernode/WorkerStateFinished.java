@@ -15,7 +15,6 @@ public class WorkerStateFinished<C extends Closure<A>, A extends Serializable, T
 
     public WorkerStateFinished(SaturationWorker<C, A, T> worker) {
         super(worker);
-        worker.onSaturationFinished();
     }
 
 

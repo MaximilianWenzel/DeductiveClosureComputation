@@ -17,7 +17,9 @@ import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
+import reasoning.saturation.distributed.states.controlnode.CNSFinished;
 import reasoning.saturation.distributed.states.workernode.WorkerState;
+import reasoning.saturation.distributed.states.workernode.WorkerStateFinished;
 import reasoning.saturation.distributed.states.workernode.WorkerStateInitializing;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
@@ -25,13 +27,13 @@ import util.ConsoleUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -66,22 +68,34 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private Flux<MessageEnvelope> processedMessagesFlux;
 
     private Stream.Builder<MessageEnvelope> messagesFromCurrentIteration = Stream.builder();
+    private Consumer<MessageEnvelope> consumerForNewMessages = new ConsumerForNewConnectionMessages();
+
+    private boolean receivedMessagesPublisherIsRunning = false;
 
     private Consumer<NIO2NetworkingComponent.ReceivedMessagesPublisher> onNewMessagesReceived = publisher -> {
-        processedMessagesFlux = Flux.from(networkingComponent.getReceivedMessagesPublisher())
-                .doOnNext(new ConsumerForNewConnectionMessages())
+        if (receivedMessagesPublisherIsRunning) {
+            return;
+        }
+        receivedMessagesPublisherIsRunning = true;
+        processedMessagesFlux = Flux.from(publisher)
+                .doOnNext(consumerForNewMessages)
                 .map(messageEnvelope -> {
                     if (messageEnvelope.getMessage() != null) {
                         return messageEnvelope.getMessage();
                     } else {
-                        return new StateInfoMessage(0, SaturationStatusMessage.TODO_IS_EMPTY_EVENT);
+                        return new StateInfoMessage(LocalDateTime.now().hashCode(), SaturationStatusMessage.TODO_IS_EMPTY_EVENT);
                     }
-                })
+                    })
                 .flatMap(msg -> {
                     state.processMessage(msg);
                     Stream<MessageEnvelope> messages = messagesFromCurrentIteration.build();
                     messagesFromCurrentIteration = Stream.builder();
                     return Flux.fromStream(messages);
+                }).doOnComplete(() -> {
+                    receivedMessagesPublisherIsRunning = false;
+                    if (state instanceof WorkerStateFinished) {
+                        onSaturationFinished();
+                    }
                 });
         processedMessagesFlux.subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
     };
@@ -192,9 +206,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         log.info("Restarting worker...");
         reset();
         this.state = new WorkerStateInitializing<>(this);
-        this.rules = null;
-        this.config = null;
-        this.stats = new WorkerStatistics();
+        start();
         log.info("Worker successfully restarted.");
     }
 
@@ -220,8 +232,9 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         workloadDistributor = null;
         allConnectionsEstablished = false;
         acknowledgementEventManager = new AcknowledgementEventManager();
-        config = null;
-        stats = null;
+        this.rules = null;
+        this.config = null;
+        this.stats = new WorkerStatistics();
     }
 
     public void connectToWorkerServers() {
@@ -264,7 +277,6 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
 
             long receiverSocketID = workerIDToSocketIDMap.get(currentReceiverWorkerID);
             streamBuilder.add(new MessageEnvelope(receiverSocketID, inference));
-            //toDoProcessor.addElementsToToDo(inference); // TODO maybe add axioms from this worker directly to the queue
 
             sentAxiomMessages.getAndIncrement();
             if (config.collectWorkerNodeStatistics()) {
@@ -289,14 +301,14 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
                 this.saturationStage.get(),
                 this.sentAxiomMessages.getAndUpdate(count -> 0),
                 this.receivedAxiomMessages.getAndUpdate(count -> 0));
-        System.out.println(ConsoleUtils.getSeparator());
-        System.out.println("Worker " + workerID);
-        System.out.println(axiomCount);
-        System.out.println("Total received: " + stats.getNumberOfReceivedAxioms().get());
-        System.out.println("Total inferences: " + stats.getNumberOfDerivedInferences().get());
-        System.out.println("Total processed: " + stats.getNumberOfProcessedAxioms().get());
-        System.out.println("Total sent: " + stats.getNumberOfSentAxioms().get());
-        System.out.println(ConsoleUtils.getSeparator());
+        log.finest(ConsoleUtils.getSeparator());
+        log.finest("Worker " + workerID);
+        log.finest("" + axiomCount);
+        log.finest("Total received: " + stats.getNumberOfReceivedAxioms().get());
+        log.finest("Total inferences: " + stats.getNumberOfDerivedInferences().get());
+        log.finest("Total processed: " + stats.getNumberOfProcessedAxioms().get());
+        log.finest("Total sent: " + stats.getNumberOfSentAxioms().get());
+        log.finest(ConsoleUtils.getSeparator());
         sendMessage(controlNodeID, axiomCount);
     }
 

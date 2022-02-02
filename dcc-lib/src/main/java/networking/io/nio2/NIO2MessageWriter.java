@@ -1,5 +1,6 @@
 package networking.io.nio2;
 
+import networking.messages.MessageModel;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -50,7 +51,6 @@ public class NIO2MessageWriter {
         if (canWrite()) {
             onSocketCanWriteMessages.accept(this.socketID);
         }
-
         if (messageBufferToWriteTo.position() == 0 && messageBufferToReadFrom.position() == 0) {
             // no messages to send
             return;

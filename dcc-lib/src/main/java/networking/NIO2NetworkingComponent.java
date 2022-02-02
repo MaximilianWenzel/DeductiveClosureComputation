@@ -4,7 +4,6 @@ import networking.connectors.NIO2ConnectionModel;
 import networking.io.SocketManager;
 import networking.io.nio2.NIO2SocketManager;
 import networking.messages.MessageEnvelope;
-import networking.messages.MessageModel;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -13,8 +12,6 @@ import util.ConsoleUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketOption;
-import java.net.SocketOptions;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
@@ -23,11 +20,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class NIO2NetworkingComponent {
@@ -57,14 +55,10 @@ public class NIO2NetworkingComponent {
     };
 
     // read messages from socket
-    boolean receivedMessagesPipelineIsRunning = false;
     protected ReceivedMessagesPublisher receivedMessagesPublisher = new ReceivedMessagesPublisher();
     protected Consumer<ReceivedMessagesPublisher> onNewMessagesReceived;
     protected Runnable onSocketCanReadNewMessages = () -> {
-        if (!receivedMessagesPipelineIsRunning) {
-            receivedMessagesPipelineIsRunning = true;
-            onNewMessagesReceived.accept(receivedMessagesPublisher);
-        }
+        onNewMessagesReceived.accept(receivedMessagesPublisher);
     };
     private Logger log = ConsoleUtils.getLogger();
 
@@ -176,10 +170,6 @@ public class NIO2NetworkingComponent {
         return new MessagesToSendSubscriber();
     }
 
-    public ReceivedMessagesPublisher getReceivedMessagesPublisher() {
-        return receivedMessagesPublisher;
-    }
-
     private boolean allSocketsCanWrite() {
         return socketIDToSocketManager.values().stream()
                 .allMatch(NIO2SocketManager::canWriteMessages);
@@ -202,6 +192,7 @@ public class NIO2NetworkingComponent {
         @Override
         public void onNext(MessageEnvelope messageEnvelope) {
             sendMessage(messageEnvelope.getSocketID(), messageEnvelope.getMessage());
+
             // request next elements only if all sockets can write again
             if (allSocketsCanWrite()) {
                 subscription.request(NUM_ELEMENTS_TO_REQUEST);
@@ -231,51 +222,57 @@ public class NIO2NetworkingComponent {
         }
     }
 
-    int count = 0;
-
     public class ReceivedMessagesPublisher implements Publisher<MessageEnvelope>, Subscription {
+        boolean running = false;
         private Subscriber<? super MessageEnvelope> subscriber;
         private Collection<NIO2SocketManager> socketManager = NIO2NetworkingComponent.this.socketIDToSocketManager.values();
         private long requestedMessages = 0L;
 
+        public ReceivedMessagesPublisher() {
+        }
+
         @Override
         public void subscribe(Subscriber<? super MessageEnvelope> subscriber) {
             this.subscriber = subscriber;
+            this.running = true;
             this.subscriber.onSubscribe(this);
         }
 
         @Override
         public void request(long newRequests) {
-            if (subscriber == null) {
-                // no subscriber
+            if (subscriber == null || !this.running) {
                 return;
             }
-
             requestedMessages += newRequests;
+
             MessageEnvelope messageEnvelope;
             Object message;
             // TODO maybe implement fair policy for next message
             for (NIO2SocketManager sm : socketManager) {
-                message = sm.readNextMessage();
-
-                while (message != null && requestedMessages > 0) {
+                while (requestedMessages > 0) {
+                    message = sm.readNextMessage();
+                    if (message == null) {
+                        break;
+                    }
                     messageEnvelope = new MessageEnvelope(sm.getSocketID(), message);
                     subscriber.onNext(messageEnvelope);
                     requestedMessages--;
-                    message = sm.readNextMessage();
                 }
             }
-
             if (requestedMessages > 0) {
                 // not enough messages available from sockets
-
-                if (receivedMessagesPipelineIsRunning) {
+                if (running) {
                     // problem: reactor calls this method although 'onComplete' has been called before
+                    running = false;
                     subscriber.onNext(MessageEnvelope.EMPTY);
+                    requestedMessages--;
                 }
                 subscriber.onComplete();
-                receivedMessagesPipelineIsRunning = false;
             }
+        }
+
+        public boolean isRunning() {
+            return running;
         }
 
         @Override

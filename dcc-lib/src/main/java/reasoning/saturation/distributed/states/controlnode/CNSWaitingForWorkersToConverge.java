@@ -104,13 +104,20 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
         log.info("All workers converged.");
         saturationControlNode.switchState(new CNSWaitingForClosureResults<>(saturationControlNode));
         saturationControlNode.broadcast(SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        saturationControlNode.getReceivedClosureResultsCounter().getAndIncrement();
-                        log.info("(" + saturationControlNode.getReceivedClosureResultsCounter()
-                                .get() + "/" + numberOfWorkers + ")" +
-                                " workers have sent their closure results.");
+                () -> {
+                    saturationControlNode.getReceivedClosureResultsCounter().getAndIncrement();
+                    log.info("(" + saturationControlNode.getReceivedClosureResultsCounter()
+                            .get() + "/" + numberOfWorkers + ")" +
+                            " workers have sent their closure results.");
+                    if (saturationControlNode.getReceivedClosureResultsCounter().get() == numberOfWorkers) {
+                        if (config.collectControlNodeStatistics()) {
+                            stats.stopStopwatch(StatisticsComponent.CONTROL_NODE_WAITING_FOR_CLOSURE_RESULTS);
+                        }
+                        saturationControlNode.broadcast(
+                                SaturationStatusMessage.CONTROL_NODE_INFO_CLOSURE_RESULTS_RECEIVED, () -> {}
+                        );
+                        saturationControlNode.switchState(new CNSFinished<>(saturationControlNode));
+                        log.info("All closure results received.");
                     }
                 });
     }

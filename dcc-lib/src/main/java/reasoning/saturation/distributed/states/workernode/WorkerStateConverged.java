@@ -49,9 +49,9 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
                 acknowledgementEventManager.messageAcknowledged(message.getMessageID());
                 break;
             case CONTROL_NODE_INFO_CLOSURE_RESULTS_RECEIVED:
+                acknowledgementEventManager.messageAcknowledged(message.getMessageID());
                 log.info("Control node received all closure results. Saturation finished.");
                 worker.switchState(new WorkerStateFinished<>(worker));
-                worker.onSaturationFinished();
                 break;
             case TODO_IS_EMPTY_EVENT:
                 // ignore

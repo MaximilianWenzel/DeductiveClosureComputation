@@ -69,7 +69,7 @@ public class ReceiverStub {
         networkingComponent = new NIO2NetworkingComponent(
                 threadPool,
                 publisher -> {
-                    Flux.from(networkingComponent.getReceivedMessagesPublisher())
+                    Flux.from(publisher)
                             .subscribe(messageHandler);
                 }
         );

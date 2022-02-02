@@ -35,8 +35,8 @@ public class ClosureComputationTestUtil {
         C closure = saturation.saturate();
         Set<A> result = new UnifiedSet<>();
         result.addAll(closure.getClosureResults());
-        System.out.println("Closure: ");
-        result.forEach(System.out::println);
+        //System.out.println("Closure: ");
+        //result.forEach(System.out::println);
         return result;
     }
 
@@ -96,8 +96,8 @@ public class ClosureComputationTestUtil {
         Set<A> distributedResults = new UnifiedSet<>();
         distributedResults.addAll(closure.getClosureResults());
 
-        System.out.println("Closure: ");
-        closure.getClosureResults().forEach(System.out::println);
+        //System.out.println("Closure: ");
+        //closure.getClosureResults().forEach(System.out::println);
 
         Set<A> singleThreadedResults = singleThreadedClosureComputation(factory);
 

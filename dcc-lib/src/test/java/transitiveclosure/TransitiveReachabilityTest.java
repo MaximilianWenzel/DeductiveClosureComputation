@@ -63,9 +63,10 @@ public class TransitiveReachabilityTest {
 
     @Test
     void testAtomic() {
+        ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(9);
         ReachabilitySaturationInitializationFactory initializationFactory = new ReachabilitySaturationInitializationFactory(
-                initialAxioms,
-                2,
+                generator.generateGraph(),
+                4,
                 0
         );
         ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false);

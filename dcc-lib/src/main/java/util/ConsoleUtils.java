@@ -17,7 +17,7 @@ public class ConsoleUtils {
         handler.setFormatter(new LogFormatter());
 
         log.addHandler(handler);
-        log.setLevel(Level.ALL);
+        log.setLevel(Level.FINEST);
     }
 
     public static Logger getLogger() {

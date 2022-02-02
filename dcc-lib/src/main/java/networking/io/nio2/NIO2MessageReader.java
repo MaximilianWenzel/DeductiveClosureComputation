@@ -1,6 +1,5 @@
 package networking.io.nio2;
 
-import networking.messages.MessageModel;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
 
@@ -26,7 +25,8 @@ public class NIO2MessageReader {
     private long socketID;
     private Runnable onSocketCanReadNewMessages;
 
-    public NIO2MessageReader(long socketID, AsynchronousSocketChannel socketChannel, Runnable onSocketCanReadNewMessages) {
+    public NIO2MessageReader(long socketID, AsynchronousSocketChannel socketChannel,
+                             Runnable onSocketCanReadNewMessages) {
         this.socketChannel = socketChannel;
         this.socketID = socketID;
         this.onSocketCanReadNewMessages = onSocketCanReadNewMessages;
@@ -108,7 +108,6 @@ public class NIO2MessageReader {
         return null;
     }
 
-    int count = 0;
 
     protected void onNewMessageSizeHasBeenRead() {
         newMessageStarts = false;
