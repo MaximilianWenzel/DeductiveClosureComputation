@@ -16,9 +16,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
         super(worker);
     }
 
-    public void mainWorkerLoop() {
-        Object obj = communicationChannel.removeNextMessage();
-
+    public void mainWorkerLoop(Object obj) {
         if (obj instanceof MessageModel) {
             ((MessageModel<C, A, T>)obj).accept(this);
         } else {

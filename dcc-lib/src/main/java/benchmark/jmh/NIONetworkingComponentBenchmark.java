@@ -56,7 +56,7 @@ public class NIONetworkingComponentBenchmark {
     @Setup(Level.Trial)
     public void setUp() {
         queue = QueueFactory.createSaturationToDo();
-        nioReceiverStub = new ReceiverStub(queue, NetworkingComponentType.NIO);
+        nioReceiverStub = new ReceiverStub(NetworkingComponentType.NIO);
         nioSenderStub = new SenderStub(new ServerData("localhost", nioReceiverStub.getServerPort()),
                 NetworkingComponentType.NIO);
     }

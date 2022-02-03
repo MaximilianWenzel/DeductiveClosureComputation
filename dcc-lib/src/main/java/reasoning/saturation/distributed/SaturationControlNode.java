@@ -3,6 +3,7 @@ package reasoning.saturation.distributed;
 import data.Closure;
 import networking.messages.MessageEnvelope;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
+import reasoning.saturation.distributed.communication.NIO2NetworkingLoop;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
@@ -18,10 +19,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SaturationControlNode<C extends Closure<A>, A extends Serializable, T extends Serializable> implements
-        Runnable {
+public class SaturationControlNode<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
     private final List<DistributedWorkerModel<C, A, T>> workers;
     private C resultingClosure;
@@ -29,14 +28,16 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     private BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent = new LinkedBlockingQueue<>();
     private ControlNodeState<C, A, T> state;
 
+    private int numberOfThreads;
+    private WorkloadDistributor<C, A, T> workloadDistributor;
+    private Iterator<? extends A> initialAxioms;
     private SaturationConfiguration config;
     private ControlNodeStatistics stats = new ControlNodeStatistics();
     private List<WorkerStatistics> workerStatistics = new ArrayList<>();
 
     private ExecutorService threadPool;
-    private int numberOfThreads;
+    private NIO2NetworkingLoop networkingLoop;
 
-    private AtomicBoolean mainSaturationTaskSubmittedToThreadPool = new AtomicBoolean(false);
 
     protected SaturationControlNode(List<DistributedWorkerModel<C, A, T>> workers,
                                     WorkloadDistributor<C, A, T> workloadDistributor,
@@ -45,27 +46,25 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
                                     SaturationConfiguration config,
                                     int numberOfThreads) {
         this.workers = workers;
+        this.workloadDistributor = workloadDistributor;
+        this.initialAxioms = initialAxioms;
         this.resultingClosure = resultingClosure;
         this.config = config;
         this.numberOfThreads = numberOfThreads;
-        this.threadPool = Executors.newFixedThreadPool(numberOfThreads);
-        this.communicationChannel = new ControlNodeCommunicationChannel<>(
-                workers, workloadDistributor, initialAxioms,
-                config, threadPool, messagesThatCouldNotBeSent,
-                () -> {
-                    if (mainSaturationTaskSubmittedToThreadPool.compareAndSet(false, true)) {
-                        this.threadPool.submit(this);
-                    }
-                });
         init();
     }
 
     private void init() {
+        this.threadPool = Executors.newFixedThreadPool(numberOfThreads);
+        this.networkingLoop = new ControlNodeNetworkingLoop(threadPool);
+        this.communicationChannel = new ControlNodeCommunicationChannel<>(
+                workers, workloadDistributor, initialAxioms,
+                config, networkingLoop);
         this.state = new CNSInitializing<>(this);
     }
 
     public C saturate() {
-        threadPool.submit(this);
+        networkingLoop.start();
         try {
             threadPool.awaitTermination(Integer.MAX_VALUE, TimeUnit.DAYS);
         } catch (InterruptedException e) {
@@ -73,43 +72,6 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
         }
 
         return resultingClosure;
-    }
-
-    @Override
-    public void run() {
-        mainSaturationTaskSubmittedToThreadPool.set(true);
-        while (!(state instanceof CNSFinished)) {
-            if (!messagesThatCouldNotBeSent.isEmpty()) {
-                trySendingMessagesWhichCouldNotBeSent();
-                if (!messagesThatCouldNotBeSent.isEmpty()) {
-                    // messages still could not be sent completely - stop this task, rerun later
-                    threadPool.submit(this);
-                    return;
-                }
-            }
-
-            if (mainSaturationTaskSubmittedToThreadPool.compareAndSet(!communicationChannel.hasMoreMessages(), false)) {
-                return;
-            }
-
-            state.mainControlNodeLoop();
-        }
-        this.mainSaturationTaskSubmittedToThreadPool.set(false);
-
-        if (config.collectControlNodeStatistics()) {
-            stats.collectStopwatchTimes();
-        }
-        communicationChannel.terminateAfterAllMessagesHaveBeenSent();
-        this.threadPool.shutdownNow();
-    }
-
-    private void trySendingMessagesWhichCouldNotBeSent() {
-        // prevent endless loop, since callback method adds messages again if they could not be sent
-        int currentQueueSize = messagesThatCouldNotBeSent.size();
-        for (int i = 0; i < currentQueueSize; i++) {
-            MessageEnvelope message = messagesThatCouldNotBeSent.remove();
-            communicationChannel.send(message.getSocketID(), message.getMessage());
-        }
     }
 
     public Collection<DistributedWorkerModel<C, A, T>> getWorkers() {
@@ -141,4 +103,37 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     }
 
 
+    private class ControlNodeNetworkingLoop extends NIO2NetworkingLoop {
+
+        public ControlNodeNetworkingLoop(ExecutorService threadPool) {
+            super(threadPool, true);
+        }
+
+        @Override
+        public void onRestart() {
+        }
+
+        @Override
+        public void onNoMoreMessages() {
+        }
+
+        @Override
+        public void onTerminate() {
+            if (config.collectControlNodeStatistics()) {
+                stats.collectStopwatchTimes();
+            }
+            communicationChannel.terminate();
+            threadPool.shutdownNow();
+        }
+
+        @Override
+        public boolean runningCondition() {
+            return !(state instanceof CNSFinished);
+        }
+
+        @Override
+        public void processNextMessage(Object nextMessage) {
+            state.mainControlNodeLoop(nextMessage);
+        }
+    }
 }

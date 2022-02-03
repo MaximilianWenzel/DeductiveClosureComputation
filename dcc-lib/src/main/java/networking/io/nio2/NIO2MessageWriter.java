@@ -27,12 +27,15 @@ public class NIO2MessageWriter {
 
     private long socketID;
     private Consumer<MessageEnvelope> onMessageCouldNotBeSent;
+    private Consumer<Long> onSocketOutboundBufferHasSpace;
 
     public NIO2MessageWriter(long socketID, AsynchronousSocketChannel socketChannel,
-                             Consumer<MessageEnvelope> onMessageCouldNotBeSent) {
+                             Consumer<MessageEnvelope> onMessageCouldNotBeSent,
+                             Consumer<Long> onSocketOutboundBufferHasSpace) {
         this.socketChannel = socketChannel;
         this.socketID = socketID;
         this.onMessageCouldNotBeSent = onMessageCouldNotBeSent;
+        this.onSocketOutboundBufferHasSpace = onSocketOutboundBufferHasSpace;
     }
 
     /**
@@ -49,6 +52,10 @@ public class NIO2MessageWriter {
     }
 
     private void writeMessagesIfRequired() {
+        if (messageBufferToWriteTo.remaining() > STOP_SERIALIZATION_REMAINING_BYTES) {
+            onSocketOutboundBufferHasSpace.accept(this.socketID);
+        }
+
         if (messageBufferToWriteTo.position() == 0 && messageBufferToReadFrom.position() == 0) {
             // no messages to send
             return;
@@ -90,7 +97,7 @@ public class NIO2MessageWriter {
 
     public void readFromBufferAndWriteToSocket() {
         messageBufferToReadFrom.flip();
-        this.socketChannel.write(messageBufferToReadFrom, null, new CompletionHandler<Integer, Object>() {
+        this.socketChannel.write(messageBufferToReadFrom, null, new CompletionHandler<>() {
             @Override
             public void completed(Integer result, Object attachment) {
                 messageBufferToReadFrom.compact();
@@ -100,6 +107,7 @@ public class NIO2MessageWriter {
 
             @Override
             public void failed(Throwable exc, Object attachment) {
+                exc.printStackTrace();
             }
         });
 

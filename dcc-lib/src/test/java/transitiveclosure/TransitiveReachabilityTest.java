@@ -94,7 +94,6 @@ public class TransitiveReachabilityTest {
                 );
                 ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
             }
-
         }
     }
 

@@ -3,10 +3,9 @@ package networking;
 import benchmark.jmh.ReceiverStub;
 import benchmark.jmh.SenderStub;
 import enums.NetworkingComponentType;
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
-import networking.messages.MessageEnvelope;
 import org.junit.jupiter.api.Test;
 import util.NetworkingUtils;
 import util.QueueFactory;
@@ -14,13 +13,10 @@ import util.QueueFactory;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -44,14 +40,14 @@ public class NetworkingTest {
             }
         };
 
-        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(serverData, messageHandler) {
+        ConnectionModel portListener = new ConnectionModel(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
 
-        ConnectionEstablishmentListener serverConnector1 = new ConnectionEstablishmentListener(serverData,
+        ConnectionModel serverConnector1 = new ConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -59,24 +55,28 @@ public class NetworkingTest {
             }
         };
 
-        ConnectionEstablishmentListener serverConnector2 = new ConnectionEstablishmentListener(serverData,
+        ConnectionModel serverConnector2 = new ConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
-        List<ConnectionEstablishmentListener> serverConnectors = new ArrayList<>();
+        List<ConnectionModel> serverConnectors = new ArrayList<>();
         serverConnectors.add(serverConnector1);
         serverConnectors.add(serverConnector2);
 
 
-        NIONetworkingComponent networkingComponent = new NIONetworkingComponent(
-                Collections.singletonList(portListener),
-                serverConnectors,
-                () -> {
-                }
-        );
+        NIONetworkingComponent networkingComponent = new NIONetworkingComponent(() -> {});
+        try {
+            networkingComponent.listenOnPort(portListener);
+            for (ConnectionModel serverConnector : serverConnectors) {
+                networkingComponent.connectToServer(serverConnector);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         ExecutorService threadPool = Executors.newFixedThreadPool(1);
         threadPool.submit(networkingComponent);
 
@@ -94,7 +94,7 @@ public class NetworkingTest {
             }
         }
 
-        ConnectionEstablishmentListener serverConnector3 = new ConnectionEstablishmentListener(serverData,
+        ConnectionModel serverConnector3 = new ConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -118,7 +118,7 @@ public class NetworkingTest {
     @Test
     public void testSenderReceiverStubs() {
         BlockingQueue<Object> arrayBlockingQueue = QueueFactory.createSaturationToDo();
-        ReceiverStub receiverStub = new ReceiverStub(arrayBlockingQueue, NetworkingComponentType.ASYNC_NIO2);
+        ReceiverStub receiverStub = new ReceiverStub(NetworkingComponentType.ASYNC_NIO2);
         SenderStub senderStub = new SenderStub(new ServerData("localhost", receiverStub.getServerPort()),
                 NetworkingComponentType.ASYNC_NIO2);
 
@@ -145,14 +145,14 @@ public class NetworkingTest {
             }
         };
 
-        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(serverData, messageHandler) {
+        ConnectionModel portListener = new ConnectionModel(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected to server socket.");
             }
         };
 
-        ConnectionEstablishmentListener serverConnector1 = new ConnectionEstablishmentListener(serverData,
+        ConnectionModel serverConnector1 = new ConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
@@ -161,23 +161,29 @@ public class NetworkingTest {
             }
         };
 
-        ConnectionEstablishmentListener serverConnector2 = new ConnectionEstablishmentListener(serverData,
+        ConnectionModel serverConnector2 = new ConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 socketIDs.add(socketManager.getSocketID());
             }
         };
-        List<ConnectionEstablishmentListener> serverConnectors = new ArrayList<>();
+        List<ConnectionModel> serverConnectors = new ArrayList<>();
         serverConnectors.add(serverConnector1);
         serverConnectors.add(serverConnector2);
 
         ExecutorService threadPool = Executors.newFixedThreadPool(3);
         NIO2NetworkingComponent networkingComponent = new NIO2NetworkingComponent(
-                Collections.singletonList(portListener),
-                serverConnectors,
                 threadPool
         );
+        try {
+            networkingComponent.listenOnPort(portListener);
+            for (ConnectionModel serverConnector : serverConnectors) {
+                networkingComponent.connectToServer(serverConnector);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         while (socketIDs.isEmpty()) {
             try {
@@ -195,7 +201,7 @@ public class NetworkingTest {
             }
         }
 
-        ConnectionEstablishmentListener serverConnector3 = new ConnectionEstablishmentListener(serverData,
+        ConnectionModel serverConnector3 = new ConnectionModel(serverData,
                 messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {

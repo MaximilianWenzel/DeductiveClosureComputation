@@ -1,6 +1,6 @@
 package networking;
 
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionModel;
 import networking.io.SocketManager;
 import networking.io.nio.NIOSocketManager;
 import util.ConsoleUtils;
@@ -22,8 +22,8 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     protected Selector selector;
 
-    protected List<ConnectionEstablishmentListener> portNumbersToListen;
-    protected BlockingQueue<ConnectionEstablishmentListener> serversToConnectTo = new LinkedBlockingQueue<>();
+    protected List<ConnectionModel> portNumbersToListen;
+    protected BlockingQueue<ConnectionModel> serversToConnectTo = new LinkedBlockingQueue<>();
 
     protected List<ServerSocketChannel> serverSocketChannels = new ArrayList<>();
 
@@ -33,10 +33,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     protected Runnable runnableForMainNIOLoop;
 
-    public NIONetworkingComponent(List<ConnectionEstablishmentListener> portNumbersToListen,
-                                  List<ConnectionEstablishmentListener> serversToConnectTo,
-                                  Runnable runnableForMainNIOLoop) {
-        this.portNumbersToListen = portNumbersToListen;
+    public NIONetworkingComponent(Runnable runnableForMainNIOLoop) {
         this.serversToConnectTo.addAll(serversToConnectTo);
         this.runnableForMainNIOLoop = runnableForMainNIOLoop;
         init();
@@ -53,7 +50,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     }
 
     @Override
-    public void listenToPort(ConnectionEstablishmentListener portListener) throws IOException {
+    public void listenOnPort(ConnectionModel portListener) throws IOException {
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(false);
         SelectionKey key = serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
@@ -67,8 +64,8 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     @Override
     public void run() {
         try {
-            for (ConnectionEstablishmentListener portListener : portNumbersToListen) {
-                listenToPort(portListener);
+            for (ConnectionModel portListener : portNumbersToListen) {
+                listenOnPort(portListener);
             }
 
             while (!serversToConnectTo.isEmpty()) {
@@ -129,13 +126,13 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         socketChannel.finishConnect();
 
-        ConnectionEstablishmentListener serverConnector = (ConnectionEstablishmentListener) key.attachment();
+        ConnectionModel serverConnector = (ConnectionModel) key.attachment();
         NIOSocketManager socketManager = new NIOSocketManager(socketChannel, serverConnector.getMessageProcessor());
         initNewConnectedSocket(socketManager);
         serverConnector.onConnectionEstablished(socketManager);
     }
 
-    private void connectToServer(ConnectionEstablishmentListener serverConnector, SocketChannel socketChannel) throws
+    private void connectToServer(ConnectionModel serverConnector, SocketChannel socketChannel) throws
             IOException {
         socketChannel.configureBlocking(false);
 
@@ -150,7 +147,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
 
     @Override
-    public void connectToServer(ConnectionEstablishmentListener serverConnector) throws IOException {
+    public void connectToServer(ConnectionModel serverConnector) throws IOException {
         try {
             serversToConnectTo.put(serverConnector);
         } catch (InterruptedException e) {
@@ -210,7 +207,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
         SocketChannel socketChannel = serverSocketChannel.accept();
         while (socketChannel != null) {
-            ConnectionEstablishmentListener portListener = (ConnectionEstablishmentListener) key.attachment();
+            ConnectionModel portListener = (ConnectionModel) key.attachment();
 
             NIOSocketManager socketManager = new NIOSocketManager(socketChannel, portListener.getMessageProcessor());
             initNewConnectedSocket(socketManager);
@@ -250,13 +247,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
     @Override
     public void closeAllSockets() {
-        serverSocketChannels.forEach(ss -> {
-            try {
-                ss.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        closeServerSockets();
         for (SocketManager socketManager : this.socketIDToSocketManager.values()) {
             try {
                 socketManager.close();
@@ -268,9 +259,14 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     }
 
     @Override
-    public void terminateAfterAllMessagesHaveBeenSent() {
-        this.running = false;
-        closeAllSockets();
+    public void closeServerSockets() {
+        serverSocketChannels.forEach(ss -> {
+            try {
+                ss.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     public void startNIOThread() {

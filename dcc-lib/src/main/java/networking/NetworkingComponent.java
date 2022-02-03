@@ -1,15 +1,14 @@
 package networking;
 
-import networking.connectors.ConnectionEstablishmentListener;
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionModel;
 
 import java.io.IOException;
 import java.io.Serializable;
 
 public interface NetworkingComponent {
-    void listenToPort(ConnectionEstablishmentListener portListener) throws IOException;
+    void listenOnPort(ConnectionModel portListener) throws IOException;
 
-    void connectToServer(ConnectionEstablishmentListener serverConnector) throws IOException;
+    void connectToServer(ConnectionModel serverConnector) throws IOException;
 
     void sendMessage(long socketID, Serializable message);
 
@@ -21,5 +20,5 @@ public interface NetworkingComponent {
 
     void closeAllSockets();
 
-    void terminateAfterAllMessagesHaveBeenSent();
+    void closeServerSockets();
 }

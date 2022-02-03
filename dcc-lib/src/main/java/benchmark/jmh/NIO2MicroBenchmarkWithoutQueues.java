@@ -4,24 +4,22 @@ import com.google.common.base.Stopwatch;
 import enums.NetworkingComponentType;
 import networking.NIO2NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.MessageEnvelope;
 import nio2kryo.Edge;
 import util.ConsoleUtils;
 
+import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.Random;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
 
     private Random rnd = new Random();
+    private BlockingQueue<Object> result = new ArrayBlockingQueue<>(1);
 
     private ReceiverStub receiverStub;
 
@@ -33,12 +31,14 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
     private Serializable nextMessageToBeSent;
     private Stopwatch sw = Stopwatch.createUnstarted();
 
-    private int MESSAGE_COUNT = 20_000_000;
+    private int MESSAGE_COUNT = 10_000_000;
     private int sentMessages = 0;
 
+    private ConnectionModel serverConnector;
+
     public static void main(String[] args) {
-        NIO2MicroBenchmarkWithoutQueues benchmark = new NIO2MicroBenchmarkWithoutQueues();
         for (int i = 0; i < 3; i++) {
+            NIO2MicroBenchmarkWithoutQueues benchmark = new NIO2MicroBenchmarkWithoutQueues();
             benchmark.runExperiment();
             System.out.println(ConsoleUtils.getSeparator());
         }
@@ -49,8 +49,7 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
     }
 
     private void init() {
-        ArrayBlockingQueue<Object> blockingQueue = new ArrayBlockingQueue<>(10);
-        this.receiverStub = new ReceiverStub(blockingQueue, NetworkingComponentType.ASYNC_NIO2);
+        this.receiverStub = new ReceiverStub(NetworkingComponentType.ASYNC_NIO2);
         ServerData receiverData = new ServerData("localhost", receiverStub.getServerPort());
 
         try {
@@ -60,41 +59,52 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
         }
 
         this.senderThreadPool = Executors.newFixedThreadPool(1);
-        MessageHandler messageHandler = (socketID, message) -> {
-        };
-        ConnectionEstablishmentListener connectionEstablishmentListener = new ConnectionEstablishmentListener(
+        MessageHandler messageHandler = (socketID, message) -> {};
+        this.serverConnector = new ConnectionModel(
                 receiverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 NIO2MicroBenchmarkWithoutQueues.this.socketManager = socketManager;
-                runExperiment();
+                System.out.println("Starting benchmark.");
+                sw = Stopwatch.createStarted();
+                run();
             }
 
         };
         this.sender = new NIO2NetworkingComponent(
-                Collections.emptyList(),
-                Collections.singletonList(connectionEstablishmentListener),
+                senderThreadPool,
                 messageEnvelope -> {
-                    NIO2MicroBenchmarkWithoutQueues.this.lastMessageThatCouldNotBeSent = messageEnvelope;
-                    NIO2MicroBenchmarkWithoutQueues.this.lastMessageCouldBeSent = false;
+                    this.lastMessageThatCouldNotBeSent = messageEnvelope;
+                    this.lastMessageCouldBeSent = false;
                 },
-                senderThreadPool
+                (socketID) -> {}
         );
+
+        try {
+            sender.connectToServer(serverConnector);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void runExperiment() {
-        sw.start();
-        senderThreadPool.submit(NIO2MicroBenchmarkWithoutQueues.this);
         try {
-            senderThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            result.take();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         tearDown();
+        System.out.println("Finished.");
     }
 
     public void tearDown() {
         receiverStub.terminate();
+        sender.terminate();
+        try {
+            senderThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -117,6 +127,6 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
         long objPerSec = MESSAGE_COUNT * 1000L / sw.elapsed(TimeUnit.MILLISECONDS);
         System.out.println(objPerSec + " obj/s");
 
-        senderThreadPool.shutdownNow();
+        this.result.add("done");
     }
 }

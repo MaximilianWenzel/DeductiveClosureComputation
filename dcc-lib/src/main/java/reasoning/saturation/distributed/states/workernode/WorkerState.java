@@ -6,7 +6,7 @@ import networking.acknowledgement.AcknowledgementEventManager;
 import networking.messages.*;
 import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.saturation.distributed.SaturationWorker;
-import reasoning.saturation.distributed.communication.WorkerNodeCommunicationChannel;
+import reasoning.saturation.distributed.communication.WorkerCommunicationChannel;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.distributed.states.AxiomVisitor;
@@ -27,7 +27,7 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
     protected ExecutorService threadPool;
 
     protected SaturationWorker<C, A, T> worker;
-    protected WorkerNodeCommunicationChannel<C, A, T> communicationChannel;
+    protected WorkerCommunicationChannel<C, A, T> communicationChannel;
     protected AcknowledgementEventManager acknowledgementEventManager;
 
     protected IncrementalStreamReasoner<C, A> incrementalReasoner;
@@ -42,8 +42,7 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
         this.threadPool = worker.getThreadPool();
     }
 
-    public void mainWorkerLoop() {
-        Object msg = communicationChannel.removeNextMessage();
+    public void mainWorkerLoop(Object msg) {
         if (msg instanceof MessageModel) {
             ((MessageModel<C, A, T>)msg).accept(this);
         } else {

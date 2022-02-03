@@ -5,13 +5,13 @@ import networking.NIO2NetworkingComponent;
 import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import networking.messages.MessageEnvelope;
 
+import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,7 +32,7 @@ public class SenderStub {
     public SenderStub(ServerData serverData, NetworkingComponentType type) {
         this.serverData = serverData;
         this.type = type;
-        this.threadPool = Executors.newFixedThreadPool(1);
+        this.threadPool = null;
         init();
     }
 
@@ -59,7 +59,7 @@ public class SenderStub {
         }
 
         AtomicInteger connectionEstablished = new AtomicInteger(0);
-        ConnectionEstablishmentListener serverConnector = new ConnectionEstablishmentListener(serverData, messageHandler) {
+        ConnectionModel serverConnector = new ConnectionModel(serverData, messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 destinationSocket = socketManager;
@@ -72,19 +72,25 @@ public class SenderStub {
         switch (type) {
             case NIO:
                 networkingComponent = new NIONetworkingComponent(
-                        Collections.emptyList(),
-                        Collections.singletonList(serverConnector),
                         () -> {}
                 );
                 break;
             case ASYNC_NIO2:
+                if (threadPool == null) {
+                    threadPool = Executors.newFixedThreadPool(1);
+                }
                 networkingComponent = new NIO2NetworkingComponent(
-                        Collections.emptyList(),
-                        Collections.singletonList(serverConnector),
+                        threadPool,
                         onMessageCouldNotBeSent,
-                        threadPool
+                        (socketID) -> {}
                 );
                 break;
+        }
+
+        try {
+            networkingComponent.connectToServer(serverConnector);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
 
@@ -104,5 +110,8 @@ public class SenderStub {
 
     public void terminate() {
         networkingComponent.terminate();
+        if (threadPool != null) {
+            threadPool.shutdown();
+        }
     }
 }

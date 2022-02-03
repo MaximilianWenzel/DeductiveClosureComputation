@@ -5,13 +5,13 @@ import networking.NIO2NetworkingComponent;
 import networking.NIONetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
-import networking.connectors.ConnectionEstablishmentListener;
+import networking.connectors.ConnectionModel;
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
 import util.NetworkingUtils;
 
-import java.util.Collections;
-import java.util.concurrent.BlockingQueue;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ReceiverStub {
@@ -20,11 +20,10 @@ public class ReceiverStub {
     private String hostname;
     private NetworkingComponent networkingComponent;
     private NetworkingComponentType type;
-    private BlockingQueue<Object> queue;
+    private ExecutorService threadPool;
 
-    public ReceiverStub(BlockingQueue<Object> queue, NetworkingComponentType type) {
+    public ReceiverStub(NetworkingComponentType type) {
         this.type = type;
-        this.queue = queue;
         init();
     }
 
@@ -40,29 +39,32 @@ public class ReceiverStub {
         if (serverPort == -1) {
             serverPort = NetworkingUtils.getFreePort();
         }
-        ConnectionEstablishmentListener portListener = new ConnectionEstablishmentListener(new ServerData(hostname, serverPort), messageHandler) {
+        ConnectionModel portListener = new ConnectionModel(
+                new ServerData(hostname, serverPort), messageHandler) {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected.");
+                networkingComponent.closeServerSockets();
             }
         };
 
         switch (type) {
             case NIO:
                 networkingComponent = new NIONetworkingComponent(
-                        Collections.singletonList(portListener),
-                        Collections.emptyList(),
-                        () -> {}
+                        () -> {
+                        }
                 );
                 break;
             case ASYNC_NIO2:
-                networkingComponent = new NIO2NetworkingComponent(
-                        Collections.singletonList(portListener),
-                        Collections.emptyList(),
-                        Executors.newFixedThreadPool(1)
-                );
+                threadPool = Executors.newFixedThreadPool(1);
+                networkingComponent = new NIO2NetworkingComponent(threadPool);
                 break;
+        }
 
+        try {
+            networkingComponent.listenOnPort(portListener);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         try {
@@ -78,5 +80,8 @@ public class ReceiverStub {
 
     public void terminate() {
         networkingComponent.terminate();
+        if (threadPool != null) {
+            threadPool.shutdown();
+        }
     }
 }
