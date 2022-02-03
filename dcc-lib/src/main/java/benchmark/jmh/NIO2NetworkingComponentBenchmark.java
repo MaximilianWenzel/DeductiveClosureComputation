@@ -17,8 +17,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class NIO2NetworkingComponentBenchmark {
 
-    private static final int MESSAGE_COUNT = 100_000_000;
-    private static final int BATCH_SIZE = 100;
+    private static final int MESSAGE_COUNT = 10_000_000;
+    private static final int BATCH_SIZE = 1;
     private SenderStub nio2SenderStub;
     private ReceiverStub nio2ReceiverStub;
     private Random rnd = new Random();
@@ -32,14 +32,13 @@ public class NIO2NetworkingComponentBenchmark {
         NIO2NetworkingComponentBenchmark benchmark = new NIO2NetworkingComponentBenchmark();
         benchmark.setUp();
         Stopwatch sw = Stopwatch.createStarted();
-        Random rnd = new Random();
         BlockingQueue<Integer> result = new ArrayBlockingQueue<>(1);
 
 
         long destinationSocket = benchmark.nio2SenderStub.destinationSocket.getSocketID();
         Flux<MessageEnvelope> messages = Flux.range(1, MESSAGE_COUNT)
-                .map(ignore -> new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)))
-                .buffer(BATCH_SIZE)
+                .map(n -> new Edge(n, n))
+                //.buffer(BATCH_SIZE)
                 .map(obj -> new MessageEnvelope(destinationSocket, obj))
                 .doOnNext(obj -> benchmark.nio2SenderStub.increaseHashSum(obj))
                 .doOnComplete(() -> result.add(benchmark.nio2SenderStub.getHashSum()));

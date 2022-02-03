@@ -60,17 +60,12 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     protected AtomicInteger sumOfAllReceivedAxioms = new AtomicInteger(0);
     protected AtomicInteger sumOfAllSentAxioms = new AtomicInteger(0);
     protected Stream.Builder<MessageEnvelope> messagesFromLastIteration = Stream.builder();
+    int distributedAxioms = 0;
     private ControlNodeState<C, A, T> state;
 
-    private boolean receivedMessagesPublisherIsRunning = false;
-
     protected Consumer<NIO2NetworkingComponent.ReceivedMessagesPublisher> onNewMessageReceived = publisher -> {
-        if (receivedMessagesPublisherIsRunning) {
-            return;
-        }
-        receivedMessagesPublisherIsRunning = true;
-
         Flux.from(publisher)
+                .doFirst(() -> System.out.println(Thread.currentThread().getName() + " Control Node: Started."))
                 .map(msg -> {
                     if (msg.getMessage() != null) {
                         return msg.getMessage();
@@ -84,7 +79,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
                     messagesFromLastIteration = Stream.builder();
                     return Flux.fromStream(messages);
                 })
-                .doOnComplete(() -> receivedMessagesPublisherIsRunning = false)
+                .doOnComplete(() -> System.out.println(Thread.currentThread().getName() + " Control Node: Completed."))
                 .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
     };
 

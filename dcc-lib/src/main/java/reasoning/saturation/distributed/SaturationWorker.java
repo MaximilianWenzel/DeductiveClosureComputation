@@ -70,14 +70,9 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private Stream.Builder<MessageEnvelope> messagesFromCurrentIteration = Stream.builder();
     private Consumer<MessageEnvelope> consumerForNewMessages = new ConsumerForNewConnectionMessages();
 
-    private boolean receivedMessagesPublisherIsRunning = false;
-
     private Consumer<NIO2NetworkingComponent.ReceivedMessagesPublisher> onNewMessagesReceived = publisher -> {
-        if (receivedMessagesPublisherIsRunning) {
-            return;
-        }
-        receivedMessagesPublisherIsRunning = true;
         processedMessagesFlux = Flux.from(publisher)
+                .doFirst(() -> System.out.println(Thread.currentThread().getName() + " Worker: Started."))
                 .doOnNext(consumerForNewMessages)
                 .map(messageEnvelope -> {
                     if (messageEnvelope.getMessage() != null) {
@@ -92,7 +87,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
                     messagesFromCurrentIteration = Stream.builder();
                     return Flux.fromStream(messages);
                 }).doOnComplete(() -> {
-                    receivedMessagesPublisherIsRunning = false;
+                    System.out.println(Thread.currentThread().getName() + " Worker: Completed.");
                     if (state instanceof WorkerStateFinished) {
                         onSaturationFinished();
                     }
@@ -371,14 +366,16 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     }
 
     public void addAxiomsToToDoQueue(List<A> axioms) {
-        Flux.fromIterable(axioms)
-                .flatMap(msg -> {
-                    state.processMessage(msg);
-                    Stream<MessageEnvelope> messages = messagesFromCurrentIteration.build();
-                    messagesFromCurrentIteration = Stream.builder();
-                    return Flux.fromStream(messages);
-                })
-                .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
+        threadPool.submit(() -> {
+            Flux.fromIterable(axioms)
+                    .flatMap(msg -> {
+                        state.processMessage(msg);
+                        Stream<MessageEnvelope> messages = messagesFromCurrentIteration.build();
+                        messagesFromCurrentIteration = Stream.builder();
+                        return Flux.fromStream(messages);
+                    })
+                    .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
+        });
     }
 
     public AcknowledgementEventManager getAcknowledgementEventManager() {
@@ -428,8 +425,10 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
                         workerID,
                         SaturationStatusMessage.WORKER_CLIENT_HELLO
                 );
-                Flux.just(new MessageEnvelope(socketManager.getSocketID(), stateInfoMessage))
-                        .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
+                threadPool.submit(() -> {
+                    Flux.just(new MessageEnvelope(socketManager.getSocketID(), stateInfoMessage))
+                            .subscribe(networkingComponent.getNewSubscriberForMessagesToSend());
+                });
             }
         };
     }

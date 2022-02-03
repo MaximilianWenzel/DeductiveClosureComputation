@@ -16,10 +16,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -43,23 +40,25 @@ public class NIO2NetworkingComponent {
     protected Set<MessagesToSendSubscriber> messagesToSendSubscribers = new UnifiedSet<>();
     protected AtomicBoolean allSocketsCanWrite = new AtomicBoolean(true);
     protected Consumer<Long> onSocketCanWriteMessages = (socketID) -> {
-        if (!allSocketsCanWrite.get()) {
-            // check if all sockets can write again
-            if (allSocketsCanWrite()) {
-                allSocketsCanWrite.set(true);
-                for (MessagesToSendSubscriber subscriber : messagesToSendSubscribers) {
-                    threadPool.submit(subscriber);
-                }
+        // check if all sockets can write again
+        if (allSocketsCanWrite()) {
+            allSocketsCanWrite.set(true);
+            for (MessagesToSendSubscriber subscriber : messagesToSendSubscribers) {
+                threadPool.submit(subscriber);
             }
         }
     };
 
     // read messages from socket
-    protected ReceivedMessagesPublisher receivedMessagesPublisher = new ReceivedMessagesPublisher();
+    protected ReceivedMessagesPublisher receivedMessagesPublisher = null;
     protected Consumer<ReceivedMessagesPublisher> onNewMessagesReceived;
     protected Runnable onSocketCanReadNewMessages = () -> {
-        onNewMessagesReceived.accept(receivedMessagesPublisher);
+        if (receivedMessagesPublisher == null) {
+            receivedMessagesPublisher = new ReceivedMessagesPublisher();
+            onNewMessagesReceived.accept(receivedMessagesPublisher);
+        }
     };
+
     private Logger log = ConsoleUtils.getLogger();
 
     public NIO2NetworkingComponent(ExecutorService threadPool,
@@ -129,6 +128,17 @@ public class NIO2NetworkingComponent {
             }
         }
         return false;
+    }
+
+    public void closeServerSockets() {
+        for (AsynchronousServerSocketChannel socketChannel : serverSocketChannels) {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        serverSocketChannels.clear();
     }
 
     public void closeSocket(long socketID) {
@@ -222,8 +232,9 @@ public class NIO2NetworkingComponent {
         }
     }
 
+
     public class ReceivedMessagesPublisher implements Publisher<MessageEnvelope>, Subscription {
-        boolean running = false;
+        boolean running = true;
         private Subscriber<? super MessageEnvelope> subscriber;
         private Collection<NIO2SocketManager> socketManager = NIO2NetworkingComponent.this.socketIDToSocketManager.values();
         private long requestedMessages = 0L;
@@ -234,7 +245,6 @@ public class NIO2NetworkingComponent {
         @Override
         public void subscribe(Subscriber<? super MessageEnvelope> subscriber) {
             this.subscriber = subscriber;
-            this.running = true;
             this.subscriber.onSubscribe(this);
         }
 
@@ -259,20 +269,18 @@ public class NIO2NetworkingComponent {
                     requestedMessages--;
                 }
             }
+
             if (requestedMessages > 0) {
                 // not enough messages available from sockets
                 if (running) {
                     // problem: reactor calls this method although 'onComplete' has been called before
                     running = false;
                     subscriber.onNext(MessageEnvelope.EMPTY);
+                    receivedMessagesPublisher = null;
                     requestedMessages--;
                 }
                 subscriber.onComplete();
             }
-        }
-
-        public boolean isRunning() {
-            return running;
         }
 
         @Override

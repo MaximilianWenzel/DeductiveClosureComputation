@@ -62,6 +62,7 @@ public class ReceiverStub {
             @Override
             public void onConnectionEstablished(SocketManager socketManager) {
                 System.out.println("Client connected.");
+                networkingComponent.closeServerSockets();
             }
         };
 
