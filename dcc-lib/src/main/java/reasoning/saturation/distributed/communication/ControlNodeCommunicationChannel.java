@@ -5,30 +5,25 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import data.Closure;
 import enums.SaturationStatusMessage;
-import networking.NIO2NetworkingComponent;
 import networking.NetworkingComponent;
 import networking.ServerData;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.connectors.ConnectionModel;
 import networking.io.SocketManager;
 import networking.messages.*;
-import reasoning.saturation.distributed.metadata.SaturationConfiguration;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
-import util.QueueFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable> {
 
@@ -53,14 +48,14 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     protected AtomicInteger sumOfAllReceivedAxioms = new AtomicInteger(0);
     protected AtomicInteger sumOfAllSentAxioms = new AtomicInteger(0);
 
-    protected SaturationConfiguration config;
+    protected DistributedSaturationConfiguration config;
 
     protected NIO2NetworkingLoop networkingLoop;
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
                                            WorkloadDistributor<C, A, T> workloadDistributor,
                                            Iterator<? extends A> initialAxioms,
-                                           SaturationConfiguration config,
+                                           DistributedSaturationConfiguration config,
                                            NIO2NetworkingLoop networkingLoop) {
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
@@ -91,13 +86,16 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
                 });
     }
 
-    public void distributeInitialAxioms() {
-        this.initialAxioms.forEachRemaining(axiom -> {
-            workloadDistributor.getRelevantWorkerIDsForAxiom(axiom).forEach(workerID -> {
-                sumOfAllSentAxioms.incrementAndGet();
-                send(workerIDToSocketID.get(workerID), axiom);
-            });
-        });
+    public void addInitialAxiomsToToDoQueue() {
+        networkingLoop.addToToDoQueue(initialAxioms);
+    }
+
+    public void distributeAxiom(A axiom) {
+        workloadDistributor.getRelevantWorkerIDsForAxiom(axiom)
+                .forEach(receiverWorkerID -> {
+                    sumOfAllSentAxioms.incrementAndGet();
+                    networkingLoop.sendMessage(workerIDToSocketID.get(receiverWorkerID), axiom);
+                });
     }
 
     public void terminate() {
@@ -124,11 +122,11 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     public void send(long receiverSocketID, MessageModel<C, A, T> message, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(message.getMessageID(), onAcknowledgement);
-        networkingComponent.sendMessage(receiverSocketID, message);
+        send(receiverSocketID, message);
     }
 
     public void send(long receiverSocketID, Serializable message) {
-        networkingComponent.sendMessage(receiverSocketID, message);
+        networkingLoop.sendMessage(receiverSocketID, message);
     }
 
     public void requestAxiomCountsFromAllWorkers() {

@@ -5,6 +5,7 @@ import networking.messages.MessageEnvelope;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 import reasoning.saturation.distributed.communication.NIO2NetworkingLoop;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.distributed.states.controlnode.CNSFinished;
@@ -31,7 +32,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     private int numberOfThreads;
     private WorkloadDistributor<C, A, T> workloadDistributor;
     private Iterator<? extends A> initialAxioms;
-    private SaturationConfiguration config;
+    private DistributedSaturationConfiguration config;
     private ControlNodeStatistics stats = new ControlNodeStatistics();
     private List<WorkerStatistics> workerStatistics = new ArrayList<>();
 
@@ -43,7 +44,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
                                     WorkloadDistributor<C, A, T> workloadDistributor,
                                     Iterator<? extends A> initialAxioms,
                                     C resultingClosure,
-                                    SaturationConfiguration config,
+                                    DistributedSaturationConfiguration config,
                                     int numberOfThreads) {
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
@@ -60,7 +61,9 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
         this.communicationChannel = new ControlNodeCommunicationChannel<>(
                 workers, workloadDistributor, initialAxioms,
                 config, networkingLoop);
-        this.state = new CNSInitializing<>(this);
+        CNSInitializing<C, A, T> initState = new CNSInitializing<>(this);
+        this.state = initState;
+        initState.start();
     }
 
     public C saturate() {

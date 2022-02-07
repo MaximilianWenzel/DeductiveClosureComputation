@@ -8,6 +8,7 @@ import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.communication.NIO2NetworkingLoop;
 import reasoning.saturation.distributed.communication.WorkerCommunicationChannel;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.distributed.states.workernode.WorkerState;
@@ -35,7 +36,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
 
     private WorkerState<C, A, T> state;
     private IncrementalStreamReasoner<C, A> incrementalReasoner;
-    private SaturationConfiguration config;
+    private DistributedSaturationConfiguration config;
     private WorkerStatistics stats = new WorkerStatistics();
     private boolean terminateAfterSaturation = false;
 

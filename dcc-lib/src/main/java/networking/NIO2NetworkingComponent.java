@@ -33,10 +33,8 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     private Logger log = ConsoleUtils.getLogger();
     private Consumer<Long> onSocketOutboundBufferHasSpace;
 
-    public NIO2NetworkingComponent(ExecutorService threadPool, Consumer<MessageEnvelope> onMessageCouldNotBeSent,
-                                   Consumer<Long> onSocketOutboundBufferHasSpace) {
+    public NIO2NetworkingComponent(ExecutorService threadPool, Consumer<Long> onSocketOutboundBufferHasSpace) {
         this.threadPool = threadPool;
-        this.onMessageCouldNotBeSent = onMessageCouldNotBeSent;
         this.onSocketOutboundBufferHasSpace = onSocketOutboundBufferHasSpace;
         try {
             init();
@@ -85,8 +83,7 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         try {
             log.info("Connecting to server: " + hostAddress);
             client.connect(hostAddress).get();
-            NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor(),
-                    onMessageCouldNotBeSent, onSocketOutboundBufferHasSpace);
+            NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor(), onSocketOutboundBufferHasSpace);
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
             socketManager.startReading();
             serverConnector.onConnectionEstablished(socketManager);
@@ -96,12 +93,12 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
     }
 
     @Override
-    public void sendMessage(long socketID, Serializable message) {
+    public boolean sendMessage(long socketID, Serializable message) {
         NIO2SocketManager socketManager = this.socketIDToSocketManager.get(socketID);
         if (socketManager == null) {
             throw new IllegalArgumentException("No socket exists with ID: " + socketID);
         }
-        socketManager.sendMessage(message);
+        return socketManager.sendMessage(message);
     }
 
     @Override
@@ -181,7 +178,6 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
             NIO2SocketManager socketManager = new NIO2SocketManager(
                     socket,
                     (MessageHandler) attachment,
-                    onMessageCouldNotBeSent,
                     onSocketOutboundBufferHasSpace
             );
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);

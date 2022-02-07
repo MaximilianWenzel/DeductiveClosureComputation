@@ -27,11 +27,10 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
     private NIO2NetworkingComponent sender;
     private SocketManager socketManager;
     private boolean lastMessageCouldBeSent = true;
-    private MessageEnvelope lastMessageThatCouldNotBeSent;
     private Serializable nextMessageToBeSent;
     private Stopwatch sw = Stopwatch.createUnstarted();
 
-    private int MESSAGE_COUNT = 10_000_000;
+    private int MESSAGE_COUNT = 100_000_000;
     private int sentMessages = 0;
 
     private ConnectionModel serverConnector;
@@ -73,10 +72,6 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
         };
         this.sender = new NIO2NetworkingComponent(
                 senderThreadPool,
-                messageEnvelope -> {
-                    this.lastMessageThatCouldNotBeSent = messageEnvelope;
-                    this.lastMessageCouldBeSent = false;
-                },
                 (socketID) -> {}
         );
 
@@ -112,11 +107,12 @@ public class NIO2MicroBenchmarkWithoutQueues implements Runnable {
         for (; sentMessages < MESSAGE_COUNT; sentMessages++) {
             if (!lastMessageCouldBeSent) {
                 lastMessageCouldBeSent = true;
-                nextMessageToBeSent = lastMessageThatCouldNotBeSent.getMessage();
             } else {
                 nextMessageToBeSent = new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000));
             }
-            socketManager.sendMessage(nextMessageToBeSent);
+            if (!socketManager.sendMessage(nextMessageToBeSent)) {
+                lastMessageCouldBeSent = false;
+            }
 
             if (!lastMessageCouldBeSent) {
                 senderThreadPool.submit(this);

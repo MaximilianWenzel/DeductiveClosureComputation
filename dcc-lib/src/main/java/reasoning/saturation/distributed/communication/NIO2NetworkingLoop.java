@@ -2,9 +2,11 @@ package reasoning.saturation.distributed.communication;
 
 import networking.NIO2NetworkingComponent;
 import networking.messages.MessageEnvelope;
-import util.QueueFactory;
+import org.apache.commons.collections4.iterators.IteratorChain;
 
-import java.util.Collection;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -12,11 +14,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class NIO2NetworkingLoop implements Runnable {
     private ExecutorService threadPool;
-    private BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent = new LinkedBlockingQueue<>();
-    private AtomicBoolean mainLoopSubmittedToThreadPool = new AtomicBoolean(true);
+    private AtomicBoolean mainLoopSubmittedToThreadPool = new AtomicBoolean(false);
     private NIO2NetworkingComponent networkingComponent;
     private boolean terminateAfterFinishing;
-    private BlockingQueue<Object> receivedMessages = QueueFactory.createSaturationToDo();
+
+    private IteratorChain<Object> toDoMessages = new IteratorChain<>();
+    private IteratorChain<Object> toDoMessagesIterator = new IteratorChain<>();
+
+    private BlockingQueue<MessageEnvelope> messagesToSend = new LinkedBlockingQueue<>();
+
+    private Object currentElement;
 
     public NIO2NetworkingLoop(ExecutorService threadPool, boolean terminateAfterFinishing) {
         this.threadPool = threadPool;
@@ -27,7 +34,6 @@ public abstract class NIO2NetworkingLoop implements Runnable {
     private void init() {
         this.networkingComponent = new NIO2NetworkingComponent(
                 threadPool,
-                this::onMessageCouldNotBeSent,
                 this::onSocketOutboundBufferHasSpace
         );
     }
@@ -35,27 +41,31 @@ public abstract class NIO2NetworkingLoop implements Runnable {
     @Override
     public void run() {
         do {
-            while (runningCondition()) {
-                if (!messagesThatCouldNotBeSent.isEmpty()) {
-                    trySendingMessagesWhichCouldNotBeSent();
-                    if (!messagesThatCouldNotBeSent.isEmpty()) {
-                        // messages still could not be sent completely - stop this task
-                        // rerun when write operation has finished
-                        mainLoopSubmittedToThreadPool.set(false);
-                        return;
-                    }
+            while (runningCondition() || toDoMessagesIterator.hasNext() || toDoMessages.hasNext()) {
+                trySendingMessagesWhichCouldNotBeSent();
+                if (!messagesToSend.isEmpty()) {
+                    // messages could not be sent - stop task
+                    mainLoopSubmittedToThreadPool.set(false);
+                    return;
                 }
 
-                if (mainLoopSubmittedToThreadPool.compareAndSet(receivedMessages.isEmpty(), false)) {
+                if (!toDoMessagesIterator.hasNext()) {
+                    // to-do cannot be modified after "hasNext()" has been called
+                    toDoMessagesIterator = toDoMessages;
+                    toDoMessages = new IteratorChain<>();
+                }
+
+                if (mainLoopSubmittedToThreadPool.compareAndSet(!toDoMessagesIterator.hasNext(), false)) {
                     onNoMoreMessages();
                     return;
                 } else {
-                    processNextMessage(receivedMessages.poll());
+                    currentElement = toDoMessagesIterator.next();
+                    processNextMessage(currentElement);
                 }
             }
 
-            this.messagesThatCouldNotBeSent.clear();
-            this.receivedMessages.clear();
+            this.currentElement = null;
+            this.toDoMessagesIterator = new IteratorChain<>();
             onRestart();
         } while (!terminateAfterFinishing);
 
@@ -64,7 +74,7 @@ public abstract class NIO2NetworkingLoop implements Runnable {
     }
 
     public void start() {
-        this.threadPool.submit(this);
+        submitThisTaskToThreadPoolIfNotDoneAlready();
     }
 
     public void stop() {
@@ -73,29 +83,15 @@ public abstract class NIO2NetworkingLoop implements Runnable {
 
     public abstract void onRestart();
 
-    void onMessageCouldNotBeSent(MessageEnvelope message) {
-        this.messagesThatCouldNotBeSent.add(message);
-    }
-
-    void onNewMessageReceived(Collection<?> messages) {
-        receivedMessages.addAll(messages);
-        if (mainLoopSubmittedToThreadPool.compareAndSet(false, true)) {
-            this.threadPool.submit(this);
-        }
-    }
-
     void onNewMessageReceived(Object message) {
-        this.receivedMessages.add(message);
-
-        if (mainLoopSubmittedToThreadPool.compareAndSet(false, true)) {
-            this.threadPool.submit(this);
-        }
+        processNextMessage(message);
+        submitThisTaskToThreadPoolIfNotDoneAlready();
     }
 
     void onSocketOutboundBufferHasSpace(Long socketID) {
-        if (!messagesThatCouldNotBeSent.isEmpty()
-                && mainLoopSubmittedToThreadPool.compareAndSet(false, true)) {
-            this.threadPool.submit(this);
+        if (!messagesToSend.isEmpty()) {
+            // messages could not be sent
+            submitThisTaskToThreadPoolIfNotDoneAlready();
         }
     }
 
@@ -119,13 +115,45 @@ public abstract class NIO2NetworkingLoop implements Runnable {
 
     public abstract void processNextMessage(Object nextMessage);
 
-    private void trySendingMessagesWhichCouldNotBeSent() {
-        // prevent endless loop, since callback method adds messages again if they could not be sent
-        int currentQueueSize = messagesThatCouldNotBeSent.size();
-        for (int i = 0; i < currentQueueSize; i++) {
-            MessageEnvelope message = messagesThatCouldNotBeSent.remove();
-            networkingComponent.sendMessage(message.getSocketID(), message.getMessage());
+    public void addToToDoQueue(Iterator<?> messages) {
+        this.toDoMessages.addIterator(messages);
+        submitThisTaskToThreadPoolIfNotDoneAlready();
+    }
+
+    public void addToToDoQueue(Object message) {
+        this.toDoMessages.addIterator(Collections.singleton(message).iterator());
+        submitThisTaskToThreadPoolIfNotDoneAlready();
+    }
+
+    public boolean sendMessage(long socketID, Serializable message) {
+        if (!messagesToSend.isEmpty()) {
+            this.messagesToSend.add(new MessageEnvelope(socketID, message));
+            return false;
+        } else {
+            if (!getNetworkingComponent().sendMessage(socketID, message)) {
+                this.messagesToSend.add(new MessageEnvelope(socketID, message));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void submitThisTaskToThreadPoolIfNotDoneAlready() {
+        if (mainLoopSubmittedToThreadPool.compareAndSet(false, true) && !threadPool.isShutdown()) {
+            this.threadPool.submit(this);
         }
     }
 
+    private void trySendingMessagesWhichCouldNotBeSent() {
+        while (!messagesToSend.isEmpty()) {
+            MessageEnvelope message = messagesToSend.peek();
+            if (!networkingComponent.sendMessage(message.getSocketID(), message.getMessage())) {
+                // message could not be sent
+                return;
+            } else {
+                // success
+                messagesToSend.remove();
+            }
+        }
+    }
 }

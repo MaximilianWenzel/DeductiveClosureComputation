@@ -6,6 +6,8 @@ import util.serialization.Serializer;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.Buffer;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -26,15 +28,12 @@ public class NIO2MessageWriter {
     private ByteBuffer messageBufferToWriteTo = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     private long socketID;
-    private Consumer<MessageEnvelope> onMessageCouldNotBeSent;
     private Consumer<Long> onSocketOutboundBufferHasSpace;
 
     public NIO2MessageWriter(long socketID, AsynchronousSocketChannel socketChannel,
-                             Consumer<MessageEnvelope> onMessageCouldNotBeSent,
                              Consumer<Long> onSocketOutboundBufferHasSpace) {
         this.socketChannel = socketChannel;
         this.socketID = socketID;
-        this.onMessageCouldNotBeSent = onMessageCouldNotBeSent;
         this.onSocketOutboundBufferHasSpace = onSocketOutboundBufferHasSpace;
     }
 
@@ -43,12 +42,18 @@ public class NIO2MessageWriter {
      */
     public boolean send(Serializable message) {
         try {
-            serializeMessageToBuffer(message);
+            boolean messageCouldBeSent;
+            if (messageBufferToWriteTo.remaining() > STOP_SERIALIZATION_REMAINING_BYTES) {
+                serializeMessageToBuffer(message);
+                messageCouldBeSent = true;
+            } else {
+                messageCouldBeSent = false;
+            }
+            writeMessagesIfRequired();
+            return messageCouldBeSent;
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new BufferOverflowException();
         }
-        writeMessagesIfRequired();
-        return true;
     }
 
     private void writeMessagesIfRequired() {
@@ -90,7 +95,7 @@ public class NIO2MessageWriter {
                 // set position to end of object
                 messageBufferToWriteTo.position(end);
             } else {
-                onMessageCouldNotBeSent.accept(new MessageEnvelope(socketID, message));
+                throw new BufferOverflowException();
             }
         }
     }

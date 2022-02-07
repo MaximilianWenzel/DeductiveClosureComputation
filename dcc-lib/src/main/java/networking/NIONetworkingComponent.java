@@ -189,7 +189,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     }
 
     @Override
-    public void sendMessage(long socketID, Serializable message) {
+    public boolean sendMessage(long socketID, Serializable message) {
         NIOSocketManager socketManager = this.socketIDToSocketManager.get(socketID);
         if (!socketManager.sendMessage(message)) {
             // has still messages to send - add write selector
@@ -200,6 +200,7 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
                 selector.wakeup();
             }
         }
+        return true;
     }
 
     private void acceptClientConnection(SelectionKey key) throws IOException {

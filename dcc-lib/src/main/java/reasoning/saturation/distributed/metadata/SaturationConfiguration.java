@@ -4,16 +4,18 @@ import java.io.Serializable;
 
 public class SaturationConfiguration implements Serializable {
 
-    private boolean collectControlNodeStatistics = false;
-    private boolean collectWorkerNodeStatistics = false;
+    protected boolean collectControlNodeStatistics = false;
+    protected boolean collectWorkerNodeStatistics = false;
 
     public SaturationConfiguration() {
     }
 
-    public SaturationConfiguration(boolean collectControlNodeStatistics, boolean collectWorkerNodeStatistics) {
+    public SaturationConfiguration(boolean collectControlNodeStatistics,
+                                   boolean collectWorkerNodeStatistics) {
         this.collectControlNodeStatistics = collectControlNodeStatistics;
         this.collectWorkerNodeStatistics = collectWorkerNodeStatistics;
     }
+
 
     public boolean collectControlNodeStatistics() {
         return collectControlNodeStatistics;
@@ -22,4 +24,5 @@ public class SaturationConfiguration implements Serializable {
     public boolean collectWorkerNodeStatistics() {
         return collectWorkerNodeStatistics;
     }
+
 }

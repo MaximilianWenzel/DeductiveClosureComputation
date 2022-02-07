@@ -36,6 +36,12 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
     }
 
     @Override
+    public void visit(A axiom) {
+        communicationChannel.distributeAxiom(axiom);
+    }
+
+
+    @Override
     public void visit(AcknowledgementMessage message) {
         acknowledgementEventManager.messageAcknowledged(message.getAcknowledgedMessageID());
     }

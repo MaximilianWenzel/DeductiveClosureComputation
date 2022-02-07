@@ -1,8 +1,10 @@
 package reasoning.saturation.distributed;
 
 import data.Closure;
+import enums.MessageDistributionType;
 import reasoning.saturation.Saturation;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
@@ -18,7 +20,7 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
     protected WorkloadDistributor<C, A, T> workloadDistributor;
     protected List<DistributedWorkerModel<C, A, T>> workers;
     protected SaturationControlNode<C, A, T> controlNode;
-    protected SaturationConfiguration config;
+    protected DistributedSaturationConfiguration config;
     protected int numberOfThreadsForControlNode;
 
     public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
@@ -28,7 +30,7 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
                                  int numberOfThreadsForControlNode) {
         this.workloadDistributor = workloadDistributor;
         this.workers = workers;
-        this.config = new SaturationConfiguration();
+        this.config = new DistributedSaturationConfiguration(true, false, MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO);
         this.controlNode = new SaturationControlNode<>(workers, workloadDistributor, initialAxioms, resultingClosure,
                 config, numberOfThreadsForControlNode);
     }
@@ -37,7 +39,7 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
                                  WorkloadDistributor<C, A, T> workloadDistributor,
                                  Iterator<? extends A> initialAxioms,
                                  C resultingClosure,
-                                 SaturationConfiguration config,
+                                 DistributedSaturationConfiguration config,
                                  int numberOfThreadsForControlNode) {
         this.workloadDistributor = workloadDistributor;
         this.workers = workers;

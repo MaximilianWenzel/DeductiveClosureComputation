@@ -8,6 +8,7 @@ import benchmark.workergeneration.SaturationWorkerThreadGenerator;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Streams;
 import data.Closure;
+import enums.MessageDistributionType;
 import enums.SaturationApproach;
 import networking.ServerData;
 import org.apache.commons.csv.CSVFormat;
@@ -17,6 +18,7 @@ import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.WorkerModel;
@@ -33,8 +35,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T extends Serializable> {
     private Logger log = ConsoleUtils.getLogger();
@@ -286,7 +286,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                     initializationFactory.getWorkloadDistributor(),
                     initialAxioms,
                     initializationFactory.getNewClosure(),
-                    new SaturationConfiguration(true, workerNodeStatistics),
+                    new DistributedSaturationConfiguration(true, workerNodeStatistics, MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO),
                     numberOfThreadsForSingleDistributedWorker
             );
 

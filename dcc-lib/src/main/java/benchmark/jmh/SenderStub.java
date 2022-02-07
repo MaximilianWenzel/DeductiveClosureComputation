@@ -81,7 +81,6 @@ public class SenderStub {
                 }
                 networkingComponent = new NIO2NetworkingComponent(
                         threadPool,
-                        onMessageCouldNotBeSent,
                         (socketID) -> {}
                 );
                 break;

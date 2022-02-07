@@ -10,7 +10,10 @@ public interface NetworkingComponent {
 
     void connectToServer(ConnectionModel serverConnector) throws IOException;
 
-    void sendMessage(long socketID, Serializable message);
+    /**
+     * Returns whether the message could be sent.
+     */
+    boolean sendMessage(long socketID, Serializable message);
 
     void terminate();
 

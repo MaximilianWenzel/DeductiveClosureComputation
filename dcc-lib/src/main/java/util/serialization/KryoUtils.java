@@ -6,6 +6,7 @@ import benchmark.rdfsreasoning.RDFSClosure;
 import benchmark.rdfsreasoning.rules.*;
 import benchmark.transitiveclosure.*;
 import data.Closure;
+import enums.MessageDistributionType;
 import networking.ServerData;
 import networking.messages.*;
 import nio2kryo.Axiom;
@@ -14,6 +15,7 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.rdfhdt.hdt.triples.TripleID;
 import org.roaringbitmap.*;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
@@ -107,6 +109,8 @@ public class KryoUtils {
 
         // saturation classes
         sb.add(SaturationConfiguration.class);
+        sb.add(DistributedSaturationConfiguration.class);
+        sb.add(MessageDistributionType.class);
         sb.add(WorkerStatistics.class);
         sb.add(ControlNodeStatistics.class);
         sb.add(WorkerModel.class);

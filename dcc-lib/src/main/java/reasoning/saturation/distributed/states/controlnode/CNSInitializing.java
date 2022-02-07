@@ -6,7 +6,6 @@ import enums.StatisticsComponent;
 import networking.messages.AcknowledgementMessage;
 import networking.messages.StateInfoMessage;
 import reasoning.saturation.distributed.SaturationControlNode;
-import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 
 import java.io.Serializable;
 
@@ -20,6 +19,9 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
             stats.startStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
         }
         this.numberOfWorkers = saturationControlNode.getWorkers().size();
+    }
+
+    public void start() {
         this.communicationChannel.initializeConnectionToWorkerServers();
     }
 
@@ -58,7 +60,9 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable, T ext
             saturationControlNode.switchState(new CNSWaitingForWorkersToConverge<>(saturationControlNode));
 
             // distribute initial axioms
-            communicationChannel.distributeInitialAxioms();
+            communicationChannel.addInitialAxiomsToToDoQueue();
         }
     }
+
+
 }

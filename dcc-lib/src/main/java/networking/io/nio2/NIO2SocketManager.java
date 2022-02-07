@@ -21,13 +21,12 @@ public class NIO2SocketManager implements SocketManager {
 
     public NIO2SocketManager(AsynchronousSocketChannel socketChannel,
                              MessageHandler messageHandler,
-                             Consumer<MessageEnvelope> onMessageCouldNotBeSent,
                              Consumer<Long> onSocketOutboundBufferHasSpace) {
         this.socketChannel = socketChannel;
         this.socketID = socketIDCounter.getAndIncrement();
         this.messageHandler = messageHandler;
         this.messageReader = new NIO2MessageReader(socketID, socketChannel, messageHandler);
-        this.messageWriter = new NIO2MessageWriter(socketID, socketChannel, onMessageCouldNotBeSent, onSocketOutboundBufferHasSpace);
+        this.messageWriter = new NIO2MessageWriter(socketID, socketChannel, onSocketOutboundBufferHasSpace);
     }
 
     public void startReading() {

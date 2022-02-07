@@ -4,17 +4,18 @@ import benchmark.workergeneration.SaturationJVMWorkerGenerator;
 import benchmark.workergeneration.SaturationWorkerGenerator;
 import benchmark.workergeneration.SaturationWorkerThreadGenerator;
 import data.Closure;
+import enums.MessageDistributionType;
 import networking.ServerData;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.parallel.ParallelSaturation;
-import util.ConsoleUtils;
 
 import java.io.Serializable;
 import java.util.List;
@@ -36,8 +37,8 @@ public class ClosureComputationTestUtil {
         C closure = saturation.saturate();
         Set<A> result = new UnifiedSet<>();
         result.addAll(closure.getClosureResults());
-        System.out.println("Closure: ");
-        result.forEach(System.out::println);
+        //System.out.println("Closure: ");
+        //result.forEach(System.out::println);
         return result;
     }
 
@@ -84,7 +85,8 @@ public class ClosureComputationTestUtil {
         List<DistributedWorkerModel<C, A, T>> workers = factory.getDistributedWorkerModels(
                 serverDataList);
 
-        SaturationConfiguration configuration = new SaturationConfiguration(true, false);
+        DistributedSaturationConfiguration configuration = new DistributedSaturationConfiguration(true, false ,
+                MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO);
         DistributedSaturation<C, A, T> saturation = new DistributedSaturation<>(
                 workers,
                 factory.getWorkloadDistributor(),
@@ -98,8 +100,8 @@ public class ClosureComputationTestUtil {
         Set<A> distributedResults = new UnifiedSet<>();
         distributedResults.addAll(closure.getClosureResults());
 
-        System.out.println("Closure: ");
-        closure.getClosureResults().forEach(System.out::println);
+        //System.out.println("Closure: ");
+        //closure.getClosureResults().forEach(System.out::println);
 
         Set<A> singleThreadedResults = singleThreadedClosureComputation(factory);
         assertEquals(singleThreadedResults, distributedResults);

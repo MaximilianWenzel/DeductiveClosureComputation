@@ -2,6 +2,7 @@ package networking.messages;
 
 import data.Closure;
 import reasoning.rules.Rule;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
@@ -17,7 +18,7 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
     private List<DistributedWorkerModel<C, A, T>> workers;
     private WorkloadDistributor<C, A, T> workloadDistributor;
     private List<? extends Rule<C, A>> rules;
-    private SaturationConfiguration config;
+    private DistributedSaturationConfiguration config;
     private C closure;
 
     protected InitializeWorkerMessage() {
@@ -27,7 +28,7 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
                                    List<DistributedWorkerModel<C, A, T>> workers,
                                    WorkloadDistributor<C, A, T> workloadDistributor,
                                    C closure, List<? extends Rule<C, A>> rules,
-                                   SaturationConfiguration config) {
+                                   DistributedSaturationConfiguration config) {
         super(senderID);
         this.workerID = workerID;
         this.workers = workers;
@@ -58,7 +59,7 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
         return rules;
     }
 
-    public SaturationConfiguration getConfig() {
+    public DistributedSaturationConfiguration getConfig() {
         return config;
     }
 

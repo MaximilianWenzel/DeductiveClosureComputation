@@ -20,7 +20,7 @@ public class IndividualExperiments {
 
     private static final boolean collectWorkerNodeStatistics = false;
 
-    private static final int EXPERIMENT_ROUNDS = 2;
+    private static final int EXPERIMENT_ROUNDS = 3;
     private static final int WARM_UP_ROUNDS = 2;
 
     private static List<Integer> binaryTreeDepthList;
@@ -31,9 +31,11 @@ public class IndividualExperiments {
 
     static {
         binaryTreeDepthList = new ArrayList<>();
-        for (int i = 14; i <= 17; i++) {
-            binaryTreeDepthList.add(i);
-        }
+        //for (int i = 10; i <= 17; i++) {
+        //    binaryTreeDepthList.add(i);
+        //}
+        //binaryTreeDepthList.add(16);
+        binaryTreeDepthList.add(17);
 
         initialEchoAxioms = new ArrayList<>();
         //initialEchoAxioms.add(10_000);
@@ -43,7 +45,7 @@ public class IndividualExperiments {
         //initialEchoAxioms.add(200_000);
         //initialEchoAxioms.add(500_000);
         initialEchoAxioms.add(1_000_000);
-        //initialEchoAxioms.add(10_000_000);
+        initialEchoAxioms.add(10_000_000);
 
         chainDepthList = new ArrayList<>();
         for (int i = 100; i <= 1000; i += 100) {
@@ -51,10 +53,10 @@ public class IndividualExperiments {
         }
 
         numberOfWorkersList = new ArrayList<>();
-        //numberOfWorkersList.add(1);
+        numberOfWorkersList.add(1);
         numberOfWorkersList.add(2);
         //numberOfWorkersList.add(3);
-        //numberOfWorkersList.add(4);
+        numberOfWorkersList.add(4);
 
         numberOfThreadsPerDistributedWorker = new ArrayList<>();
         numberOfThreadsPerDistributedWorker.add(1);
@@ -85,9 +87,9 @@ public class IndividualExperiments {
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
 
-        //binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
+        binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
         //chainGraphBenchmark(outputDirectory, includedApproaches, chainDepthList, numberOfWorkersList);
-        echoBenchmark(outputDirectory, includedApproaches, initialEchoAxioms, numberOfWorkersList);
+        //echoBenchmark(outputDirectory, includedApproaches, initialEchoAxioms, numberOfWorkersList);
     }
 
     public static void binaryTreeBenchmark(File outputDirectory,

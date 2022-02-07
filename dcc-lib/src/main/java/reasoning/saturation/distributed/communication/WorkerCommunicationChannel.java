@@ -22,10 +22,7 @@ import util.ConsoleUtils;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -119,30 +116,25 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     }
 
     public void distributeInferences(Stream<A> inferenceStream) {
+        if (config.collectWorkerNodeStatistics()) {
+            stats.getNumberOfDerivedInferences().incrementAndGet();
+            stats.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+        }
         inferenceStream.forEach(inference -> {
-            if (config.collectWorkerNodeStatistics()) {
-                stats.getNumberOfDerivedInferences().incrementAndGet();
-                stats.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
-            }
-
-            Iterator<Long> receiverWorkerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(inference).iterator();
-            long currentReceiverWorkerID;
-
-            while (receiverWorkerIDs.hasNext()) {
-                currentReceiverWorkerID = receiverWorkerIDs.next();
-
-                if (currentReceiverWorkerID != this.workerID) {
-                    sendAxiom(currentReceiverWorkerID, inference);
-                } else {
-                    // add axioms from this worker directly to the queue
-                    networkingLoop.onNewMessageReceived(inference);
-                }
-            }
-
-            if (config.collectWorkerNodeStatistics()) {
-                stats.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
-            }
+            workloadDistributor.getRelevantWorkerIDsForAxiom(inference)
+                    .forEach(receiverWorkerID -> {
+                        if (receiverWorkerID != this.workerID) {
+                            sentAxiomMessages.incrementAndGet();
+                            networkingLoop.sendMessage(workerIDToSocketID.get(receiverWorkerID), inference);
+                        } else {
+                            // add axioms from this worker directly to the queue
+                            networkingLoop.addToToDoQueue(inference);
+                        }
+                    });
         });
+        if (config.collectWorkerNodeStatistics()) {
+            stats.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+        }
     }
 
     public void sendAxiomCountToControlNode() {
@@ -157,8 +149,8 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     public void sendToControlNode(C closure) {
         // generate closure
         Collection<A> closureResults = closure.getClosureResults();
-        closureResults.forEach(axiom -> {
-            send(controlNodeSocketID, axiom);
+        closureResults.iterator().forEachRemaining(axiom -> {
+            networkingLoop.sendMessage(controlNodeSocketID, axiom);
         });
     }
 
@@ -175,29 +167,28 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
 
     public void send(long receiverSocketID, MessageModel messageModel, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(messageModel.getMessageID(), onAcknowledgement);
-        networkingComponent.sendMessage(receiverSocketID, messageModel);
+        send(receiverSocketID, messageModel);
     }
 
     public void send(long receiverSocketID, Serializable message) {
-        networkingComponent.sendMessage(receiverSocketID, message);
+        networkingLoop.sendMessage(receiverSocketID, message);
     }
 
     public void terminateNow() {
         this.networkingComponent.terminate();
     }
 
-    public void sendAxiom(long receiverWorkerID, A axiom) {
+    private MessageEnvelope getAxiomMessageEnvelope(long receiverWorkerID, A axiom) {
         sentAxiomMessages.getAndIncrement();
         if (config.collectWorkerNodeStatistics()) {
             stats.getNumberOfSentAxioms().getAndIncrement();
         }
-
         Long socketID = this.workerIDToSocketID.get(receiverWorkerID);
         if (socketID == null) {
             log.warning("Worker " + receiverWorkerID + " has for worker " + this.workerID + " no socket ID assigned.");
         }
 
-        send(socketID, axiom);
+        return new MessageEnvelope(socketID, axiom);
     }
 
     public List<DistributedWorkerModel<C, A, T>> getWorkers() {
@@ -210,7 +201,7 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
 
     public void addInitialAxiomsToQueue() {
         if (initialAxioms != null) {
-            networkingLoop.onNewMessageReceived(initialAxioms);
+            networkingLoop.addToToDoQueue(initialAxioms.iterator());
             this.initialAxioms = null;
         }
     }
@@ -228,7 +219,7 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     }
 
     public void addAxiomsToQueue(List<A> axioms) {
-        this.networkingLoop.onNewMessageReceived(axioms);
+        this.networkingLoop.addToToDoQueue(axioms.iterator());
     }
 
     public AcknowledgementEventManager getAcknowledgementEventManager() {
@@ -268,7 +259,7 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
                 networkingLoop.onNewMessageReceived(message);
                 return;
             }
-            MessageModel<C, A ,T> messageModel = (MessageModel<C, A ,T>) message;
+            MessageModel<C, A, T> messageModel = (MessageModel<C, A, T>) message;
 
             if (!allConnectionsEstablished) {
                 // get worker ID / control node ID to socket ID mapping

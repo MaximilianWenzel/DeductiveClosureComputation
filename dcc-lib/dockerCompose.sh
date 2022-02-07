@@ -1,8 +1,8 @@
 for APPROACH in single-machine docker-network
 do
-  for NUM_WORKES in 1 2 3 4 5 6 7 8
+  for NUM_WORKERS in  2
   do
-    for BENCHMARK in echo binarytree
+    for BENCHMARK in echo
     do
       APPROACH=$APPROACH NUM_WORKERS=$NUM_WORKERS BENCHMARK=echo \
       docker-compose -f DistributedSaturationBenchmark.yaml up \
