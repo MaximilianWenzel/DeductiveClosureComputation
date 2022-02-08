@@ -37,49 +37,45 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T extends Serializable> {
+    private static final List<List<String>> csvRows = new ArrayList<>();
     private Logger log = ConsoleUtils.getLogger();
-
     private int numberOfExperimentRepetitions = 2;
     private int numberOfWarmUpRounds = 2;
     private Set<SaturationApproach> includedApproaches;
     private Stopwatch stopwatch;
     private File outputDirectory;
     private String benchmarkType;
-
-    private List<List<String>> csvRows = new ArrayList<>();
-    private List<String> csvHeader;
-
-    private List<Integer> numberOfThreadsForSingleDistributedWorker = Collections.singletonList(2);
-
+    private List<MessageDistributionType> messageDistributionTypes;
     private boolean workerNodeStatistics = false;
-
     private SaturationInitializationFactory<C, A, T> initializationFactory;
     private Iterator<? extends A> initialAxioms;
     private long numberOfInitialAxioms;
     private List<WorkerModel<C, A, T>> workers;
-
     private SaturationWorkerGenerator workerGenerator;
-
+    private List<String> csvHeader;
 
     {
-        csvHeader = new ArrayList<>();
-        csvHeader.add("benchmarkType");
-        csvHeader.add("approach");
-        csvHeader.add("numberOfInitialAxioms");
-        csvHeader.add("numWorkers");
-        csvHeader.add("minRuntimeMS");
-        csvHeader.add("maxRuntimeMS");
-        csvHeader.add("averageRuntimeMS");
+        this.csvHeader = new ArrayList<>();
+        this.csvHeader.add("benchmarkType");
+        this.csvHeader.add("approach");
+        this.csvHeader.add("messageDistribution");
+        this.csvHeader.add("withSendingClosureResultsTime");
+        this.csvHeader.add("numberOfInitialAxioms");
+        this.csvHeader.add("numWorkers");
+        this.csvHeader.add("minRuntimeMS");
+        this.csvHeader.add("maxRuntimeMS");
+        this.csvHeader.add("averageRuntimeMS");
     }
+
 
     public SaturationBenchmark(String benchmarkType,
                                Set<SaturationApproach> includedApproaches,
                                File outputDirectory,
                                int numberOfWarmUpRounds, int numberOfExperimentRepetitions,
                                boolean workerNodeStatistics,
-                               List<Integer> numberOfThreadsForSingleDistributedWorker) {
+                               List<MessageDistributionType> messageDistributionTypes) {
         this.benchmarkType = benchmarkType;
-        this.numberOfThreadsForSingleDistributedWorker = numberOfThreadsForSingleDistributedWorker;
+        this.messageDistributionTypes = messageDistributionTypes;
         this.numberOfWarmUpRounds = numberOfWarmUpRounds;
         this.includedApproaches = includedApproaches;
         this.numberOfExperimentRepetitions = numberOfExperimentRepetitions;
@@ -100,7 +96,6 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         this.outputDirectory.mkdir();
         this.workerNodeStatistics = workerNodeStatistics;
     }
-
 
     public void startBenchmark(SaturationInitializationFactory<C, A, T> saturationInitializationFactory) {
         this.initializationFactory = saturationInitializationFactory;
@@ -130,28 +125,28 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 initializationFactory.resetFactory();
             }
 
-            for (Integer numThreadsForSingleWorker : numberOfThreadsForSingleDistributedWorker) {
+            for (MessageDistributionType messageDistributionType : messageDistributionTypes) {
                 // distributed - each worker in separate thread
                 if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_MULTITHREADED)) {
-                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_MULTITHREADED, numThreadsForSingleWorker);
+                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_MULTITHREADED, messageDistributionType);
                     initializationFactory.resetFactory();
                 }
 
                 // distributed - each worker in separate JVM
                 if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_JVM)) {
-                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_JVM, numThreadsForSingleWorker);
+                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_JVM, messageDistributionType);
                     initializationFactory.resetFactory();
                 }
 
                 // distributed - each worker in separate docker container
                 if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER)) {
-                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER, numThreadsForSingleWorker);
+                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER, messageDistributionType);
                     initializationFactory.resetFactory();
                 }
 
                 // distributed - worker have been already started in separate docker container, only control node is started
                 if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK)) {
-                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK, numThreadsForSingleWorker);
+                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK, messageDistributionType);
                     initializationFactory.resetFactory();
                 }
             }
@@ -176,7 +171,9 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         CSVRow row = new CSVRow(
                 "single",
                 numberOfInitialAxioms,
-                null,
+                MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO,
+                true,
+                1,
                 runtimeInMSStats.getMin(),
                 runtimeInMSStats.getMax(),
                 runtimeInMSStats.getMean()
@@ -192,67 +189,98 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         log.info("# Initial Axioms: " + numberOfInitialAxioms);
         log.info("# Workers: " + workers.size());
 
-        DescriptiveStatistics runtimeInMSStats = parallelClosureComputation(
-        );
+        RuntimeMeasurements runtime = parallelClosureComputation();
 
-        CSVRow row = new CSVRow(
+        DescriptiveStatistics measurements = runtime.getRuntimeWithSendingClosureResults();
+        CSVRow rowWithSendingClosureResults = new CSVRow(
                 "parallel",
                 numberOfInitialAxioms,
+                MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO,
+                true,
                 workers.size(),
-                runtimeInMSStats.getMin(),
-                runtimeInMSStats.getMax(),
-                runtimeInMSStats.getMean()
+                measurements.getMin(),
+                measurements.getMax(),
+                measurements.getMean()
         );
 
-        this.csvRows.add(row.toCSVRow());
+        measurements = runtime.getRuntimeWithoutSendingClosureResults();
+        CSVRow rowWithoutSendingClosureResults = new CSVRow(
+                "parallel",
+                numberOfInitialAxioms,
+                MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO,
+                false,
+                workers.size(),
+                measurements.getMin(),
+                measurements.getMax(),
+                measurements.getMean()
+        );
+
+        csvRows.add(rowWithSendingClosureResults.toCSVRow());
+        csvRows.add(rowWithoutSendingClosureResults.toCSVRow());
 
         log.info(ConsoleUtils.getSeparator());
 
     }
 
-    public void runDistributedSaturationBenchmark(SaturationApproach distributedApproach, int numberOfThreadsForSingleDistributedWorker) {
-        DescriptiveStatistics runtime = null;
+    public void runDistributedSaturationBenchmark(SaturationApproach distributedApproach, MessageDistributionType messageDistributionType) {
+        RuntimeMeasurements runtime = null;
         log.info("Distributed");
         log.info("# Initial Axioms: " + numberOfInitialAxioms);
         log.info("# Workers: " + workers.size());
         log.info("Approach: " + distributedApproach.toString());
         try {
-            runtime = distributedClosureComputation(distributedApproach, numberOfThreadsForSingleDistributedWorker);
+            runtime = distributedClosureComputation(distributedApproach, messageDistributionType);
+            DescriptiveStatistics measurements = runtime.getRuntimeWithSendingClosureResults();
+            CSVRow rowWithSendingClosureResults = new CSVRow(
+                    distributedApproach.toString().toLowerCase(),
+                    numberOfInitialAxioms,
+                    messageDistributionType,
+                    true,
+                    workers.size(),
+                    measurements.getMin(),
+                    measurements.getMax(),
+                    measurements.getMean()
+            );
+
+            measurements = runtime.getRuntimeWithoutSendingClosureResults();
+            CSVRow rowWithoutSendingClosureResults = new CSVRow(
+                    distributedApproach.toString().toLowerCase(),
+                    numberOfInitialAxioms,
+                    messageDistributionType,
+                    false,
+                    workers.size(),
+                    measurements.getMin(),
+                    measurements.getMax(),
+                    measurements.getMean()
+            );
+
+            csvRows.add(rowWithSendingClosureResults.toCSVRow());
+            csvRows.add(rowWithoutSendingClosureResults.toCSVRow());
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-        CSVRow row = new CSVRow(
-                distributedApproach.toString().toLowerCase(),
-                numberOfInitialAxioms,
-                workers.size(),
-                runtime.getMin(),
-                runtime.getMax(),
-                runtime.getMean()
-        );
-
-        csvRows.add(row.toCSVRow());
 
         log.info(ConsoleUtils.getSeparator());
 
     }
 
-    private DescriptiveStatistics distributedClosureComputation(SaturationApproach distributedApproach,
-                                                                int numberOfThreadsForSingleDistributedWorker) throws
+    private RuntimeMeasurements distributedClosureComputation(SaturationApproach distributedApproach,
+                                                              MessageDistributionType messageDistributionType) throws
             InterruptedException {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
+        List<Double> runtimeInMSPerRoundWithSendingClosure = new ArrayList<>();
         List<ServerData> serverDataList = null;
 
         // initialize workers
         switch (distributedApproach) {
             case DISTRIBUTED_MULTITHREADED:
-                workerGenerator = new SaturationWorkerThreadGenerator(workers.size(), numberOfThreadsForSingleDistributedWorker);
+                workerGenerator = new SaturationWorkerThreadGenerator(workers.size(), 1);
                 break;
             case DISTRIBUTED_SEPARATE_DOCKER_CONTAINER:
                 workerGenerator = new SaturationDockerWorkerGenerator(workers.size());
                 break;
             case DISTRIBUTED_SEPARATE_JVM:
-                workerGenerator = new SaturationJVMWorkerGenerator(workers.size(), numberOfThreadsForSingleDistributedWorker);
+                workerGenerator = new SaturationJVMWorkerGenerator(workers.size(), 1);
                 break;
             case DISTRIBUTED_DOCKER_BENCHMARK:
                 workerGenerator = null;
@@ -286,8 +314,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                     initializationFactory.getWorkloadDistributor(),
                     initialAxioms,
                     initializationFactory.getNewClosure(),
-                    new DistributedSaturationConfiguration(true, workerNodeStatistics, MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO),
-                    numberOfThreadsForSingleDistributedWorker
+                    new DistributedSaturationConfiguration(true, workerNodeStatistics, messageDistributionType),
+                    1
             );
 
             // run saturation
@@ -302,6 +330,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 long runtimeInMS = controlNodeStatistics.getWorkerInitializationTimeMS()
                         + controlNodeStatistics.getTotalSaturationTimeMS();
                 runtimeInMSPerRound.add((double) runtimeInMS);
+                runtimeInMSPerRoundWithSendingClosure.add(
+                        (double) runtimeInMS + controlNodeStatistics.getCollectingClosureResultsFromWorkersMS());
             }
 
             // distributed saturation stats
@@ -313,10 +343,12 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         if (!distributedApproach.equals(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK)) {
             workerGenerator.stopWorkers();
         }
-
-        return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
+        RuntimeMeasurements runtimeMeasurements = new RuntimeMeasurements(
+                new DescriptiveStatistics(runtimeInMSPerRoundWithSendingClosure.stream().mapToDouble(d -> d).toArray()),
+                new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray())
+        );
+        return runtimeMeasurements;
     }
-
 
     private DescriptiveStatistics singleThreadedClosureComputation() {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
@@ -351,8 +383,9 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
     }
 
-    private DescriptiveStatistics parallelClosureComputation() {
+    private RuntimeMeasurements parallelClosureComputation() {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
+        List<Double> runtimeInMSPerRoundWithSendingClosure = new ArrayList<>();
 
         for (int roundNumber = 1; roundNumber <= this.numberOfWarmUpRounds + this.numberOfExperimentRepetitions; roundNumber++) {
             if (roundNumber <= numberOfWarmUpRounds) {
@@ -376,11 +409,20 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 runtimeInMSPerRound.add((double) (controlNodeStatistics.getWorkerInitializationTimeMS()
                         + controlNodeStatistics.getTotalSaturationTimeMS()));
 
+                runtimeInMSPerRoundWithSendingClosure.add((double) (
+                        controlNodeStatistics.getWorkerInitializationTimeMS()
+                                + controlNodeStatistics.getTotalSaturationTimeMS()
+                                + controlNodeStatistics.getCollectingClosureResultsFromWorkersMS()
+                ));
+
                 createStatisticsCSVFiles("parallel", controlNodeStatistics,
                         workerStatistics);
             }
         }
-        return new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray());
+        return new RuntimeMeasurements(
+                new DescriptiveStatistics(runtimeInMSPerRoundWithSendingClosure.stream().mapToDouble(d -> d).toArray()),
+                new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray())
+        );
     }
 
     public void createStatisticsCSVFiles(String approach, ControlNodeStatistics controlNodeStatistics,
@@ -425,20 +467,45 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         }
     }
 
+    private class RuntimeMeasurements {
+        DescriptiveStatistics runtimeWithSendingClosureResults;
+        DescriptiveStatistics runtimeWithoutSendingClosureResults;
+
+        public RuntimeMeasurements(DescriptiveStatistics runtimeWithSendingClosureResults,
+                                   DescriptiveStatistics runtimeWithoutSendingClosureResults) {
+            this.runtimeWithSendingClosureResults = runtimeWithSendingClosureResults;
+            this.runtimeWithoutSendingClosureResults = runtimeWithoutSendingClosureResults;
+        }
+
+        public DescriptiveStatistics getRuntimeWithSendingClosureResults() {
+            return runtimeWithSendingClosureResults;
+        }
+
+        public DescriptiveStatistics getRuntimeWithoutSendingClosureResults() {
+            return runtimeWithoutSendingClosureResults;
+        }
+    }
+
     private class CSVRow {
         String benchmarkType = SaturationBenchmark.this.benchmarkType;
         String approach;
-        Long numberOfEchoAxioms;
+        MessageDistributionType messageDistributionType;
+        boolean withSendingClosureResults;
+        Long numberOfInitialAxioms;
         Integer numWorkers;
         Double minRuntimeMS;
         Double maxRuntimeMS;
         Double averageRuntimeMS;
 
-        public CSVRow(String approach, Long numberOfEchoAxioms,
+
+        public CSVRow(String approach, Long numberOfInitialAxioms, MessageDistributionType messageDistributionType,
+                      boolean withSendingClosureResults,
                       Integer numWorkers,
                       Double minRuntimeMS, Double maxRuntimeMS, Double averageRuntimeMS) {
             this.approach = approach;
-            this.numberOfEchoAxioms = numberOfEchoAxioms;
+            this.messageDistributionType = messageDistributionType;
+            this.withSendingClosureResults = withSendingClosureResults;
+            this.numberOfInitialAxioms = numberOfInitialAxioms;
             this.numWorkers = numWorkers;
             this.minRuntimeMS = minRuntimeMS;
             this.maxRuntimeMS = maxRuntimeMS;
@@ -449,13 +516,15 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             List<String> row = new ArrayList<>();
             row.add(benchmarkType);
             row.add(approach);
-            row.add(numberOfEchoAxioms + "");
+            row.add(messageDistributionType.toString().toLowerCase());
+            row.add(String.valueOf(withSendingClosureResults));
+            row.add(numberOfInitialAxioms + "");
             row.add(numWorkers + "");
             row.add(minRuntimeMS + "");
             row.add(maxRuntimeMS + "");
             row.add(averageRuntimeMS + "");
 
-            assert row.size() == csvHeader.size();
+            assert row.size() == SaturationBenchmark.this.csvHeader.size();
             return row;
         }
     }

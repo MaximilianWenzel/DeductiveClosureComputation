@@ -9,6 +9,7 @@ import benchmark.transitiveclosure.Reachability;
 import benchmark.transitiveclosure.ReachabilityClosure;
 import benchmark.transitiveclosure.ReachabilitySaturationInitializationFactory;
 import benchmark.transitiveclosure.ToldReachability;
+import enums.MessageDistributionType;
 import enums.SaturationApproach;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.roaringbitmap.RoaringBitmap;
@@ -27,7 +28,7 @@ public class IndividualExperiments {
     private static List<Integer> initialEchoAxioms;
     private static List<Integer> chainDepthList;
     private static List<Integer> numberOfWorkersList;
-    private static List<Integer> numberOfThreadsPerDistributedWorker;
+    private static List<MessageDistributionType> messageDistributionTypes;
 
     static {
         binaryTreeDepthList = new ArrayList<>();
@@ -58,8 +59,9 @@ public class IndividualExperiments {
         //numberOfWorkersList.add(3);
         numberOfWorkersList.add(4);
 
-        numberOfThreadsPerDistributedWorker = new ArrayList<>();
-        numberOfThreadsPerDistributedWorker.add(1);
+        messageDistributionTypes = new ArrayList<>();
+        messageDistributionTypes.add(MessageDistributionType.SEND_ALL_MESSAGES_OVER_NETWORK);
+        messageDistributionTypes.add(MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO);
     }
 
     public static void main(String[] args) {
@@ -104,7 +106,7 @@ public class IndividualExperiments {
                 WARM_UP_ROUNDS,
                 EXPERIMENT_ROUNDS,
                 collectWorkerNodeStatistics,
-                numberOfThreadsPerDistributedWorker
+                messageDistributionTypes
         );
         for (Integer depth : binaryTreeDepthList) {
             ReachabilityBinaryTreeGenerator treeGenerator = new ReachabilityBinaryTreeGenerator(depth);
@@ -134,7 +136,7 @@ public class IndividualExperiments {
                 WARM_UP_ROUNDS,
                 EXPERIMENT_ROUNDS,
                 collectWorkerNodeStatistics,
-                numberOfThreadsPerDistributedWorker
+                messageDistributionTypes
         );
         for (Integer depth : chainDepthList) {
             ReachabilityChainGraphGenerator treeGenerator = new ReachabilityChainGraphGenerator(depth);
@@ -162,7 +164,7 @@ public class IndividualExperiments {
                 WARM_UP_ROUNDS,
                 EXPERIMENT_ROUNDS,
                 collectWorkerNodeStatistics,
-                numberOfThreadsPerDistributedWorker
+                messageDistributionTypes
         );
         for (Integer initialMessages : initialMessagesList) {
             for (Integer numWorkers : numberOfWorkersList) {

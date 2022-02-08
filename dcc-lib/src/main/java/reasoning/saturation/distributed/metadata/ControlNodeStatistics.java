@@ -20,6 +20,16 @@ public class ControlNodeStatistics {
     private AtomicLong numberOfReceivedAxiomCountMessages = new AtomicLong(0);
     private AtomicLong sumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent = new AtomicLong(0);
 
+    public static List<String> getControlNodeStatsHeader() {
+        List<String> header = new ArrayList<>();
+        header.add("NumberOfReceivedAxiomCountMessages");
+        header.add("SumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent");
+        header.add("WorkerInitializationTimeMS");
+        header.add("TotalSaturationTimeMS");
+        header.add("CollectingClosureResultsTimeMS");
+        return header;
+    }
+
     public void startStopwatch(StatisticsComponent component) {
         switch (component) {
             case CONTROL_NODE_INITIALIZING_ALL_WORKERS:
@@ -72,14 +82,8 @@ public class ControlNodeStatistics {
         return totalSaturationTimeMS;
     }
 
-    public static List<String> getControlNodeStatsHeader() {
-        List<String> header = new ArrayList<>();
-        header.add("NumberOfReceivedAxiomCountMessages");
-        header.add("SumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent");
-        header.add("WorkerInitializationTimeMS");
-        header.add("TotalSaturationTimeMS");
-        header.add("CollectingClosureResultsTimeMS");
-        return header;
+    public long getCollectingClosureResultsFromWorkersMS() {
+        return collectingClosureResultsFromWorkersMS;
     }
 
     public AtomicLong getNumberOfReceivedAxiomCountMessages() {
