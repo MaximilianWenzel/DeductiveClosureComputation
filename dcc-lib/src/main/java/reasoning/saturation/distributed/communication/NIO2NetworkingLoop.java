@@ -130,7 +130,7 @@ public abstract class NIO2NetworkingLoop implements Runnable {
             this.messagesToSend.add(new MessageEnvelope(socketID, message));
             return false;
         } else {
-            if (!getNetworkingComponent().sendMessage(socketID, message)) {
+            if (!networkingComponent.sendMessage(socketID, message)) {
                 this.messagesToSend.add(new MessageEnvelope(socketID, message));
                 return false;
             }

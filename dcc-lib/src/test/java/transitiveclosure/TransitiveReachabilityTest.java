@@ -1,7 +1,10 @@
 package transitiveclosure;
 
 import benchmark.graphgeneration.ReachabilityBinaryTreeGenerator;
-import benchmark.transitiveclosure.*;
+import benchmark.transitiveclosure.DerivedReachability;
+import benchmark.transitiveclosure.Reachability;
+import benchmark.transitiveclosure.ReachabilitySaturationInitializationFactory;
+import benchmark.transitiveclosure.ToldReachability;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -75,7 +78,8 @@ public class TransitiveReachabilityTest {
                     2,
                     0
             );
-            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM,
+                    numberOfThreadsPerSingleWorker, false);
 
             ReachabilityBinaryTreeGenerator generator = new ReachabilityBinaryTreeGenerator(5);
             initializationFactory = new ReachabilitySaturationInitializationFactory(
@@ -83,7 +87,8 @@ public class TransitiveReachabilityTest {
                     4,
                     0
             );
-            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM,
+                    numberOfThreadsPerSingleWorker, false);
 
             if (!workersInSeparateJVM) {
                 generator = new ReachabilityBinaryTreeGenerator(7);
@@ -92,7 +97,8 @@ public class TransitiveReachabilityTest {
                         20,
                         0
                 );
-                ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM, numberOfThreadsPerSingleWorker);
+                ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM,
+                        numberOfThreadsPerSingleWorker, false);
             }
         }
     }

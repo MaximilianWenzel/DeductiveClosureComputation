@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 import reasoning.saturation.SaturationInitializationFactory;
 import util.ClosureComputationTestUtil;
 
-import java.util.Scanner;
-
 public class EchoSaturationTest {
 
 
@@ -34,6 +32,6 @@ public class EchoSaturationTest {
         SaturationInitializationFactory<EchoClosure, EchoAxiom, Integer> initializationFactory = new EchoSaturationInitializationFactory(
                 numWorkers, 1_000_000);
 
-        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 1);
+        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 1, true);
     }
 }

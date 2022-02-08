@@ -15,4 +15,8 @@ public class DistributedSaturationConfiguration extends SaturationConfiguration 
         super(collectControlNodeStatistics, collectWorkerNodeStatistics);
         this.messageDistributionType = messageDistributionType;
     }
+
+    public MessageDistributionType getMessageDistributionType() {
+        return messageDistributionType;
+    }
 }

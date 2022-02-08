@@ -3,9 +3,6 @@ dontinline,*.*_avgt_jmhStub
 dontinline,*.*_sample_jmhStub
 dontinline,*.*_ss_jmhStub
 dontinline,*.*_thrpt_jmhStub
-inline,benchmark/jmh/JMHIteratorConcat.addToArrayBlockingQueue
-inline,benchmark/jmh/JMHIteratorConcat.concatIterator
-inline,benchmark/jmh/JMHIteratorConcat.iteratorChain
-inline,benchmark/jmh/JMHIteratorConcat.setUp
-inline,benchmark/jmh/JMHIteratorConcat.streamConcat
-inline,benchmark/jmh/JMHIteratorConcat.streamIterator
+inline,benchmark/jmh/JMHIterationBenchmark.arrayBlockingQueue
+inline,benchmark/jmh/JMHIterationBenchmark.iteratorChain
+inline,benchmark/jmh/JMHIterationBenchmark.setUp

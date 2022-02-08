@@ -12,7 +12,6 @@ import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
-import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.parallel.ParallelSaturation;
@@ -60,7 +59,7 @@ public class ClosureComputationTestUtil {
     public static <C extends Closure<A>, A extends Serializable, T extends Serializable> void distributedClosureComputation(
             SaturationInitializationFactory<C, A, T> factory,
             boolean workersInSeparateJVMs,
-            int numberOfThreadsForSingleWorker) {
+            int numberOfThreadsForSingleWorker, boolean sendAllMessagesOverNetwork) {
         List<ServerData> serverDataList = null;
         SaturationWorkerGenerator workerGenerator;
         int numberOfWorkers = factory.getWorkerModels().size();
@@ -85,8 +84,19 @@ public class ClosureComputationTestUtil {
         List<DistributedWorkerModel<C, A, T>> workers = factory.getDistributedWorkerModels(
                 serverDataList);
 
-        DistributedSaturationConfiguration configuration = new DistributedSaturationConfiguration(true, false ,
-                MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO);
+        MessageDistributionType messageDistributionType;
+        if (sendAllMessagesOverNetwork) {
+            messageDistributionType = MessageDistributionType.SEND_ALL_MESSAGES_OVER_NETWORK;
+        } else {
+            messageDistributionType = MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO;
+        }
+
+        DistributedSaturationConfiguration configuration = new DistributedSaturationConfiguration(
+                true,
+                false,
+                messageDistributionType
+        );
+
         DistributedSaturation<C, A, T> saturation = new DistributedSaturation<>(
                 workers,
                 factory.getWorkloadDistributor(),

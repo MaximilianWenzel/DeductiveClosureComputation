@@ -37,18 +37,11 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
                     communicationChannel.sendToControlNode(stats);
                 }
                 log.info("Control node requests closure results...");
-                communicationChannel.sendToControlNode(worker.getClosure());
-                long sendClosureResultRequestMessageID = message.getMessageID();
-                communicationChannel.acknowledgeMessage(communicationChannel.getControlNodeID(),
-                        sendClosureResultRequestMessageID);
+                worker.switchState(new WorkerStateSendingClosureResults<>(worker, message.getMessageID()));
                 break;
             case WORKER_SERVER_HELLO:
             case WORKER_CLIENT_HELLO:
                 acknowledgementEventManager.messageAcknowledged(message.getMessageID());
-                break;
-            case CONTROL_NODE_INFO_CLOSURE_RESULTS_RECEIVED:
-                log.info("Control node received all closure results. Saturation finished.");
-                worker.switchState(new WorkerStateFinished<>(worker));
                 break;
             default:
                 messageProtocolViolation(message);
