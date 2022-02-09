@@ -1,12 +1,9 @@
 package networking.io.nio2;
 
-import networking.messages.MessageEnvelope;
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
-
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.Buffer;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;

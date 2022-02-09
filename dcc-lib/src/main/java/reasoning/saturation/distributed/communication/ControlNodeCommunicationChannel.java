@@ -87,7 +87,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     }
 
     public void addInitialAxiomsToToDoQueue() {
-        networkingLoop.addToToDoQueue(initialAxioms);
+        initialAxioms.forEachRemaining(networkingLoop::addToToDoQueue);
     }
 
     public void distributeAxiom(A axiom) {

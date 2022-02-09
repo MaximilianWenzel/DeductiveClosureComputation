@@ -165,7 +165,7 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
         Collection<A> closureResults = closure.getClosureResults();
 
         // add closure iterator to to-do queue
-        networkingLoop.addToToDoQueue(closureResults.iterator());
+        closureResults.forEach(networkingLoop::addToToDoQueue);
     }
 
     public void sendToControlNode(Serializable message) {
@@ -219,7 +219,7 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
 
     public void addInitialAxiomsToQueue() {
         if (initialAxioms != null) {
-            networkingLoop.addToToDoQueue(initialAxioms.iterator());
+            initialAxioms.forEach(networkingLoop::addToToDoQueue);
             this.initialAxioms = null;
         }
     }
@@ -237,7 +237,7 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     }
 
     public void addAxiomsToQueue(List<A> axioms) {
-        this.networkingLoop.addToToDoQueue(axioms.iterator());
+        axioms.forEach(networkingLoop::addToToDoQueue);
     }
 
     public AcknowledgementEventManager getAcknowledgementEventManager() {

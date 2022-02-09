@@ -2,7 +2,9 @@ package reasoning.saturation.distributed.communication;
 
 import networking.NIO2NetworkingComponent;
 import networking.messages.MessageEnvelope;
+import org.apache.commons.collections4.QueueUtils;
 import org.apache.commons.collections4.iterators.IteratorChain;
+import util.QueueFactory;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -18,10 +20,8 @@ public abstract class NIO2NetworkingLoop implements Runnable {
     private NIO2NetworkingComponent networkingComponent;
     private boolean terminateAfterFinishing;
 
-    private IteratorChain<Object> toDoMessages = new IteratorChain<>();
-    private IteratorChain<Object> toDoMessagesIterator = new IteratorChain<>();
-
-    private BlockingQueue<MessageEnvelope> messagesToSend = new LinkedBlockingQueue<>();
+    private BlockingQueue<Object> toDoMessages = QueueFactory.createDistributedSaturationToDo();
+    private MessageEnvelope currentMessageToSend = null;
 
     private Object currentElement;
 
@@ -41,36 +41,53 @@ public abstract class NIO2NetworkingLoop implements Runnable {
     @Override
     public void run() {
         do {
-            while (runningCondition() || toDoMessagesIterator.hasNext() || toDoMessages.hasNext()) {
-                trySendingMessagesWhichCouldNotBeSent();
-                if (!messagesToSend.isEmpty()) {
-                    // messages could not be sent - stop task
-                    mainLoopSubmittedToThreadPool.set(false);
-                    return;
+            while (runningCondition() || !toDoMessages.isEmpty()) {
+                if (currentMessageToSend != null) {
+                    if (!trySendingCurrentMessage()) {
+                        // messages could not be sent - stop task
+                        mainLoopSubmittedToThreadPool.set(false);
+                        return;
+                    }
                 }
 
-                if (!toDoMessagesIterator.hasNext()) {
-                    // to-do cannot be modified after "hasNext()" has been called
-                    toDoMessagesIterator = toDoMessages;
-                    toDoMessages = new IteratorChain<>();
-                }
-
-                if (mainLoopSubmittedToThreadPool.compareAndSet(!toDoMessagesIterator.hasNext(), false)) {
+                if (mainLoopSubmittedToThreadPool.compareAndSet(toDoMessages.isEmpty(), false)) {
                     onNoMoreMessages();
                     return;
                 } else {
-                    currentElement = toDoMessagesIterator.next();
-                    processNextMessage(currentElement);
+                    currentElement = toDoMessages.poll();
+                    if (currentElement instanceof MessageEnvelope) {
+                        currentMessageToSend = (MessageEnvelope) currentElement;
+                        if (!trySendingCurrentMessage()) {
+                            // messages could not be sent - stop task
+                            mainLoopSubmittedToThreadPool.set(false);
+                            return;
+                        }
+
+                    } else {
+                        processNextMessage(currentElement);
+                    }
                 }
             }
 
             this.currentElement = null;
-            this.toDoMessagesIterator = new IteratorChain<>();
+            this.currentMessageToSend = null;
             onRestart();
         } while (!terminateAfterFinishing);
 
         onTerminate();
         this.mainLoopSubmittedToThreadPool.set(false);
+    }
+
+    /**
+     * Returns whether the current message could be sent.
+     */
+    private boolean trySendingCurrentMessage() {
+        if (!networkingComponent.sendMessage(currentMessageToSend.getSocketID(), currentMessageToSend.getMessage())) {
+            return false;
+        } else {
+            currentMessageToSend = null;
+            return true;
+        }
     }
 
     public void start() {
@@ -89,7 +106,7 @@ public abstract class NIO2NetworkingLoop implements Runnable {
     }
 
     void onSocketOutboundBufferHasSpace(Long socketID) {
-        if (!messagesToSend.isEmpty()) {
+        if (!toDoMessages.isEmpty()) {
             // messages could not be sent
             submitThisTaskToThreadPoolIfNotDoneAlready();
         }
@@ -115,27 +132,14 @@ public abstract class NIO2NetworkingLoop implements Runnable {
 
     public abstract void processNextMessage(Object nextMessage);
 
-    public void addToToDoQueue(Iterator<?> messages) {
-        this.toDoMessages.addIterator(messages);
-        submitThisTaskToThreadPoolIfNotDoneAlready();
-    }
-
     public void addToToDoQueue(Object message) {
-        this.toDoMessages.addIterator(Collections.singleton(message).iterator());
+        this.toDoMessages.add(message);
         submitThisTaskToThreadPoolIfNotDoneAlready();
     }
 
-    public boolean sendMessage(long socketID, Serializable message) {
-        if (!messagesToSend.isEmpty()) {
-            this.messagesToSend.add(new MessageEnvelope(socketID, message));
-            return false;
-        } else {
-            if (!networkingComponent.sendMessage(socketID, message)) {
-                this.messagesToSend.add(new MessageEnvelope(socketID, message));
-                return false;
-            }
-        }
-        return true;
+    public void sendMessage(long socketID, Serializable message) {
+        toDoMessages.add(new MessageEnvelope(socketID, message));
+        submitThisTaskToThreadPoolIfNotDoneAlready();
     }
 
     private void submitThisTaskToThreadPoolIfNotDoneAlready() {
@@ -144,16 +148,4 @@ public abstract class NIO2NetworkingLoop implements Runnable {
         }
     }
 
-    private void trySendingMessagesWhichCouldNotBeSent() {
-        while (!messagesToSend.isEmpty()) {
-            MessageEnvelope message = messagesToSend.peek();
-            if (!networkingComponent.sendMessage(message.getSocketID(), message.getMessage())) {
-                // message could not be sent
-                return;
-            } else {
-                // success
-                messagesToSend.remove();
-            }
-        }
-    }
 }

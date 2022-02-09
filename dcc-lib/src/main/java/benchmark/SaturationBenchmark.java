@@ -45,7 +45,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     private Stopwatch stopwatch;
     private File outputDirectory;
     private String benchmarkType;
-    private List<MessageDistributionType> messageDistributionTypes;
+    private Set<MessageDistributionType> messageDistributionTypes;
     private boolean workerNodeStatistics = false;
     private SaturationInitializationFactory<C, A, T> initializationFactory;
     private Iterator<? extends A> initialAxioms;
@@ -73,7 +73,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                                File outputDirectory,
                                int numberOfWarmUpRounds, int numberOfExperimentRepetitions,
                                boolean workerNodeStatistics,
-                               List<MessageDistributionType> messageDistributionTypes) {
+                               Set<MessageDistributionType> messageDistributionTypes) {
         this.benchmarkType = benchmarkType;
         this.messageDistributionTypes = messageDistributionTypes;
         this.numberOfWarmUpRounds = numberOfWarmUpRounds;
@@ -286,7 +286,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 workerGenerator = null;
                 serverDataList = new ArrayList<>();
                 for (int i = 0; i < workers.size(); i++) {
-                    String serverName = "dcc-lib_worker_" + (i + 2);
+                    String serverName = "dcc-lib_worker_" + (i + 1);
                     serverDataList.add(new ServerData(serverName, 30_000));
                 }
                 break;

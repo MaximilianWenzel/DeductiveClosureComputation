@@ -125,6 +125,11 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
             if (config.collectControlNodeStatistics()) {
                 stats.collectStopwatchTimes();
             }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             communicationChannel.terminate();
             threadPool.shutdownNow();
         }

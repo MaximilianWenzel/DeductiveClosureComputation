@@ -24,21 +24,21 @@ public class IndividualExperiments {
     private static final int EXPERIMENT_ROUNDS = 3;
     private static final int WARM_UP_ROUNDS = 2;
 
-    private static List<Integer> binaryTreeDepthList;
-    private static List<Integer> initialEchoAxioms;
-    private static List<Integer> chainDepthList;
-    private static List<Integer> numberOfWorkersList;
-    private static List<MessageDistributionType> messageDistributionTypes;
+    private static Set<Integer> binaryTreeDepthList;
+    private static Set<Integer> initialEchoAxioms;
+    private static Set<Integer> chainDepthList;
+    private static Set<Integer> numberOfWorkersList;
+    private static Set<MessageDistributionType> messageDistributionTypes;
 
     static {
-        binaryTreeDepthList = new ArrayList<>();
+        binaryTreeDepthList = new UnifiedSet<>();
         //for (int i = 10; i <= 17; i++) {
         //    binaryTreeDepthList.add(i);
         //}
         //binaryTreeDepthList.add(16);
         binaryTreeDepthList.add(17);
 
-        initialEchoAxioms = new ArrayList<>();
+        initialEchoAxioms = new UnifiedSet<>();
         //initialEchoAxioms.add(10_000);
         //initialEchoAxioms.add(20_000);
         //initialEchoAxioms.add(50_000);
@@ -48,18 +48,18 @@ public class IndividualExperiments {
         initialEchoAxioms.add(1_000_000);
         initialEchoAxioms.add(10_000_000);
 
-        chainDepthList = new ArrayList<>();
+        chainDepthList = new UnifiedSet<>();
         for (int i = 100; i <= 1000; i += 100) {
             chainDepthList.add(i);
         }
 
-        numberOfWorkersList = new ArrayList<>();
+        numberOfWorkersList = new UnifiedSet<>();
         numberOfWorkersList.add(1);
         numberOfWorkersList.add(2);
         //numberOfWorkersList.add(3);
         numberOfWorkersList.add(4);
 
-        messageDistributionTypes = new ArrayList<>();
+        messageDistributionTypes = new UnifiedSet<>();
         messageDistributionTypes.add(MessageDistributionType.SEND_ALL_MESSAGES_OVER_NETWORK);
         messageDistributionTypes.add(MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO);
     }
@@ -96,8 +96,8 @@ public class IndividualExperiments {
 
     public static void binaryTreeBenchmark(File outputDirectory,
                                            Set<SaturationApproach> includedApproaches,
-                                           List<Integer> binaryTreeDepthList,
-                                           List<Integer> numberOfWorkersList) {
+                                           Set<Integer> binaryTreeDepthList,
+                                           Set<Integer> numberOfWorkersList) {
 
         SaturationBenchmark<ReachabilityClosure, Reachability, RoaringBitmap> binaryTreeBenchmark = new SaturationBenchmark<>(
                 "BinaryTree",
@@ -126,8 +126,8 @@ public class IndividualExperiments {
 
     public static void chainGraphBenchmark(File outputDirectory,
                                            Set<SaturationApproach> includedApproaches,
-                                           List<Integer> chainDepthList,
-                                           List<Integer> numberOfWorkersList) {
+                                           Set<Integer> chainDepthList,
+                                           Set<Integer> numberOfWorkersList) {
 
         SaturationBenchmark<ReachabilityClosure, Reachability, RoaringBitmap> chainGraphBenchmark = new SaturationBenchmark<>(
                 "ChainGraph",
@@ -155,8 +155,8 @@ public class IndividualExperiments {
 
     public static void echoBenchmark(File outputDirectory,
                                      Set<SaturationApproach> includedApproaches,
-                                     List<Integer> initialMessagesList,
-                                     List<Integer> numberOfWorkersList) {
+                                     Set<Integer> initialMessagesList,
+                                     Set<Integer> numberOfWorkersList) {
         SaturationBenchmark<EchoClosure, EchoAxiom, Integer> echoBenchmark = new SaturationBenchmark<>(
                 "Echo",
                 includedApproaches,

@@ -10,6 +10,7 @@ import java.io.Serializable;
 public class WorkerStateSendingClosureResults<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
 
     private long sendClosureResultMessageID;
+    private boolean closureResultRequestAcknowledged = false;
 
     public WorkerStateSendingClosureResults(SaturationWorker<C, A, T> worker, long sendClosureResultMessageID) {
         super(worker);
@@ -26,8 +27,13 @@ public class WorkerStateSendingClosureResults<C extends Closure<A>, A extends Se
     }
 
     public void onToDoIsEmpty() {
-        communicationChannel.acknowledgeMessage(communicationChannel.getControlNodeID(),
-                sendClosureResultMessageID);
+        if (!closureResultRequestAcknowledged) {
+            closureResultRequestAcknowledged = true;
+            communicationChannel.acknowledgeMessage(
+                    communicationChannel.getControlNodeID(),
+                    sendClosureResultMessageID
+            );
+        }
     }
 
     @Override

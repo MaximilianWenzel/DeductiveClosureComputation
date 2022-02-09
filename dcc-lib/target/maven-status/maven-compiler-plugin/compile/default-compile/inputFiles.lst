@@ -12,6 +12,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\rules\ComposeConjunctionRule.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\workergeneration\SaturationDockerWorkerGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELConceptInclusion.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\states\workernode\WorkerStateSendingClosureResults.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\workergeneration\SaturationJVMWorkerGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleGRDFD1.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\TestObjectWithFields.java
@@ -20,11 +21,13 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Edge.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\graphgeneration\ChainGraphGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\data\Closure.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\JMHIteratorConcat.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\enums\NetworkingComponentType.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleRDFS13.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\states\controlnode\CNSInitializing.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\dataset\RDFDatasetGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\transitiveclosure\Reachability.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\metadata\DistributedSaturationConfiguration.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\data\ParallelToDo.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\NIO2NetworkingComponent.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELRoleName.java
@@ -98,6 +101,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\communication\ControlNodeCommunicationChannel.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleRDFS12.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\models\WorkerModel.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\JMHIterationBenchmark.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\RDFSSaturationInitializationFactory.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\messages\StatisticsMessage.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\dataset\BitsEncodedSubjectObjectPairsIterator.java
@@ -134,6 +138,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\netty\helloworld\RequestData.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\util\LogFormatter.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\rules\NoOPInferenceProcessor.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\SaturationBenchmarkCLApp.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\messages\MessageEnvelope.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\rules\ProcessInferenceConsumer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELSignature.java
@@ -230,5 +235,6 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\NIO2MicroBenchmarkWithQueues.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\transitiveclosure\ReachabilityClosure.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELConceptName.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\enums\MessageDistributionType.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Axiom.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\util\serialization\KryoUtils.java
