@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ClosureComputationTestUtil {
 
-    public static <C extends Closure<A>, A extends Serializable, T extends Serializable> Set<A> singleThreadedClosureComputation(
-            SaturationInitializationFactory<C, A, T> factory) {
+    public static <C extends Closure<A>, A extends Serializable> Set<A> singleThreadedClosureComputation(
+            SaturationInitializationFactory<C, A> factory) {
 
         SingleThreadedSaturation<C, A> saturation = new SingleThreadedSaturation<>(
                 factory.getInitialAxioms(),
@@ -41,9 +41,9 @@ public class ClosureComputationTestUtil {
         return result;
     }
 
-    public static <C extends Closure<A>, A extends Serializable, T extends Serializable> Set<A> parallelClosureComputation(
-            SaturationInitializationFactory<C, A, T> factory) {
-        ParallelSaturation<C, A, T> saturation = new ParallelSaturation<>(
+    public static <C extends Closure<A>, A extends Serializable> Set<A> parallelClosureComputation(
+            SaturationInitializationFactory<C, A> factory) {
+        ParallelSaturation<C, A> saturation = new ParallelSaturation<>(
                 factory
         );
 
@@ -56,8 +56,8 @@ public class ClosureComputationTestUtil {
     }
 
 
-    public static <C extends Closure<A>, A extends Serializable, T extends Serializable> void distributedClosureComputation(
-            SaturationInitializationFactory<C, A, T> factory,
+    public static <C extends Closure<A>, A extends Serializable> void distributedClosureComputation(
+            SaturationInitializationFactory<C, A> factory,
             boolean workersInSeparateJVMs,
             int numberOfThreadsForSingleWorker, boolean sendAllMessagesOverNetwork) {
         List<ServerData> serverDataList = null;
@@ -81,7 +81,7 @@ public class ClosureComputationTestUtil {
         serverDataList = workerGenerator.getWorkerServerDataList();
 
 
-        List<DistributedWorkerModel<C, A, T>> workers = factory.getDistributedWorkerModels(
+        List<DistributedWorkerModel<C, A>> workers = factory.getDistributedWorkerModels(
                 serverDataList);
 
         MessageDistributionType messageDistributionType;
@@ -97,7 +97,7 @@ public class ClosureComputationTestUtil {
                 messageDistributionType
         );
 
-        DistributedSaturation<C, A, T> saturation = new DistributedSaturation<>(
+        DistributedSaturation<C, A> saturation = new DistributedSaturation<>(
                 workers,
                 factory.getWorkloadDistributor(),
                 factory.getInitialAxioms(),

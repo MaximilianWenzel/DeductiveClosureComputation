@@ -14,7 +14,7 @@ public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerato
 
     private final int numberOfWorkers;
     private List<ServerData> serverDataList;
-    private final List<SaturationWorker<?, ?, ?>> saturationWorkers = new ArrayList<>();
+    private final List<SaturationWorker<?, ?>> saturationWorkers = new ArrayList<>();
     private final int numberOfThreadsForSingleWorker;
 
     public SaturationWorkerThreadGenerator(int numberOfWorkers, int numberOfThreadsForSingleWorker) {
@@ -39,7 +39,7 @@ public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerato
     public void generateAndRunWorkers() {
         for (ServerData serverData : serverDataList) {
             try {
-                SaturationWorker<?, ?, ?> worker = new SaturationWorker<>(
+                SaturationWorker<?, ?> worker = new SaturationWorker<>(
                         serverData,
                         SaturationWorker.IncrementalReasonerType.SINGLE_THREADED,
                         numberOfThreadsForSingleWorker

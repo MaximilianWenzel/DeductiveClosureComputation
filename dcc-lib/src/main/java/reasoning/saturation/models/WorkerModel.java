@@ -7,22 +7,19 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class WorkerModel<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Serializable {
+public class WorkerModel<C extends Closure<A>, A extends Serializable> implements Serializable {
 
-    private static final AtomicLong workerIDCounter = new AtomicLong(1L);
-
-    protected long id = workerIDCounter.getAndIncrement();
+    protected long id;
     protected List<? extends Rule<C, A>> rules;
-    protected T workerTerms;
     protected C closure;
 
     protected WorkerModel() {
     }
 
-    public WorkerModel(C closure, List<? extends Rule<C, A>> rules, T workerTerms) {
+    public WorkerModel(long id, C closure, List<? extends Rule<C, A>> rules) {
+        this.id = id;
         this.closure = closure;
         this.rules = rules;
-        this.workerTerms = workerTerms;
     }
 
     public List<? extends Rule<C, A>> getRules() {
@@ -32,10 +29,6 @@ public class WorkerModel<C extends Closure<A>, A extends Serializable, T extends
 
     public long getID() {
         return id;
-    }
-
-    public T getWorkerTerms() {
-        return workerTerms;
     }
 
     public C getClosure() {

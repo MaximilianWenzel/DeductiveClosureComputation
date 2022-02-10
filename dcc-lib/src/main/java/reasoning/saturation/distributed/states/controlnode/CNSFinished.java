@@ -8,8 +8,8 @@ import reasoning.saturation.distributed.SaturationControlNode;
 
 import java.io.Serializable;
 
-public class CNSFinished<C extends Closure<A>, A extends Serializable, T extends Serializable> extends ControlNodeState<C, A, T> {
-    public CNSFinished(SaturationControlNode<C, A, T> saturationControlNode) {
+public class CNSFinished<C extends Closure<A>, A extends Serializable> extends ControlNodeState<C, A> {
+    public CNSFinished(SaturationControlNode<C, A> saturationControlNode) {
         super(saturationControlNode);
     }
 

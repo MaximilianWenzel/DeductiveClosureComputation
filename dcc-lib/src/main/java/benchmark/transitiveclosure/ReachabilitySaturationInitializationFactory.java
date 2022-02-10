@@ -10,12 +10,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class ReachabilitySaturationInitializationFactory extends SaturationInitializationFactory<ReachabilityClosure, Reachability, RoaringBitmap> {
+public class ReachabilitySaturationInitializationFactory extends SaturationInitializationFactory<ReachabilityClosure, Reachability> {
 
     private List<? extends Reachability> initialAxioms;
     private int numberOfWorkers;
     private int ruleDelayInNanoSec;
-    private List<WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workerModels;
+    private List<WorkerModel<ReachabilityClosure, Reachability>> workerModels;
 
     private RoaringBitmap nodeIDs = new RoaringBitmap();
 
@@ -36,29 +36,17 @@ public class ReachabilitySaturationInitializationFactory extends SaturationIniti
     }
 
     @Override
-    public List<WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> getWorkerModels() {
+    public List<WorkerModel<ReachabilityClosure, Reachability>> getWorkerModels() {
         if (workerModels != null) {
             return workerModels;
         }
 
-        List<RoaringBitmap> nodeIDsForWorkers = new ArrayList<>(this.numberOfWorkers);
+        List<WorkerModel<ReachabilityClosure, Reachability>> workers = new ArrayList<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            nodeIDsForWorkers.add(new RoaringBitmap());
-        }
-
-        Iterator<Integer> nodeIDIterator = nodeIDs.iterator();
-        int i = 0;
-        while (nodeIDIterator.hasNext()) {
-            nodeIDsForWorkers.get(i % numberOfWorkers).add(nodeIDIterator.next());
-            i++;
-        }
-
-        List<WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workers = new ArrayList<>();
-        for (RoaringBitmap nodeIDsForWorker : nodeIDsForWorkers) {
-            WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap> workerModel = new WorkerModel<>(
+            WorkerModel<ReachabilityClosure, Reachability> workerModel = new WorkerModel<>(
+                    i + 1,
                     getNewClosure(),
-                    generateRules(),
-                    nodeIDsForWorker
+                    generateRules()
             );
             workers.add(workerModel);
         }
@@ -77,8 +65,8 @@ public class ReachabilitySaturationInitializationFactory extends SaturationIniti
     }
 
     @Override
-    public WorkloadDistributor<ReachabilityClosure, Reachability, RoaringBitmap> getWorkloadDistributor() {
-        return new ReachabilityWorkloadDistributor(getWorkerModels());
+    public WorkloadDistributor<ReachabilityClosure, Reachability> getWorkloadDistributor() {
+        return new ReachabilityWorkloadDistributor(numberOfWorkers);
     }
 
     @Override

@@ -12,9 +12,9 @@ public class InitialAxiomsDistributor<A extends Serializable> {
 
     private Map<Long, RoaringBitmap> workerIDToInitialAxiomsIndex;
     private List<? extends A> initialAxioms;
-    private WorkloadDistributor<?, A, ?> workloadDistributor;
+    private WorkloadDistributor<?, A> workloadDistributor;
 
-    public InitialAxiomsDistributor(List<? extends A> initialAxioms, WorkloadDistributor<?, A, ?> workloadDistributor) {
+    public InitialAxiomsDistributor(List<? extends A> initialAxioms, WorkloadDistributor<?, A> workloadDistributor) {
         this.initialAxioms = initialAxioms;
         this.workloadDistributor = workloadDistributor;
         init();

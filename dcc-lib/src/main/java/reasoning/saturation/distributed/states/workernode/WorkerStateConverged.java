@@ -12,16 +12,16 @@ import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
 
-public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, T extends Serializable>
-        extends WorkerState<C, A, T> {
+public class WorkerStateConverged<C extends Closure<A>, A extends Serializable>
+        extends WorkerState<C, A> {
 
 
-    public WorkerStateConverged(SaturationWorker<C, A, T> worker) {
+    public WorkerStateConverged(SaturationWorker<C, A> worker) {
         super(worker);
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A, T> message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 
@@ -50,7 +50,7 @@ public class WorkerStateConverged<C extends Closure<A>, A extends Serializable, 
 
     @Override
     public void visit(A axiom) {
-        WorkerStateRunning<C, A, T> runningState = new WorkerStateRunning<>(worker);
+        WorkerStateRunning<C, A> runningState = new WorkerStateRunning<>(worker);
         //log.info("Axioms received. Continuing saturation...");
         if (config.collectWorkerNodeStatistics()) {
             stats.stopStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);

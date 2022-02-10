@@ -9,12 +9,12 @@ import reasoning.saturation.distributed.SaturationControlNode;
 
 import java.io.Serializable;
 
-public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Serializable, T extends Serializable>
-        extends ControlNodeState<C, A, T> {
+public class CNSWaitingForClosureResults<C extends Closure<A>, A extends Serializable>
+        extends ControlNodeState<C, A> {
 
     protected int numberOfWorkers;
 
-    public CNSWaitingForClosureResults(SaturationControlNode<C, A, T> saturationControlNode) {
+    public CNSWaitingForClosureResults(SaturationControlNode<C, A> saturationControlNode) {
         super(saturationControlNode);
         this.numberOfWorkers = saturationControlNode.getWorkers().size();
     }

@@ -7,12 +7,12 @@ import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
 
-public class WorkerStateSendingClosureResults<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
+public class WorkerStateSendingClosureResults<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
 
     private long sendClosureResultMessageID;
     private boolean closureResultRequestAcknowledged = false;
 
-    public WorkerStateSendingClosureResults(SaturationWorker<C, A, T> worker, long sendClosureResultMessageID) {
+    public WorkerStateSendingClosureResults(SaturationWorker<C, A> worker, long sendClosureResultMessageID) {
         super(worker);
         this.sendClosureResultMessageID = sendClosureResultMessageID;
         communicationChannel.addClosureAxiomsToToDo(worker.getClosure());
@@ -20,7 +20,7 @@ public class WorkerStateSendingClosureResults<C extends Closure<A>, A extends Se
 
     public void mainWorkerLoop(Object obj) {
         if (obj instanceof MessageModel) {
-            ((MessageModel<C, A, T>)obj).accept(this);
+            ((MessageModel<C, A>)obj).accept(this);
         } else {
             visit((A)obj);
         }
@@ -37,7 +37,7 @@ public class WorkerStateSendingClosureResults<C extends Closure<A>, A extends Se
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A, T> message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 

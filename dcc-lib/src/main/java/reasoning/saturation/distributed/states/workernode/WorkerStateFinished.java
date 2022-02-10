@@ -9,16 +9,16 @@ import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
 
-public class WorkerStateFinished<C extends Closure<A>, A extends Serializable, T extends Serializable>
-        extends WorkerState<C, A, T> {
+public class WorkerStateFinished<C extends Closure<A>, A extends Serializable>
+        extends WorkerState<C, A> {
 
-    public WorkerStateFinished(SaturationWorker<C, A, T> worker) {
+    public WorkerStateFinished(SaturationWorker<C, A> worker) {
         super(worker);
     }
 
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A, T> message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 

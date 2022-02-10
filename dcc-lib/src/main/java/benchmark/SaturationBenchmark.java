@@ -36,8 +36,8 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T extends Serializable> {
-    private static final List<List<String>> csvRows = new ArrayList<>();
+public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
+    private static final List<List<?>> csvRows = new ArrayList<>();
     private Logger log = ConsoleUtils.getLogger();
     private int numberOfExperimentRepetitions = 2;
     private int numberOfWarmUpRounds = 2;
@@ -47,10 +47,10 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
     private String benchmarkType;
     private Set<MessageDistributionType> messageDistributionTypes;
     private boolean workerNodeStatistics = false;
-    private SaturationInitializationFactory<C, A, T> initializationFactory;
+    private SaturationInitializationFactory<C, A> initializationFactory;
     private Iterator<? extends A> initialAxioms;
     private long numberOfInitialAxioms;
-    private List<WorkerModel<C, A, T>> workers;
+    private List<WorkerModel<C, A>> workers;
     private SaturationWorkerGenerator workerGenerator;
     private List<String> csvHeader;
 
@@ -97,7 +97,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         this.workerNodeStatistics = workerNodeStatistics;
     }
 
-    public void startBenchmark(SaturationInitializationFactory<C, A, T> saturationInitializationFactory) {
+    public void startBenchmark(SaturationInitializationFactory<C, A> saturationInitializationFactory) {
         this.initializationFactory = saturationInitializationFactory;
 
         this.initialAxioms = initializationFactory.getInitialAxioms();
@@ -309,7 +309,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
             }
 
             // initialize control node
-            DistributedSaturation<C, A, T> saturation = new DistributedSaturation<>(
+            DistributedSaturation<C, A> saturation = new DistributedSaturation<>(
                     initializationFactory.getDistributedWorkerModels(serverDataList),
                     initializationFactory.getWorkloadDistributor(),
                     initialAxioms,
@@ -362,7 +362,6 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 log.info("Round " + (roundNumber - numberOfWarmUpRounds));
             }
 
-
             SingleThreadedSaturation<C, A> saturation = new SingleThreadedSaturation<>(
                     initialAxioms,
                     initializationFactory.generateRules(),
@@ -394,7 +393,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
                 log.info("Round " + (roundNumber - numberOfWarmUpRounds));
             }
 
-            ParallelSaturation<C, A, T> saturation = new ParallelSaturation<>(
+            ParallelSaturation<C, A> saturation = new ParallelSaturation<>(
                     new SaturationConfiguration(true, workerNodeStatistics),
                     initializationFactory
             );
@@ -443,28 +442,21 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable, T
         try {
             CSVUtils.writeCSVFile(csvControlNodeStatsPath, ControlNodeStatistics.getControlNodeStatsHeader(),
                     Collections.singletonList(controlNodeStatistics.getControlNodeStatistics()), ";");
-            CSVUtils.writeCSVFile(csvWorkerStatsPath,
-                    WorkerStatistics.getWorkerStatsHeader(),
-                    workerStatistics.stream().map(WorkerStatistics::getWorkerStatistics)
-                            .collect(Collectors.toList()),
-                    ";");
+            if (workerStatistics.size() > 0) {
+                CSVUtils.writeCSVFile(csvWorkerStatsPath,
+                        WorkerStatistics.getWorkerStatsHeader(),
+                        workerStatistics.stream().map(WorkerStatistics::getWorkerStatistics)
+                                .collect(Collectors.toList()),
+                        ";");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void createCSVFile() throws IOException {
-        CSVFormat csvFormat = CSVFormat.Builder.create()
-                .setHeader(this.csvHeader.toArray(new String[csvHeader.size()]))
-                .setDelimiter(";")
-                .build();
-        FileWriter out = new FileWriter(
-                Paths.get(outputDirectory.toString(), benchmarkType + "_" + "benchmark.csv").toFile());
-        try (CSVPrinter printer = new CSVPrinter(out, csvFormat)) {
-            for (List<String> values : this.csvRows) {
-                printer.printRecord(values);
-            }
-        }
+        String path = Paths.get(outputDirectory.toString(), benchmarkType + "_" + "benchmark.csv").toString();
+        CSVUtils.writeCSVFile(path, csvHeader, csvRows, ";");
     }
 
     private class RuntimeMeasurements {

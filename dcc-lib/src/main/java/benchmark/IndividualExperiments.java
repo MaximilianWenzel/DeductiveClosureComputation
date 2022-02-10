@@ -19,10 +19,10 @@ import java.util.*;
 
 public class IndividualExperiments {
 
-    private static final boolean collectWorkerNodeStatistics = false;
+    private static final boolean collectWorkerNodeStatistics = true;
 
-    private static final int EXPERIMENT_ROUNDS = 3;
-    private static final int WARM_UP_ROUNDS = 2;
+    private static final int EXPERIMENT_ROUNDS = 1;
+    private static final int WARM_UP_ROUNDS = 1;
 
     private static Set<Integer> binaryTreeDepthList;
     private static Set<Integer> initialEchoAxioms;
@@ -54,7 +54,7 @@ public class IndividualExperiments {
         }
 
         numberOfWorkersList = new UnifiedSet<>();
-        numberOfWorkersList.add(1);
+        //numberOfWorkersList.add(1);
         numberOfWorkersList.add(2);
         //numberOfWorkersList.add(3);
         numberOfWorkersList.add(4);
@@ -99,7 +99,7 @@ public class IndividualExperiments {
                                            Set<Integer> binaryTreeDepthList,
                                            Set<Integer> numberOfWorkersList) {
 
-        SaturationBenchmark<ReachabilityClosure, Reachability, RoaringBitmap> binaryTreeBenchmark = new SaturationBenchmark<>(
+        SaturationBenchmark<ReachabilityClosure, Reachability> binaryTreeBenchmark = new SaturationBenchmark<>(
                 "BinaryTree",
                 includedApproaches,
                 outputDirectory,
@@ -129,7 +129,7 @@ public class IndividualExperiments {
                                            Set<Integer> chainDepthList,
                                            Set<Integer> numberOfWorkersList) {
 
-        SaturationBenchmark<ReachabilityClosure, Reachability, RoaringBitmap> chainGraphBenchmark = new SaturationBenchmark<>(
+        SaturationBenchmark<ReachabilityClosure, Reachability> chainGraphBenchmark = new SaturationBenchmark<>(
                 "ChainGraph",
                 includedApproaches,
                 outputDirectory,
@@ -157,7 +157,7 @@ public class IndividualExperiments {
                                      Set<SaturationApproach> includedApproaches,
                                      Set<Integer> initialMessagesList,
                                      Set<Integer> numberOfWorkersList) {
-        SaturationBenchmark<EchoClosure, EchoAxiom, Integer> echoBenchmark = new SaturationBenchmark<>(
+        SaturationBenchmark<EchoClosure, EchoAxiom> echoBenchmark = new SaturationBenchmark<>(
                 "Echo",
                 includedApproaches,
                 outputDirectory,

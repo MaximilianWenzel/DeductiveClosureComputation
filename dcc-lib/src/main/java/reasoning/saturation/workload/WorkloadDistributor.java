@@ -7,15 +7,11 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Stream;
 
-public abstract class WorkloadDistributor<C extends Closure<A>, A extends Serializable, T extends Serializable> implements Serializable {
+public abstract class WorkloadDistributor<C extends Closure<A>, A extends Serializable> implements Serializable {
 
-    protected List<? extends WorkerModel<C, A, T>> workerModels;
 
-    protected WorkloadDistributor() {
-    }
 
-    public WorkloadDistributor(List<? extends WorkerModel<C, A, T>> workerModels) {
-        this.workerModels = workerModels;
+    public WorkloadDistributor() {
     }
 
     public abstract Stream<Long> getRelevantWorkerIDsForAxiom(A axiom);

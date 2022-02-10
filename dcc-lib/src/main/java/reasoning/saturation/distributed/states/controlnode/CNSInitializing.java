@@ -9,11 +9,11 @@ import reasoning.saturation.distributed.SaturationControlNode;
 
 import java.io.Serializable;
 
-public class CNSInitializing<C extends Closure<A>, A extends Serializable, T extends Serializable> extends ControlNodeState<C, A, T> {
+public class CNSInitializing<C extends Closure<A>, A extends Serializable> extends ControlNodeState<C, A> {
 
     protected int numberOfWorkers;
 
-    public CNSInitializing(SaturationControlNode<C, A, T> saturationControlNode) {
+    public CNSInitializing(SaturationControlNode<C, A> saturationControlNode) {
         super(saturationControlNode);
         if (config.collectControlNodeStatistics()) {
             stats.startStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);

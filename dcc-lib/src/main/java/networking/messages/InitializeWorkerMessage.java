@@ -3,7 +3,6 @@ package networking.messages;
 import data.Closure;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
-import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
@@ -11,12 +10,12 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializable, T extends Serializable>
-        extends MessageModel<C, A, T> {
+public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializable>
+        extends MessageModel<C, A> {
 
     private long workerID;
-    private List<DistributedWorkerModel<C, A, T>> workers;
-    private WorkloadDistributor<C, A, T> workloadDistributor;
+    private List<DistributedWorkerModel<C, A>> workers;
+    private WorkloadDistributor<C, A> workloadDistributor;
     private List<? extends Rule<C, A>> rules;
     private DistributedSaturationConfiguration config;
     private C closure;
@@ -25,8 +24,8 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
     }
 
     public InitializeWorkerMessage(long senderID, long workerID,
-                                   List<DistributedWorkerModel<C, A, T>> workers,
-                                   WorkloadDistributor<C, A, T> workloadDistributor,
+                                   List<DistributedWorkerModel<C, A>> workers,
+                                   WorkloadDistributor<C, A> workloadDistributor,
                                    C closure, List<? extends Rule<C, A>> rules,
                                    DistributedSaturationConfiguration config) {
         super(senderID);
@@ -39,7 +38,7 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
     }
 
     @Override
-    public void accept(MessageModelVisitor<C, A, T> visitor) {
+    public void accept(MessageModelVisitor<C, A> visitor) {
         visitor.visit(this);
     }
 
@@ -47,11 +46,11 @@ public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializabl
         return workerID;
     }
 
-    public List<DistributedWorkerModel<C, A, T>> getWorkers() {
+    public List<DistributedWorkerModel<C, A>> getWorkers() {
         return workers;
     }
 
-    public WorkloadDistributor<C, A, T> getWorkloadDistributor() {
+    public WorkloadDistributor<C, A> getWorkloadDistributor() {
         return workloadDistributor;
     }
 

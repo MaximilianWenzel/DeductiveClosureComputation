@@ -16,7 +16,7 @@ import java.io.Serializable;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
-public abstract class WorkerState<C extends Closure<A>, A extends Serializable, T extends Serializable> implements MessageModelVisitor<C, A, T>,
+public abstract class WorkerState<C extends Closure<A>, A extends Serializable> implements MessageModelVisitor<C, A>,
         AxiomVisitor<A> {
 
     protected final Logger log = ConsoleUtils.getLogger();
@@ -26,13 +26,13 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
 
     protected ExecutorService threadPool;
 
-    protected SaturationWorker<C, A, T> worker;
-    protected WorkerCommunicationChannel<C, A, T> communicationChannel;
+    protected SaturationWorker<C, A> worker;
+    protected WorkerCommunicationChannel<C, A> communicationChannel;
     protected AcknowledgementEventManager acknowledgementEventManager;
 
     protected IncrementalStreamReasoner<C, A> incrementalReasoner;
 
-    public WorkerState(SaturationWorker<C, A, T> worker) {
+    public WorkerState(SaturationWorker<C, A> worker) {
         this.worker = worker;
         this.communicationChannel = worker.getCommunicationChannel();
         this.incrementalReasoner = worker.getIncrementalReasoner();
@@ -44,7 +44,7 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
 
     public void mainWorkerLoop(Object msg) {
         if (msg instanceof MessageModel) {
-            ((MessageModel<C, A, T>)msg).accept(this);
+            ((MessageModel<C, A>)msg).accept(this);
         } else {
             this.visit((A) msg);
         }
@@ -60,7 +60,7 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable, 
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A, T> message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 

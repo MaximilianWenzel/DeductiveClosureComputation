@@ -13,40 +13,28 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class OWLELWorkloadDistributor extends WorkloadDistributor<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> {
+public class OWLELWorkloadDistributor extends WorkloadDistributor<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> {
+
+    private int numberOfWorkers;
 
     private OWLELWorkloadDistributor() {
 
     }
 
-    public OWLELWorkloadDistributor(List<? extends WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workerModels) {
-        super(workerModels);
+    public OWLELWorkloadDistributor(int numberOfWorkers) {
+        this.numberOfWorkers = numberOfWorkers;
     }
 
     @Override
     public Stream<Long> getRelevantWorkerIDsForAxiom(ELConceptInclusion axiom) {
-        Stream.Builder<Long> workerIDs = Stream.builder();
-        for (WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> worker : workerModels) {
-            if (isRelevantAxiomToWorker(worker, axiom)) {
-                workerIDs.add(worker.getID());
-            }
-        }
-        return workerIDs.build();
-    }
-
-    public boolean isRelevantAxiomToWorker(WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> worker,
-                                           ELConceptInclusion axiom) {
-        Set<?> workerTerms = worker.getWorkerTerms();
-        if (workerTerms.contains(axiom.getSubConcept())
-                || workerTerms.contains(axiom.getSuperConcept())) {
-            return true;
-        } else if (axiom.getSuperConcept() instanceof ELConceptExistentialRestriction) {
+        Set<Long> workerIDs = new UnifiedSet<>();
+        workerIDs.add((long) (axiom.getSubConcept().hashCode() % numberOfWorkers));
+        workerIDs.add((long) (axiom.getSuperConcept().hashCode() % numberOfWorkers));
+        if (axiom.getSuperConcept() instanceof ELConceptExistentialRestriction) {
             ELConceptExistentialRestriction exist = (ELConceptExistentialRestriction) axiom.getSuperConcept();
-            if (workerTerms.contains(exist.getFiller())) {
-                return true;
-            }
+            workerIDs.add((long) (exist.getFiller().hashCode() % numberOfWorkers));
         }
-        return false;
+        return workerIDs.stream();
     }
 
 }

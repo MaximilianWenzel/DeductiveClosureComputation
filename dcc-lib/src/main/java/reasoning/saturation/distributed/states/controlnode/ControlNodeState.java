@@ -14,18 +14,18 @@ import util.ConsoleUtils;
 import java.io.Serializable;
 import java.util.logging.Logger;
 
-public abstract class ControlNodeState<C extends Closure<A>, A extends Serializable, T extends Serializable> implements MessageModelVisitor<C, A, T>,
+public abstract class ControlNodeState<C extends Closure<A>, A extends Serializable> implements MessageModelVisitor<C, A>,
         AxiomVisitor<A> {
 
     protected final Logger log = ConsoleUtils.getLogger();
 
-    protected ControlNodeCommunicationChannel<C, A, T> communicationChannel;
-    protected SaturationControlNode<C, A, T> saturationControlNode;
+    protected ControlNodeCommunicationChannel<C, A> communicationChannel;
+    protected SaturationControlNode<C, A> saturationControlNode;
     protected AcknowledgementEventManager acknowledgementEventManager;
     protected SaturationConfiguration config;
     protected ControlNodeStatistics stats;
 
-    public ControlNodeState(SaturationControlNode<C, A, T> saturationControlNode) {
+    public ControlNodeState(SaturationControlNode<C, A> saturationControlNode) {
         this.saturationControlNode = saturationControlNode;
         this.communicationChannel = saturationControlNode.getCommunicationChannel();
         this.acknowledgementEventManager = communicationChannel.getAcknowledgementEventManager();
@@ -35,7 +35,7 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
 
     public void mainControlNodeLoop(Object msg) {
         if (msg instanceof MessageModel) {
-            MessageModel<C, A, T> message = (MessageModel<C, A, T>) msg;
+            MessageModel<C, A> message = (MessageModel<C, A>) msg;
             message.accept(this);
         } else {
             visit((A) msg);
@@ -43,7 +43,7 @@ public abstract class ControlNodeState<C extends Closure<A>, A extends Serializa
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A, T> message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 

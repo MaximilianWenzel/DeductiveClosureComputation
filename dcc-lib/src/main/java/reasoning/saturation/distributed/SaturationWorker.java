@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-public class SaturationWorker<C extends Closure<A>, A extends Serializable, T extends Serializable> {
+public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
 
     private static final Logger log = ConsoleUtils.getLogger();
     private final IncrementalReasonerType incrementalReasonerType;
@@ -30,11 +30,11 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
     private C closure;
     private Collection<? extends Rule<C, A>> rules;
 
-    private WorkerCommunicationChannel<C, A, T> communicationChannel;
+    private WorkerCommunicationChannel<C, A> communicationChannel;
     private int numberOfThreads;
     private ExecutorService threadPool = null;
 
-    private WorkerState<C, A, T> state;
+    private WorkerState<C, A> state;
     private IncrementalStreamReasoner<C, A> incrementalReasoner;
     private DistributedSaturationConfiguration config;
     private WorkerStatistics stats = new WorkerStatistics();
@@ -74,7 +74,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
 
         ServerData serverData = new ServerData(hostname, portNumber);
 
-        SaturationWorker<?, ?, ?> saturationWorker = new SaturationWorker<>(
+        SaturationWorker<?, ?> saturationWorker = new SaturationWorker<>(
                 serverData,
                 IncrementalReasonerType.SINGLE_THREADED,
                 numberOfNetworkingThreads,
@@ -117,11 +117,11 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         return closure;
     }
 
-    public void switchState(WorkerState<C, A, T> newState) {
+    public void switchState(WorkerState<C, A> newState) {
         this.state = newState;
     }
 
-    public WorkerCommunicationChannel<C, A, T> getCommunicationChannel() {
+    public WorkerCommunicationChannel<C, A> getCommunicationChannel() {
         return communicationChannel;
     }
 
@@ -129,7 +129,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         return incrementalReasoner;
     }
 
-    public void initializeWorker(InitializeWorkerMessage<C, A, T> message) {
+    public void initializeWorker(InitializeWorkerMessage<C, A> message) {
         this.communicationChannel.setWorkerID(message.getWorkerID());
         this.communicationChannel.setWorkers(message.getWorkers());
         this.communicationChannel.setWorkloadDistributor(message.getWorkloadDistributor());
@@ -176,7 +176,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable, T ex
         return stats;
     }
 
-    public WorkerState<C, A, T> getState() {
+    public WorkerState<C, A> getState() {
         return state;
     }
 

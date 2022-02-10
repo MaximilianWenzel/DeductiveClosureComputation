@@ -14,17 +14,17 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
-public class DistributedSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable>
+public class DistributedSaturation<C extends Closure<A>, A extends Serializable>
         implements Saturation<C, A> {
 
-    protected WorkloadDistributor<C, A, T> workloadDistributor;
-    protected List<DistributedWorkerModel<C, A, T>> workers;
-    protected SaturationControlNode<C, A, T> controlNode;
+    protected WorkloadDistributor<C, A> workloadDistributor;
+    protected List<DistributedWorkerModel<C, A>> workers;
+    protected SaturationControlNode<C, A> controlNode;
     protected DistributedSaturationConfiguration config;
     protected int numberOfThreadsForControlNode;
 
-    public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
-                                 WorkloadDistributor<C, A, T> workloadDistributor,
+    public DistributedSaturation(List<DistributedWorkerModel<C, A>> workers,
+                                 WorkloadDistributor<C, A> workloadDistributor,
                                  Iterator<? extends A> initialAxioms,
                                  C resultingClosure,
                                  int numberOfThreadsForControlNode) {
@@ -35,8 +35,8 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable,
                 config, numberOfThreadsForControlNode);
     }
 
-    public DistributedSaturation(List<DistributedWorkerModel<C, A, T>> workers,
-                                 WorkloadDistributor<C, A, T> workloadDistributor,
+    public DistributedSaturation(List<DistributedWorkerModel<C, A>> workers,
+                                 WorkloadDistributor<C, A> workloadDistributor,
                                  Iterator<? extends A> initialAxioms,
                                  C resultingClosure,
                                  DistributedSaturationConfiguration config,

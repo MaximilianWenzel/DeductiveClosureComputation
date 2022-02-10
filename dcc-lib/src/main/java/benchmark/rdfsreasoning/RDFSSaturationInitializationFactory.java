@@ -4,11 +4,8 @@ import benchmark.rdfsreasoning.dataset.RDFDataset;
 import benchmark.rdfsreasoning.dataset.RDFSReasoningDictionary;
 import benchmark.rdfsreasoning.dataset.RDFSReasoningTriples;
 import benchmark.rdfsreasoning.rules.*;
-import benchmark.transitiveclosure.Reachability;
-import benchmark.transitiveclosure.ReachabilityClosure;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.rdfhdt.hdt.triples.TripleID;
-import org.roaringbitmap.RoaringBitmap;
 import reasoning.rules.Rule;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.models.WorkerModel;
@@ -20,14 +17,14 @@ import java.util.List;
 import java.util.Set;
 
 public class RDFSSaturationInitializationFactory
-        extends SaturationInitializationFactory<RDFSClosure, TripleID, RDFSPartitionCollection> {
+        extends SaturationInitializationFactory<RDFSClosure, TripleID> {
 
     private RDFDataset rdfDataset;
     private RDFSReasoningTriples triples;
     private RDFSReasoningDictionary dictionary;
 
     private int numberOfWorkers;
-    private List<WorkerModel<RDFSClosure, TripleID, RDFSPartitionCollection>> workerModels = null;
+    private List<WorkerModel<RDFSClosure, TripleID>> workerModels = null;
 
     public RDFSSaturationInitializationFactory(RDFDataset rdfDataset, int numberOfWorkers) {
         this.rdfDataset = rdfDataset;
@@ -35,36 +32,17 @@ public class RDFSSaturationInitializationFactory
     }
 
     @Override
-    public List<WorkerModel<RDFSClosure, TripleID, RDFSPartitionCollection>> getWorkerModels() {
+    public List<WorkerModel<RDFSClosure, TripleID>> getWorkerModels() {
         if (workerModels != null) {
             return workerModels;
         }
 
-        List<Set<Long>> propertyIDsForWorkers = new ArrayList<>(this.numberOfWorkers);
-        List<Set<Long>> rdfClassIDsForWorkers = new ArrayList<>(this.numberOfWorkers);
+        List<WorkerModel<RDFSClosure, TripleID>> workers = new ArrayList<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            propertyIDsForWorkers.add(new UnifiedSet<>());
-            rdfClassIDsForWorkers.add(new UnifiedSet<>());
-        }
-
-        int i = 0;
-        for (Long rdfClassID : dictionary.getRDFClassIDs()) {
-            rdfClassIDsForWorkers.get(i % numberOfWorkers).add(rdfClassID);
-            i++;
-        }
-
-        for (Long propertyID : dictionary.getPropertyIDs()) {
-            propertyIDsForWorkers.get(i % numberOfWorkers).add(propertyID);
-            i++;
-        }
-        List<RDFSPartitionCollection> rdfsPartitionCollections = new ArrayList<>(this.numberOfWorkers);
-
-        List<WorkerModel<RDFSClosure, TripleID, RDFSPartitionCollection>> workers = new ArrayList<>();
-        for (RDFSPartitionCollection partitionCollection : rdfsPartitionCollections) {
-            WorkerModel<RDFSClosure, TripleID, RDFSPartitionCollection> workerModel = new WorkerModel<>(
+            WorkerModel<RDFSClosure, TripleID> workerModel = new WorkerModel<>(
+                    i + 1,
                     getNewClosure(),
-                    generateRules(),
-                    partitionCollection
+                    generateRules()
             );
             workers.add(workerModel);
         }
@@ -84,7 +62,7 @@ public class RDFSSaturationInitializationFactory
     }
 
     @Override
-    public WorkloadDistributor<RDFSClosure, TripleID, RDFSPartitionCollection> getWorkloadDistributor() {
+    public WorkloadDistributor<RDFSClosure, TripleID> getWorkloadDistributor() {
         // TODO
         return null;
     }

@@ -25,17 +25,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
-public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable> {
+public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable> {
 
     private final Logger log = ConsoleUtils.getLogger();
 
     protected NetworkingComponent networkingComponent;
-    protected List<DistributedWorkerModel<C, A, T>> workers;
-    protected Map<Long, DistributedWorkerModel<C, A, T>> workerIDToWorker;
+    protected List<DistributedWorkerModel<C, A>> workers;
+    protected Map<Long, DistributedWorkerModel<C, A>> workerIDToWorker;
     protected BiMap<Long, Long> socketIDToWorkerID;
     protected BiMap<Long, Long> workerIDToSocketID;
     protected long controlNodeID = 0L;
-    protected WorkloadDistributor<C, A, T> workloadDistributor;
+    protected WorkloadDistributor<C, A> workloadDistributor;
     protected Iterator<? extends A> initialAxioms;
 
     protected AcknowledgementEventManager acknowledgementEventManager;
@@ -52,8 +52,8 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     protected NIO2NetworkingLoop networkingLoop;
 
-    public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A, T>> workers,
-                                           WorkloadDistributor<C, A, T> workloadDistributor,
+    public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A>> workers,
+                                           WorkloadDistributor<C, A> workloadDistributor,
                                            Iterator<? extends A> initialAxioms,
                                            DistributedSaturationConfiguration config,
                                            NIO2NetworkingLoop networkingLoop) {
@@ -120,7 +120,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
         send(receiverSocketID, stateInfoMessage, onAcknowledgement);
     }
 
-    public void send(long receiverSocketID, MessageModel<C, A, T> message, Runnable onAcknowledgement) {
+    public void send(long receiverSocketID, MessageModel<C, A> message, Runnable onAcknowledgement) {
         acknowledgementEventManager.messageRequiresAcknowledgment(message.getMessageID(), onAcknowledgement);
         send(receiverSocketID, message);
     }
@@ -168,10 +168,10 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     private class WorkerConnectionModel extends ConnectionModel {
 
-        private final DistributedWorkerModel<C, A, T> workerModel;
+        private final DistributedWorkerModel<C, A> workerModel;
 
         public WorkerConnectionModel(ServerData serverData,
-                                     DistributedWorkerModel<C, A, T> workerModel) {
+                                     DistributedWorkerModel<C, A> workerModel) {
             super(serverData, (socketID, message) -> {
                 networkingLoop.onNewMessageReceived(message);
             });
@@ -191,7 +191,7 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
             // send initialization message
             log.info("Sending initialization message to worker " + workerModel.getID() + ".");
-            InitializeWorkerMessage<C, A, T> initializeWorkerMessage = new InitializeWorkerMessage<>(
+            InitializeWorkerMessage<C, A> initializeWorkerMessage = new InitializeWorkerMessage<>(
                     ControlNodeCommunicationChannel.this.controlNodeID,
                     workerModel.getID(),
                     ControlNodeCommunicationChannel.this.workers,

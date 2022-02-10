@@ -1,5 +1,6 @@
 package reasoning.saturation.parallel;
 
+import com.google.common.base.Stopwatch;
 import data.Closure;
 import data.ParallelToDo;
 import enums.StatisticsComponent;
@@ -18,23 +19,24 @@ import util.QueueFactory;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T extends Serializable> {
+public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
 
     private final BlockingQueue<AxiomCount> statusMessages = QueueFactory.createSaturationToDo();
-    private SaturationInitializationFactory<C, A, T> factory;
+    private SaturationInitializationFactory<C, A> factory;
     private Logger log = ConsoleUtils.getLogger();
-    private List<SaturationContext<C, A, T>> contexts;
-    private Collection<WorkerModel<C, A, T>> workerModels;
+    private List<SaturationContext<C, A>> contexts;
+    private Collection<WorkerModel<C, A>> workerModels;
     private volatile boolean allWorkersConverged = false;
     private List<Thread> threadPool;
     private Iterator<? extends A> initialAxioms;
-    private WorkloadDistributor<C, A, T> workloadDistributor;
-    private Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext = new HashMap<>();
+    private WorkloadDistributor<C, A> workloadDistributor;
+    private Map<Long, SaturationContext<C, A>> workerIDToSaturationContext = new HashMap<>();
 
     private AtomicLong sumOfAllReceivedAxioms = new AtomicLong(0);
     private AtomicLong sumOfAllSentAxioms = new AtomicLong(0);
@@ -45,7 +47,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
     private SaturationConfiguration config;
     private ControlNodeStatistics controlNodeStatistics = null;
 
-    public ParallelSaturation(SaturationInitializationFactory<C, A, T> factory) {
+    public ParallelSaturation(SaturationInitializationFactory<C, A> factory) {
         this.factory = factory;
         this.initialAxioms = factory.getInitialAxioms();
         this.workerModels = factory.getWorkerModels();
@@ -54,7 +56,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         init();
     }
 
-    public ParallelSaturation(SaturationConfiguration config, SaturationInitializationFactory<C, A, T> factory) {
+    public ParallelSaturation(SaturationConfiguration config, SaturationInitializationFactory<C, A> factory) {
         this.factory = factory;
         this.initialAxioms = factory.getInitialAxioms();
         this.workerModels = factory.getWorkerModels();
@@ -66,10 +68,10 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         init();
     }
 
-    protected SaturationContext<C, A, T> generateSaturationContext(WorkerModel<C, A, T> worker) {
+    protected SaturationContext<C, A> generateSaturationContext(WorkerModel<C, A> worker) {
         C workerClosure = factory.getNewClosure();
         ParallelToDo workerToDo = new ParallelToDo();
-        SaturationContext<C, A, T> saturationContext = new SaturationContext<>(
+        SaturationContext<C, A> saturationContext = new SaturationContext<>(
                 config,
                 this,
                 worker.getRules(),
@@ -94,8 +96,8 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
             this.contexts.add(generateSaturationContext(p));
         });
 
-        for (SaturationContext<C, A, T> context : this.contexts) {
-            ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor = new ParallelSaturationInferenceProcessor<>(
+        for (SaturationContext<C, A> context : this.contexts) {
+            ParallelSaturationInferenceProcessor<C, A> inferenceProcessor = new ParallelSaturationInferenceProcessor<>(
                     context.getStatistics(),
                     workloadDistributor,
                     workerIDToSaturationContext,
@@ -189,7 +191,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
         }
 
         C closure = factory.getNewClosure();
-        for (SaturationContext<C, A, T> context : contexts) {
+        for (SaturationContext<C, A> context : contexts) {
             context.getClosure().getClosureResults().forEach(closure::add);
         }
 
@@ -202,14 +204,14 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable, T 
 
     private void requestAxiomCountsFromAllWorkers() {
         this.saturationStage.incrementAndGet();
-        for (SaturationContext<C, A, T> context : contexts) {
+        for (SaturationContext<C, A> context : contexts) {
             context.getToDo().add(new RequestAxiomMessageCount(0, this.saturationStage.get()));
         }
     }
 
     private void initAndStartThreads() {
         this.threadPool = new ArrayList<>();
-        for (SaturationContext<C, A, T> worker : this.contexts) {
+        for (SaturationContext<C, A> worker : this.contexts) {
             this.threadPool.add(new Thread(worker));
         }
         this.threadPool.forEach(Thread::start);

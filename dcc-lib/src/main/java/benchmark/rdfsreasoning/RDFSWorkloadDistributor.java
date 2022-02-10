@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class RDFSWorkloadDistributor extends WorkloadDistributor<RDFSClosure, TripleID, RDFSPartitionCollection> {
+public class RDFSWorkloadDistributor extends WorkloadDistributor<RDFSClosure, TripleID> {
 
     private long domainID;
     private long rangeID;
@@ -23,17 +23,14 @@ public class RDFSWorkloadDistributor extends WorkloadDistributor<RDFSClosure, Tr
 
     }
 
-    public RDFSWorkloadDistributor(
-            List<? extends WorkerModel<RDFSClosure, TripleID, RDFSPartitionCollection>> workerModels) {
-        super(workerModels);
-    }
 
 
     @Override
     public Stream<Long> getRelevantWorkerIDsForAxiom(TripleID axiom) {
+        /*
         Stream.Builder<Long> relevantWorkers = Stream.builder();
 
-        for (WorkerModel<RDFSClosure, TripleID, RDFSPartitionCollection> worker : this.workerModels) {
+        for (WorkerModel<RDFSClosure, TripleID> worker : this.workerModels) {
             long predicateID = axiom.getPredicate();
             Set<Long> workerPropertyIDs = worker.getWorkerTerms().getPropertyIDs();
 
@@ -68,9 +65,12 @@ public class RDFSWorkloadDistributor extends WorkloadDistributor<RDFSClosure, Tr
                     && (workerRDFClassIDs.contains(sbjID) || workerRDFClassIDs.contains(objID))) {
                 relevantWorkers.add(worker.getID());
             }
-            // TODO: consider RDFS13 and RDFS12
-        }
 
-        return relevantWorkers.build();
+            // TODO: consider RDFS13 and RDFS12
+
+        }
+         */
+
+        return null;
     }
 }

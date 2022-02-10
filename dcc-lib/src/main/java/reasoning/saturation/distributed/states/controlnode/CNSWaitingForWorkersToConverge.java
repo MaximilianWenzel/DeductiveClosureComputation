@@ -12,14 +12,14 @@ import reasoning.saturation.distributed.SaturationControlNode;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Serializable, T extends Serializable>
-        extends ControlNodeState<C, A, T> {
+public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Serializable>
+        extends ControlNodeState<C, A> {
 
     protected AtomicInteger convergedWorkers = new AtomicInteger();
     protected int numberOfWorkers;
     boolean saturationConvergedVerificationStage = false;
 
-    public CNSWaitingForWorkersToConverge(SaturationControlNode<C, A, T> saturationControlNode) {
+    public CNSWaitingForWorkersToConverge(SaturationControlNode<C, A> saturationControlNode) {
         super(saturationControlNode);
         this.numberOfWorkers = saturationControlNode.getWorkers().size();
     }

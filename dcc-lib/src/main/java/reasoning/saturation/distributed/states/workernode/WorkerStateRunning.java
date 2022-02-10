@@ -8,17 +8,17 @@ import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
 
-public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
+public class WorkerStateRunning<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
 
     private boolean lastMessageWasAxiomCountRequest = false;
 
-    public WorkerStateRunning(SaturationWorker<C, A, T> worker) {
+    public WorkerStateRunning(SaturationWorker<C, A> worker) {
         super(worker);
     }
 
     public void mainWorkerLoop(Object obj) {
         if (obj instanceof MessageModel) {
-            ((MessageModel<C, A, T>)obj).accept(this);
+            ((MessageModel<C, A>)obj).accept(this);
         } else {
             visit((A)obj);
         }
@@ -39,7 +39,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable, T 
 
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A, T> message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         throw new MessageProtocolViolationException();
     }
 

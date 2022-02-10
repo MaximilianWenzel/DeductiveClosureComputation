@@ -19,7 +19,6 @@ public class IncrementalStreamReasoner<C extends Closure<A>, A extends Serializa
     protected SaturationConfiguration config;
     protected WorkerStatistics stats;
 
-
     public IncrementalStreamReasoner(Collection<? extends Rule<C, A>> rules, Closure<A> closure,
                                      SaturationConfiguration config,
                                      WorkerStatistics stats) {
@@ -46,21 +45,21 @@ public class IncrementalStreamReasoner<C extends Closure<A>, A extends Serializa
     }
 
     public Stream<A> getStreamOfInferencesForGivenAxiom(A axiom) {
-        if (closure.add(axiom)) {
-
-            if (config.collectWorkerNodeStatistics()) {
-                stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
+        if (config.collectWorkerNodeStatistics()) {
+            stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
+        }
+        try {
+            if (closure.add(axiom)) {
+                Stream<A> inferences = rules.stream().flatMap(rule -> rule.streamOfInferences(axiom));
+                return inferences;
+            } else {
+                return Stream.empty();
             }
-
-            Stream<A> inferences = rules.stream().flatMap(rule -> rule.streamOfInferences(axiom));
-
+        } finally {
             if (config.collectWorkerNodeStatistics()) {
                 stats.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
             }
-
-            return inferences;
-        } else {
-            return Stream.empty();
         }
+
     }
 }

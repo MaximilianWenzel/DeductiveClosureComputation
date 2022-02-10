@@ -13,17 +13,17 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extends Serializable, T extends Serializable>
+public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extends Serializable>
         implements InferenceProcessor<A> {
 
-    private final WorkloadDistributor<C, A, T> distributor;
-    private Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext;
+    private final WorkloadDistributor<C, A> distributor;
+    private Map<Long, SaturationContext<C, A>> workerIDToSaturationContext;
     private C closure;
     private AtomicInteger sentAxiomsCount;
     private WorkerStatistics statistics = null;
 
-    public ParallelSaturationInferenceProcessor(WorkloadDistributor<C, A, T> distributor,
-                                                Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext,
+    public ParallelSaturationInferenceProcessor(WorkloadDistributor<C, A> distributor,
+                                                Map<Long, SaturationContext<C, A>> workerIDToSaturationContext,
                                                 C closure,
                                                 AtomicInteger sentAxiomsCount) {
         this.distributor = distributor;
@@ -33,8 +33,8 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
     }
 
     public ParallelSaturationInferenceProcessor(WorkerStatistics statistics,
-                                                WorkloadDistributor<C, A, T> distributor,
-                                                Map<Long, SaturationContext<C, A, T>> workerIDToSaturationContext,
+                                                WorkloadDistributor<C, A> distributor,
+                                                Map<Long, SaturationContext<C, A>> workerIDToSaturationContext,
                                                 C closure,
                                                 AtomicInteger sentAxiomsCount) {
         this.statistics = statistics;
@@ -59,7 +59,7 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
                 if (statistics != null) {
                     statistics.getNumberOfSentAxioms().incrementAndGet();
                 }
-                SaturationContext<C, A, T> saturationContext = workerIDToSaturationContext.get(workerID);
+                SaturationContext<C, A> saturationContext = workerIDToSaturationContext.get(workerID);
                 ToDoQueue<Serializable> toDo = saturationContext.getToDo();
                 toDo.add(axiom);
             });

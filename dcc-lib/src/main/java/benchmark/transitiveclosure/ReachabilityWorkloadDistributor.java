@@ -1,43 +1,33 @@
 package benchmark.transitiveclosure;
 
-import org.roaringbitmap.RoaringBitmap;
-import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Stream;
 
-public class ReachabilityWorkloadDistributor extends WorkloadDistributor<ReachabilityClosure, Reachability, RoaringBitmap> {
+public class ReachabilityWorkloadDistributor
+        extends WorkloadDistributor<ReachabilityClosure, Reachability> {
 
+
+    private int numberOfWorkers;
 
     protected ReachabilityWorkloadDistributor() {
 
     }
 
-    public ReachabilityWorkloadDistributor(List<? extends WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap>> workerModels) {
-        super(workerModels);
+    public ReachabilityWorkloadDistributor(int numberOfWorkers) {
+        super();
+        this.numberOfWorkers = numberOfWorkers;
     }
 
     @Override
     public Stream<Long> getRelevantWorkerIDsForAxiom(Reachability axiom) {
-        Stream.Builder<Long> workerIDs = Stream.builder();
-        workerModels.forEach(worker -> {
-            if (isRelevantAxiomToWorker(worker, axiom)) {
-                workerIDs.add(worker.getID());
-            }
-        });
-        return workerIDs.build();
+        if (axiom instanceof ToldReachability) {
+            return Stream.of((long) (axiom.getSourceNode() % numberOfWorkers + 1));
+        } else if (axiom instanceof DerivedReachability) {
+            return Stream.of((long) (axiom.getDestinationNode() % numberOfWorkers + 1));
+        }
+        return Stream.empty();
     }
 
-    public boolean isRelevantAxiomToWorker(WorkerModel<ReachabilityClosure, Reachability, RoaringBitmap> worker, Reachability axiom) {
-        RoaringBitmap responsibleNodeIDs = worker.getWorkerTerms();
-        if (axiom instanceof ToldReachability) {
-            return responsibleNodeIDs.contains(axiom.getSourceNode());
-        } else {
-            // derived reachability
-            return responsibleNodeIDs.contains(axiom.getDestinationNode());
-        }
-    }
 
 }

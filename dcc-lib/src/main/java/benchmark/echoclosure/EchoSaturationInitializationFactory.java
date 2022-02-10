@@ -10,12 +10,12 @@ import java.util.Iterator;
 import java.util.List;
 
 public class EchoSaturationInitializationFactory
-        extends SaturationInitializationFactory<EchoClosure, EchoAxiom, Integer> {
+        extends SaturationInitializationFactory<EchoClosure, EchoAxiom> {
 
     private List<EchoAxiom> initialAxioms;
     private int numberOfWorkers;
     private int numberOfInitialAxioms;
-    private List<WorkerModel<EchoClosure, EchoAxiom, Integer>> workerModels;
+    private List<WorkerModel<EchoClosure, EchoAxiom>> workerModels;
 
     public EchoSaturationInitializationFactory(int numberOfWorkers, int numberOfInitialAxioms) {
         this.numberOfWorkers = numberOfWorkers;
@@ -28,16 +28,16 @@ public class EchoSaturationInitializationFactory
     }
 
     @Override
-    public List<WorkerModel<EchoClosure, EchoAxiom, Integer>> getWorkerModels() {
+    public List<WorkerModel<EchoClosure, EchoAxiom>> getWorkerModels() {
         if (workerModels != null) {
             return workerModels;
         }
-        List<WorkerModel<EchoClosure, EchoAxiom, Integer>> workerModels = new ArrayList<>();
+        List<WorkerModel<EchoClosure, EchoAxiom>> workerModels = new ArrayList<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            WorkerModel<EchoClosure, EchoAxiom, Integer> workerModel = new WorkerModel<>(
+            WorkerModel<EchoClosure, EchoAxiom> workerModel = new WorkerModel<>(
+                    i + 1,
                     getNewClosure(),
-                    generateRules(),
-                    i
+                    generateRules()
             );
             workerModels.add(workerModel);
         }
@@ -56,8 +56,8 @@ public class EchoSaturationInitializationFactory
     }
 
     @Override
-    public WorkloadDistributor<EchoClosure, EchoAxiom, Integer> getWorkloadDistributor() {
-        return new EchoWorkloadDistributor(getWorkerModels());
+    public WorkloadDistributor<EchoClosure, EchoAxiom> getWorkloadDistributor() {
+        return new EchoWorkloadDistributor(numberOfWorkers);
     }
 
     @Override

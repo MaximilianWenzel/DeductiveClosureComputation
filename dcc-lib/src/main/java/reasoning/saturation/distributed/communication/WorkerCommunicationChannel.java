@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializable, T extends Serializable> {
+public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializable> {
 
     private final Logger log = ConsoleUtils.getLogger();
 
@@ -39,8 +39,8 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     private NetworkingComponent networkingComponent;
 
     private long workerID = -1L;
-    private List<DistributedWorkerModel<C, A, T>> workers;
-    private WorkloadDistributor<C, A, T> workloadDistributor;
+    private List<DistributedWorkerModel<C, A>> workers;
+    private WorkloadDistributor<C, A> workloadDistributor;
 
     private BiMap<Long, Long> socketIDToWorkerID;
     private BiMap<Long, Long> workerIDToSocketID;
@@ -98,7 +98,7 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     public void connectToWorkerServers() {
         // connect to all worker nodes with a higher worker ID
         try {
-            for (DistributedWorkerModel<?, ?, ?> workerModel : this.workers) {
+            for (DistributedWorkerModel<?, ?> workerModel : this.workers) {
                 if (workerModel.getID() > this.workerID) {
 
                     WorkerConnectionModel workerConnectionEstablishmentListener = new WorkerConnectionModel(
@@ -209,11 +209,11 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
         return new MessageEnvelope(socketID, axiom);
     }
 
-    public List<DistributedWorkerModel<C, A, T>> getWorkers() {
+    public List<DistributedWorkerModel<C, A>> getWorkers() {
         return this.workers;
     }
 
-    public void setWorkers(List<DistributedWorkerModel<C, A, T>> workers) {
+    public void setWorkers(List<DistributedWorkerModel<C, A>> workers) {
         this.workers = workers;
     }
 
@@ -284,7 +284,7 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
                 networkingLoop.onNewMessageReceived(message);
                 return;
             }
-            MessageModel<C, A, T> messageModel = (MessageModel<C, A, T>) message;
+            MessageModel<C, A> messageModel = (MessageModel<C, A>) message;
 
             if (!allConnectionsEstablished) {
                 // get worker ID / control node ID to socket ID mapping

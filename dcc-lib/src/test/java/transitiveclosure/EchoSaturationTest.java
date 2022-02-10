@@ -12,7 +12,7 @@ public class EchoSaturationTest {
 
     @Test
     void testSingleThreadedEchoSaturation() {
-        SaturationInitializationFactory<EchoClosure, EchoAxiom, Integer> initializationFactory = new EchoSaturationInitializationFactory(
+        SaturationInitializationFactory<EchoClosure, EchoAxiom> initializationFactory = new EchoSaturationInitializationFactory(
                 1, 5);
 
         ClosureComputationTestUtil.singleThreadedClosureComputation(initializationFactory);
@@ -20,7 +20,7 @@ public class EchoSaturationTest {
 
     @Test
     void testParallelEchoSaturation() {
-        SaturationInitializationFactory<EchoClosure, EchoAxiom, Integer> initializationFactory = new EchoSaturationInitializationFactory(
+        SaturationInitializationFactory<EchoClosure, EchoAxiom> initializationFactory = new EchoSaturationInitializationFactory(
                 4, 100);
 
         ClosureComputationTestUtil.parallelClosureComputation(initializationFactory);
@@ -29,7 +29,7 @@ public class EchoSaturationTest {
     @Test
     void testDistributedEchoSaturation() {
         int numWorkers = 2;
-        SaturationInitializationFactory<EchoClosure, EchoAxiom, Integer> initializationFactory = new EchoSaturationInitializationFactory(
+        SaturationInitializationFactory<EchoClosure, EchoAxiom> initializationFactory = new EchoSaturationInitializationFactory(
                 numWorkers, 1_000);
 
         ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 1, false);

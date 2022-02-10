@@ -16,11 +16,11 @@ import java.util.Iterator;
 import java.util.List;
 
 public class OWLELSaturationInitializationFactory extends
-        SaturationInitializationFactory<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> {
+        SaturationInitializationFactory<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> {
 
     private final IndexedELOntology elOntology;
     private final int numberOfWorkers;
-    private List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workerModels = null;
+    private List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> workerModels = null;
 
     public OWLELSaturationInitializationFactory(IndexedELOntology elOntology, int numberOfWorkers) {
         this.elOntology = elOntology;
@@ -28,37 +28,19 @@ public class OWLELSaturationInitializationFactory extends
     }
 
     @Override
-    public List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> getWorkerModels() {
+    public List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> getWorkerModels() {
         if (workerModels != null) {
             return workerModels;
         }
-
-        Iterator<ELConcept> occurringConceptsInDataset = this.elOntology.getAllUsedConceptsInOntology().iterator();
-
-        // worker by concepts
-        List<UnifiedSet<ELConcept>> conceptWorkers = new ArrayList<>(numberOfWorkers);
-        for (int i = 0; i < numberOfWorkers; i++) {
-            conceptWorkers.add(new UnifiedSet<>());
-        }
-        int counter = 0;
-        int workerIndex;
-
-        while (occurringConceptsInDataset.hasNext()) {
-            ELConcept concept = occurringConceptsInDataset.next();
-            workerIndex = counter % numberOfWorkers;
-            conceptWorkers.get(workerIndex).add(concept);
-            counter++;
-        }
-
-        List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>>> workers = new ArrayList<>(
+        List<WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> workers = new ArrayList<>(
                 numberOfWorkers);
 
-        for (UnifiedSet<ELConcept> conceptWorker : conceptWorkers) {
+        for (int i  = 0; i < numberOfWorkers; i++) {
             List<Rule<DefaultClosure<ELConceptInclusion>, ELConceptInclusion>> rules = generateRules();
-            WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> pm = new WorkerModel<>(
+            WorkerModel<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> pm = new WorkerModel<>(
+                    i + 1,
                     new DefaultClosure<>(),
-                    rules,
-                    conceptWorker
+                    rules
             );
             workers.add(pm);
         }
@@ -77,8 +59,8 @@ public class OWLELSaturationInitializationFactory extends
     }
 
     @Override
-    public WorkloadDistributor<DefaultClosure<ELConceptInclusion>, ELConceptInclusion, UnifiedSet<ELConcept>> getWorkloadDistributor() {
-        return new OWLELWorkloadDistributor(getWorkerModels());
+    public WorkloadDistributor<DefaultClosure<ELConceptInclusion>, ELConceptInclusion> getWorkloadDistributor() {
+        return new OWLELWorkloadDistributor(numberOfWorkers);
     }
 
     @Override

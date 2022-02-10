@@ -20,7 +20,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SaturationContext<C extends Closure<A>, A extends Serializable, T extends Serializable>
+public class SaturationContext<C extends Closure<A>, A extends Serializable>
         implements Runnable {
 
     private static final AtomicLong workerIDCounter = new AtomicLong(1L);
@@ -29,7 +29,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     private final Collection<? extends Rule<C, A>> rules;
     private final C closure;
     private final ParallelToDo toDo;
-    private final ParallelSaturation<C, A, T> controlNode;
+    private final ParallelSaturation<C, A> controlNode;
 
     private final AtomicInteger receivedAxioms = new AtomicInteger(0);
     private final AtomicInteger sentAxioms = new AtomicInteger(0);
@@ -37,15 +37,15 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
 
     private final SaturationConfiguration config;
     private IncrementalStreamReasoner<C, A> incrementalReasoner;
-    private WorkloadDistributor<C, A, T> workloadDistributor;
-    private ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor;
+    private WorkloadDistributor<C, A> workloadDistributor;
+    private ParallelSaturationInferenceProcessor<C, A> inferenceProcessor;
 
     private boolean lastMessageWasAxiomCountRequest = false;
     private WorkerStatistics statistics = null;
 
-    public SaturationContext(SaturationConfiguration config, ParallelSaturation<C, A, T> controlNode,
+    public SaturationContext(SaturationConfiguration config, ParallelSaturation<C, A> controlNode,
                              Collection<? extends Rule<C, A>> rules,
-                             WorkloadDistributor<C, A, T> workloadDistributor,
+                             WorkloadDistributor<C, A> workloadDistributor,
                              C closure,
                              ParallelToDo toDo) {
         this.config = config;
@@ -128,7 +128,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SaturationContext<C, A, T> that = (SaturationContext<C, A, T>) o;
+        SaturationContext<C, A> that = (SaturationContext<C, A>) o;
         return id == that.id;
     }
 
@@ -143,7 +143,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable, T e
         }
     }
 
-    public void setInferenceProcessor(ParallelSaturationInferenceProcessor<C, A, T> inferenceProcessor) {
+    public void setInferenceProcessor(ParallelSaturationInferenceProcessor<C, A> inferenceProcessor) {
         this.inferenceProcessor = inferenceProcessor;
         this.rules.forEach(r -> {
             r.setClosure(closure);

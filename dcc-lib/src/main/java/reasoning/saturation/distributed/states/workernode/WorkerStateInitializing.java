@@ -12,7 +12,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WorkerStateInitializing<C extends Closure<A>, A extends Serializable, T extends Serializable> extends WorkerState<C, A, T> {
+public class WorkerStateInitializing<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
     private long allWorkersInitializedMessageID;
     private boolean allWorkersInitialized = false;
 
@@ -21,12 +21,12 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
      */
     private List<A> bufferedAxiomMessages = new ArrayList<>();
 
-    public WorkerStateInitializing(SaturationWorker<C, A, T> worker) {
+    public WorkerStateInitializing(SaturationWorker<C, A> worker) {
         super(worker);
     }
 
     @Override
-    public void visit(InitializeWorkerMessage<C, A, T> message) {
+    public void visit(InitializeWorkerMessage<C, A> message) {
         log.info("Worker initialization message received from control node. Initializing worker...");
         this.worker.initializeWorker(message);
         this.config = this.worker.getConfig();
@@ -54,7 +54,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
                 communicationChannel.acknowledgeMessage(message.getSenderID(), message.getMessageID());
                 break;
             case CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT:
-                WorkerStateConverged<C, A, T> stateConverged = new WorkerStateConverged<>(worker);
+                WorkerStateConverged<C, A> stateConverged = new WorkerStateConverged<>(worker);
                 this.worker.switchState(stateConverged);
                 stateConverged.visit(message);
                 break;

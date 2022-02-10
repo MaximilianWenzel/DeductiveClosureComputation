@@ -21,16 +21,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 
-public class SaturationControlNode<C extends Closure<A>, A extends Serializable, T extends Serializable> {
+public class SaturationControlNode<C extends Closure<A>, A extends Serializable> {
 
-    private final List<DistributedWorkerModel<C, A, T>> workers;
+    private final List<DistributedWorkerModel<C, A>> workers;
     private C resultingClosure;
-    private ControlNodeCommunicationChannel<C, A, T> communicationChannel;
+    private ControlNodeCommunicationChannel<C, A> communicationChannel;
     private BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent = new LinkedBlockingQueue<>();
-    private ControlNodeState<C, A, T> state;
+    private ControlNodeState<C, A> state;
 
     private int numberOfThreads;
-    private WorkloadDistributor<C, A, T> workloadDistributor;
+    private WorkloadDistributor<C, A> workloadDistributor;
     private Iterator<? extends A> initialAxioms;
     private DistributedSaturationConfiguration config;
     private ControlNodeStatistics stats = new ControlNodeStatistics();
@@ -40,8 +40,8 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
     private NIO2NetworkingLoop networkingLoop;
 
 
-    protected SaturationControlNode(List<DistributedWorkerModel<C, A, T>> workers,
-                                    WorkloadDistributor<C, A, T> workloadDistributor,
+    protected SaturationControlNode(List<DistributedWorkerModel<C, A>> workers,
+                                    WorkloadDistributor<C, A> workloadDistributor,
                                     Iterator<? extends A> initialAxioms,
                                     C resultingClosure,
                                     DistributedSaturationConfiguration config,
@@ -61,7 +61,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
         this.communicationChannel = new ControlNodeCommunicationChannel<>(
                 workers, workloadDistributor, initialAxioms,
                 config, networkingLoop);
-        CNSInitializing<C, A, T> initState = new CNSInitializing<>(this);
+        CNSInitializing<C, A> initState = new CNSInitializing<>(this);
         this.state = initState;
         initState.start();
     }
@@ -77,15 +77,15 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable,
         return resultingClosure;
     }
 
-    public Collection<DistributedWorkerModel<C, A, T>> getWorkers() {
+    public Collection<DistributedWorkerModel<C, A>> getWorkers() {
         return workers;
     }
 
-    public void switchState(ControlNodeState<C, A, T> state) {
+    public void switchState(ControlNodeState<C, A> state) {
         this.state = state;
     }
 
-    public ControlNodeCommunicationChannel<C, A, T> getCommunicationChannel() {
+    public ControlNodeCommunicationChannel<C, A> getCommunicationChannel() {
         return communicationChannel;
     }
 
