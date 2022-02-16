@@ -1,5 +1,9 @@
 package nio2kryo;
 
+import java.nio.ByteBuffer;
+
+import until.serialization.async.AsyncSerializer;
+
 /**
  * Simply a pair of integers
  * 
@@ -23,6 +27,14 @@ public final class Edge implements Axiom {
 
 	}
 
+	void setFrom(int from) {
+		this.from_ = from;
+	}
+
+	void setTo(int to) {
+		this.to_ = to;
+	}
+
 	@Override
 	public int hashCode() {
 		return from_ + to_;
@@ -43,6 +55,18 @@ public final class Edge implements Axiom {
 	@Override
 	public String toString() {
 		return "Edge(" + from_ + ", " + to_ + ")";
+	}
+
+	@Override
+	public void write(AsyncSerializer s, ByteBuffer out) {
+		s.writeInt(out, from_);
+		s.writeInt(out, to_);
+	}
+
+	@Override
+	public void read(AsyncSerializer s, ByteBuffer in) {
+		s.readInt(in, this::setFrom);
+		s.readInt(in, this::setTo);
 	}
 
 }
