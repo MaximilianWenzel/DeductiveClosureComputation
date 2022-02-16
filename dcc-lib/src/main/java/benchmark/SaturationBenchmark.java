@@ -11,8 +11,6 @@ import data.Closure;
 import enums.MessageDistributionType;
 import enums.SaturationApproach;
 import networking.ServerData;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.SingleThreadedSaturation;
@@ -27,12 +25,13 @@ import util.CSVUtils;
 import util.ConsoleUtils;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -84,19 +83,6 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
         this.workerNodeStatistics = workerNodeStatistics;
     }
 
-    public SaturationBenchmark(String benchmarkType,
-                               Set<SaturationApproach> includedApproaches,
-                               File outputDirectory,
-                               int numberOfExperimentRepetitions,
-                               boolean workerNodeStatistics) {
-        this.benchmarkType = benchmarkType;
-        this.includedApproaches = includedApproaches;
-        this.numberOfExperimentRepetitions = numberOfExperimentRepetitions;
-        this.outputDirectory = outputDirectory;
-        this.outputDirectory.mkdir();
-        this.workerNodeStatistics = workerNodeStatistics;
-    }
-
     public void startBenchmark(SaturationInitializationFactory<C, A> saturationInitializationFactory) {
         this.initializationFactory = saturationInitializationFactory;
 
@@ -118,40 +104,37 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
             }
         }
 
-        if (workers.size() > 1) {
-            // parallel
-            if (includedApproaches.contains(SaturationApproach.PARALLEL)) {
-                runParallelSaturationBenchmark();
+        // parallel
+        if (includedApproaches.contains(SaturationApproach.PARALLEL)) {
+            runParallelSaturationBenchmark();
+            initializationFactory.resetFactory();
+        }
+
+        for (MessageDistributionType messageDistributionType : messageDistributionTypes) {
+            // distributed - each worker in separate thread
+            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_MULTITHREADED)) {
+                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_MULTITHREADED, messageDistributionType);
                 initializationFactory.resetFactory();
             }
 
-            for (MessageDistributionType messageDistributionType : messageDistributionTypes) {
-                // distributed - each worker in separate thread
-                if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_MULTITHREADED)) {
-                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_MULTITHREADED, messageDistributionType);
-                    initializationFactory.resetFactory();
-                }
+            // distributed - each worker in separate JVM
+            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_JVM)) {
+                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_JVM, messageDistributionType);
+                initializationFactory.resetFactory();
+            }
 
-                // distributed - each worker in separate JVM
-                if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_JVM)) {
-                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_JVM, messageDistributionType);
-                    initializationFactory.resetFactory();
-                }
+            // distributed - each worker in separate docker container
+            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER)) {
+                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER, messageDistributionType);
+                initializationFactory.resetFactory();
+            }
 
-                // distributed - each worker in separate docker container
-                if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER)) {
-                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER, messageDistributionType);
-                    initializationFactory.resetFactory();
-                }
-
-                // distributed - worker have been already started in separate docker container, only control node is started
-                if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK)) {
-                    runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK, messageDistributionType);
-                    initializationFactory.resetFactory();
-                }
+            // distributed - worker have been already started in separate docker container, only control node is started
+            if (includedApproaches.contains(SaturationApproach.DISTRIBUTED_DOCKER)) {
+                runDistributedSaturationBenchmark(SaturationApproach.DISTRIBUTED_DOCKER, messageDistributionType);
+                initializationFactory.resetFactory();
             }
         }
-
     }
 
     public void finishBenchmark() {
@@ -282,7 +265,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
             case DISTRIBUTED_SEPARATE_JVM:
                 workerGenerator = new SaturationJVMWorkerGenerator(workers.size(), 1);
                 break;
-            case DISTRIBUTED_DOCKER_BENCHMARK:
+            case DISTRIBUTED_DOCKER:
                 workerGenerator = null;
                 serverDataList = new ArrayList<>();
                 for (int i = 0; i < workers.size(); i++) {
@@ -340,7 +323,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
         }
 
         // stop workers
-        if (!distributedApproach.equals(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK)) {
+        if (!distributedApproach.equals(SaturationApproach.DISTRIBUTED_DOCKER)) {
             workerGenerator.stopWorkers();
         }
         RuntimeMeasurements runtimeMeasurements = new RuntimeMeasurements(
@@ -386,6 +369,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
         List<Double> runtimeInMSPerRound = new ArrayList<>();
         List<Double> runtimeInMSPerRoundWithSendingClosure = new ArrayList<>();
 
+        ExecutorService threadPool = Executors.newFixedThreadPool(initializationFactory.getWorkerModels().size());
+
         for (int roundNumber = 1; roundNumber <= this.numberOfWarmUpRounds + this.numberOfExperimentRepetitions; roundNumber++) {
             if (roundNumber <= numberOfWarmUpRounds) {
                 log.info("Warm-up Round " + roundNumber);
@@ -395,7 +380,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
 
             ParallelSaturation<C, A> saturation = new ParallelSaturation<>(
                     new SaturationConfiguration(true, workerNodeStatistics),
-                    initializationFactory
+                    initializationFactory,
+                    threadPool
             );
 
             // run saturation
@@ -418,6 +404,8 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
                         workerStatistics);
             }
         }
+        threadPool.shutdownNow();
+
         return new RuntimeMeasurements(
                 new DescriptiveStatistics(runtimeInMSPerRoundWithSendingClosure.stream().mapToDouble(d -> d).toArray()),
                 new DescriptiveStatistics(runtimeInMSPerRound.stream().mapToDouble(d -> d).toArray())

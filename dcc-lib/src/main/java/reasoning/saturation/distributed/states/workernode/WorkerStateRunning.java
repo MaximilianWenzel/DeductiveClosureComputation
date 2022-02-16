@@ -18,9 +18,9 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable> ex
 
     public void mainWorkerLoop(Object obj) {
         if (obj instanceof MessageModel) {
-            ((MessageModel<C, A>)obj).accept(this);
+            ((MessageModel<C, A>) obj).accept(this);
         } else {
-            visit((A)obj);
+            visit((A) obj);
         }
 
         lastMessageWasAxiomCountRequest = obj instanceof RequestAxiomMessageCount;
@@ -71,8 +71,9 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable> ex
     @Override
     public void visit(A axiom) {
         communicationChannel.distributeInferences(incrementalReasoner.getStreamOfInferencesForGivenAxiom(axiom)
-                .filter(inference -> !this.worker.getClosure().contains(inference)) // only those which are not contained in closure
+                .filter(inference -> !this.worker.getClosure().contains(inference))
         );
+
     }
 
 }

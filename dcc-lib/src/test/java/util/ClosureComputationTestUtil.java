@@ -17,8 +17,11 @@ import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.parallel.ParallelSaturation;
 
 import java.io.Serializable;
+import java.lang.reflect.Executable;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -43,8 +46,10 @@ public class ClosureComputationTestUtil {
 
     public static <C extends Closure<A>, A extends Serializable> Set<A> parallelClosureComputation(
             SaturationInitializationFactory<C, A> factory) {
+        ExecutorService threadPool = Executors.newFixedThreadPool(factory.getWorkerModels().size());
         ParallelSaturation<C, A> saturation = new ParallelSaturation<>(
-                factory
+                factory,
+                threadPool
         );
 
         C closure = saturation.saturate();

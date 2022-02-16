@@ -28,7 +28,6 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\dataset\RDFDatasetGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\transitiveclosure\Reachability.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\metadata\DistributedSaturationConfiguration.java
-D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\data\ParallelToDo.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\NIO2NetworkingComponent.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELRoleName.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\reactor\netty\echo\Axiom.java
@@ -151,7 +150,6 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\echoclosure\EchoAxiomA.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\rules\ParallelSaturationInferenceProcessor.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\compression\CompressionTests.java
-D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\data\SingleThreadToDo.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\exceptions\InsufficientQueueCapacityException.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleRDFS1.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\enums\SaturationApproach.java

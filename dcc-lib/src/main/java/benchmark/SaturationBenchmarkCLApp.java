@@ -1,12 +1,11 @@
 package benchmark;
 
+import enums.MessageDistributionType;
 import enums.SaturationApproach;
 import picocli.CommandLine;
-import util.ConsoleUtils;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @CommandLine.Command(name = "benchmark", subcommands = {CommandLine.HelpCommand.class},
@@ -28,6 +27,14 @@ public class SaturationBenchmarkCLApp {
                     required = true)
                     SaturationApproach[] approaches,
             @CommandLine.Option(
+                    names = {"-w", "--warmUpRounds"},
+            defaultValue = "2")
+                    int warmUpRounds,
+            @CommandLine.Option(
+                    names = {"-w", "--warmUpRounds"},
+                    defaultValue = "3")
+                    int experimentRounds,
+            @CommandLine.Option(
                     names = {"-w", "--numberOfWorkers"},
                     arity = "1..*",
                     paramLabel = "NUM_WORKERS",
@@ -39,14 +46,23 @@ public class SaturationBenchmarkCLApp {
                     paramLabel = "DEPTH",
                     required = true)
                     Integer[] binaryTreeDepth,
+            @CommandLine.Option(
+                    names = {"-m", "--messageDistributionTypes"},
+                    arity = "1..2",
+                    required = true)
+                    MessageDistributionType[] messageDistributionTypes,
             @CommandLine.Option(names = {"-o", "--outputDirectory"},
                     required = true)
                     File outputDirectory) {
         IndividualExperiments.binaryTreeBenchmark(
                 outputDirectory,
+                warmUpRounds,
+                experimentRounds,
                 Arrays.stream(approaches).collect(Collectors.toSet()),
                 Arrays.stream(binaryTreeDepth).collect(Collectors.toSet()),
-                Arrays.stream(numberOfWorkers).collect(Collectors.toSet())
+                Arrays.stream(numberOfWorkers).collect(Collectors.toSet()),
+                false,
+                Arrays.stream(messageDistributionTypes).collect(Collectors.toSet())
         );
     }
 
@@ -60,6 +76,14 @@ public class SaturationBenchmarkCLApp {
                     required = true)
                     SaturationApproach[] approaches,
             @CommandLine.Option(
+                    names = {"-w", "--warmUpRounds"},
+                    defaultValue = "2")
+                    int warmUpRounds,
+            @CommandLine.Option(
+                    names = {"-w", "--warmUpRounds"},
+                    defaultValue = "3")
+                    int experimentRounds,
+            @CommandLine.Option(
                     names = {"-w", "--numberOfWorkers"},
                     arity = "1..*",
                     paramLabel = "NUM_WORKERS",
@@ -70,15 +94,24 @@ public class SaturationBenchmarkCLApp {
                     arity = "1..*",
                     paramLabel = "DEPTH",
                     required = true)
-                    Integer[] binaryTreeDepth,
+                    Integer[] chainGraphDepth,
+            @CommandLine.Option(
+                    names = {"-m", "--messageDistributionTypes"},
+                    arity = "1..2",
+                    required = true)
+                    MessageDistributionType[] messageDistributionTypes,
             @CommandLine.Option(names = {"-o", "--outputDirectory"},
                     required = true)
                     File outputDirectory) {
         IndividualExperiments.chainGraphBenchmark(
                 outputDirectory,
+                warmUpRounds,
+                experimentRounds,
                 Arrays.stream(approaches).collect(Collectors.toSet()),
-                Arrays.stream(binaryTreeDepth).collect(Collectors.toSet()),
-                Arrays.stream(numberOfWorkers).collect(Collectors.toSet())
+                Arrays.stream(chainGraphDepth).collect(Collectors.toSet()),
+                Arrays.stream(numberOfWorkers).collect(Collectors.toSet()),
+                false,
+                Arrays.stream(messageDistributionTypes).collect(Collectors.toSet())
         );
     }
 
@@ -92,6 +125,14 @@ public class SaturationBenchmarkCLApp {
                     required = true)
                     SaturationApproach[] approaches,
             @CommandLine.Option(
+                    names = {"-w", "--warmUpRounds"},
+                    defaultValue = "2")
+                    int warmUpRounds,
+            @CommandLine.Option(
+                    names = {"-w", "--warmUpRounds"},
+                    defaultValue = "3")
+                    int experimentRounds,
+            @CommandLine.Option(
                     names = {"-w", "--numberOfWorkers"},
                     arity = "1..*",
                     paramLabel = "NUM_WORKERS",
@@ -102,15 +143,24 @@ public class SaturationBenchmarkCLApp {
                     arity = "1..*",
                     paramLabel = "DEPTH",
                     required = true)
-                    Integer[] binaryTreeDepth,
+                    Integer[] initialEchoAxioms,
+            @CommandLine.Option(
+                    names = {"-m", "--messageDistributionTypes"},
+                    arity = "1..2",
+                    required = true)
+                    MessageDistributionType[] messageDistributionTypes,
             @CommandLine.Option(names = {"-o", "--outputDirectory"},
                     required = true)
                     File outputDirectory) {
         IndividualExperiments.echoBenchmark(
                 outputDirectory,
+                warmUpRounds,
+                experimentRounds,
                 Arrays.stream(approaches).collect(Collectors.toSet()),
-                Arrays.stream(binaryTreeDepth).collect(Collectors.toSet()),
-                Arrays.stream(numberOfWorkers).collect(Collectors.toSet())
+                Arrays.stream(initialEchoAxioms).collect(Collectors.toSet()),
+                Arrays.stream(numberOfWorkers).collect(Collectors.toSet()),
+                false,
+                Arrays.stream(messageDistributionTypes).collect(Collectors.toSet())
         );
     }
 

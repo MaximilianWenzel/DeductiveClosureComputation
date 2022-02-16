@@ -9,6 +9,7 @@ import util.QueueFactory;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -20,7 +21,7 @@ public abstract class NIO2NetworkingLoop implements Runnable {
     private NIO2NetworkingComponent networkingComponent;
     private boolean terminateAfterFinishing;
 
-    private BlockingQueue<Object> toDoMessages = QueueFactory.createDistributedSaturationToDo();
+    private Queue<Object> toDoMessages = QueueFactory.createDistributedSaturationToDo();
     private MessageEnvelope currentMessageToSend = null;
 
     private Object currentElement;

@@ -1,20 +1,20 @@
 package reasoning.saturation;
 
 import data.Closure;
-import data.SingleThreadToDo;
-import data.ToDoQueue;
 import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
+import util.QueueFactory;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Queue;
 
 public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializable> implements Saturation<C, A> {
 
-    private final ToDoQueue<A> toDo = new SingleThreadToDo<>();
+    private final Queue<A> toDo = QueueFactory.getSingleThreadedToDo();
     private C closure;
     private Collection<? extends Rule<C, A>> rules;
 

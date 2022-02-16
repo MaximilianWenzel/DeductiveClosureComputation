@@ -1,8 +1,7 @@
 package reasoning.saturation.parallel;
 
 import data.Closure;
-import data.ParallelToDo;
-import data.ToDoQueue;
+import enums.SaturationStatusMessage;
 import enums.StatisticsComponent;
 import networking.messages.AxiomCount;
 import networking.messages.RequestAxiomMessageCount;
@@ -15,8 +14,8 @@ import reasoning.saturation.workload.WorkloadDistributor;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -28,7 +27,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
     private final long id = workerIDCounter.getAndIncrement();
     private final Collection<? extends Rule<C, A>> rules;
     private final C closure;
-    private final ParallelToDo toDo;
+    private final BlockingQueue<Object> toDo;
     private final ParallelSaturation<C, A> controlNode;
 
     private final AtomicInteger receivedAxioms = new AtomicInteger(0);
@@ -47,7 +46,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
                              Collection<? extends Rule<C, A>> rules,
                              WorkloadDistributor<C, A> workloadDistributor,
                              C closure,
-                             ParallelToDo toDo) {
+                             BlockingQueue<Object> toDo) {
         this.config = config;
         this.controlNode = controlNode;
         this.workloadDistributor = workloadDistributor;
@@ -69,7 +68,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
     public void run() {
         try {
             while (!controlNode.allWorkersConverged()) {
-                Serializable message;
+                Object message;
                 if (toDo.isEmpty()) {
                     if (!this.lastMessageWasAxiomCountRequest) {
                         sendAxiomCountToControlNode();
@@ -87,6 +86,11 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
                     message = toDo.take();
                 }
 
+                if (message == SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT) {
+                    // stop this loop
+                    break;
+                }
+
                 if (message instanceof RequestAxiomMessageCount) {
                     RequestAxiomMessageCount axiomCountRequest = (RequestAxiomMessageCount) message;
                     this.saturationStage.set(axiomCountRequest.getStage());
@@ -96,12 +100,11 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
                     if (this.lastMessageWasAxiomCountRequest) {
                         this.lastMessageWasAxiomCountRequest = false;
                     }
-
                     if (config.collectWorkerNodeStatistics()) {
                         this.statistics.getNumberOfReceivedAxioms().incrementAndGet();
                     }
                     receivedAxioms.incrementAndGet();
-                    incrementalReasoner.getStreamOfInferencesForGivenAxiom((A)message)
+                    incrementalReasoner.getStreamOfInferencesForGivenAxiom((A) message)
                             .forEach(inference -> this.inferenceProcessor.processInference(inference));
                 }
             }
@@ -150,7 +153,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
         });
     }
 
-    public ParallelToDo getToDo() {
+    public BlockingQueue<Object> getToDo() {
         return toDo;
     }
 

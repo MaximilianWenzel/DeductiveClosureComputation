@@ -1,5 +1,6 @@
 package benchmark;
 
+import enums.MessageDistributionType;
 import enums.SaturationApproach;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import util.ConsoleUtils;
@@ -10,30 +11,35 @@ import java.util.logging.Logger;
 
 public class DockerSaturationBenchmark {
 
-    private static final Logger log = ConsoleUtils.getLogger();
+    private static final boolean collectWorkerNodeStatistics = false;
+    private static final int EXPERIMENT_ROUNDS = 3;
+    private static final int WARM_UP_ROUNDS = 2;
+
     private static final File outputDirectory = new File("saturation");
 
     private static Set<Integer> binaryTreeDepthList;
     private static Set<Integer> initialEchoAxioms;
     private static Set<Integer> chainDepthList;
     private static Set<Integer> numberOfWorkersList;
+    private static Set<MessageDistributionType> messageDistributionTypes;
+
+    static {
+        messageDistributionTypes = new UnifiedSet<>();
+        messageDistributionTypes.add(MessageDistributionType.SEND_ALL_MESSAGES_OVER_NETWORK);
+        messageDistributionTypes.add(MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO);
+    }
 
     static {
         binaryTreeDepthList = new UnifiedSet<>();
-        for (int i = 10; i <= 18; i++) {
+        for (int i = 17; i <= 20; i++) {
             binaryTreeDepthList.add(i);
         }
 
         initialEchoAxioms = new UnifiedSet<>();
-        initialEchoAxioms.add(50_000);
-        initialEchoAxioms.add(100_000);
-        initialEchoAxioms.add(200_000);
         initialEchoAxioms.add(500_000);
         initialEchoAxioms.add(1_000_000);
         initialEchoAxioms.add(5_000_000);
         initialEchoAxioms.add(10_000_000);
-
-        //initialEchoAxioms.add(10_000_000);
 
         chainDepthList = new UnifiedSet<>();
         for (int i = 100; i <= 1000; i += 100) {
@@ -59,7 +65,7 @@ public class DockerSaturationBenchmark {
                 includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
                 break;
             case "docker-network":
-                includedApproaches.add(SaturationApproach.DISTRIBUTED_DOCKER_BENCHMARK);
+                includedApproaches.add(SaturationApproach.DISTRIBUTED_DOCKER);
                 break;
             default:
                 throw new IllegalArgumentException("allowed: single-machine | docker-network");
@@ -67,13 +73,16 @@ public class DockerSaturationBenchmark {
 
         switch (benchmark.toLowerCase()) {
             case "echo":
-                IndividualExperiments.echoBenchmark(outputDirectory, includedApproaches, initialEchoAxioms, numberOfWorkersList);
+                IndividualExperiments.echoBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS, includedApproaches,
+                        initialEchoAxioms, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
                 break;
             case "binarytree":
-                IndividualExperiments.binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
+                IndividualExperiments.binaryTreeBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS, includedApproaches,
+                        binaryTreeDepthList, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
                 break;
             case "chaingraph":
-                IndividualExperiments.chainGraphBenchmark(outputDirectory, includedApproaches, chainDepthList, numberOfWorkersList);
+                IndividualExperiments.chainGraphBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS, includedApproaches,
+                        chainDepthList, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown benchmark type: " + benchmark + ", allowed: echo | binarytree | chaingraph");

@@ -1,8 +1,7 @@
 package reasoning.saturation.parallel;
 
-import com.google.common.base.Stopwatch;
 import data.Closure;
-import data.ParallelToDo;
+import enums.SaturationStatusMessage;
 import enums.StatisticsComponent;
 import networking.messages.AxiomCount;
 import networking.messages.RequestAxiomMessageCount;
@@ -19,7 +18,7 @@ import util.QueueFactory;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
@@ -33,7 +32,7 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
     private List<SaturationContext<C, A>> contexts;
     private Collection<WorkerModel<C, A>> workerModels;
     private volatile boolean allWorkersConverged = false;
-    private List<Thread> threadPool;
+    private ExecutorService threadPool;
     private Iterator<? extends A> initialAxioms;
     private WorkloadDistributor<C, A> workloadDistributor;
     private Map<Long, SaturationContext<C, A>> workerIDToSaturationContext = new HashMap<>();
@@ -47,16 +46,17 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
     private SaturationConfiguration config;
     private ControlNodeStatistics controlNodeStatistics = null;
 
-    public ParallelSaturation(SaturationInitializationFactory<C, A> factory) {
+    public ParallelSaturation(SaturationInitializationFactory<C, A> factory, ExecutorService threadPool) {
         this.factory = factory;
         this.initialAxioms = factory.getInitialAxioms();
         this.workerModels = factory.getWorkerModels();
         this.workloadDistributor = factory.getWorkloadDistributor();
         this.config = new SaturationConfiguration();
+        this.threadPool = threadPool;
         init();
     }
 
-    public ParallelSaturation(SaturationConfiguration config, SaturationInitializationFactory<C, A> factory) {
+    public ParallelSaturation(SaturationConfiguration config, SaturationInitializationFactory<C, A> factory, ExecutorService threadPool) {
         this.factory = factory;
         this.initialAxioms = factory.getInitialAxioms();
         this.workerModels = factory.getWorkerModels();
@@ -65,12 +65,13 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
         if (config.collectControlNodeStatistics()) {
             this.controlNodeStatistics = new ControlNodeStatistics();
         }
+        this.threadPool = threadPool;
         init();
     }
 
     protected SaturationContext<C, A> generateSaturationContext(WorkerModel<C, A> worker) {
         C workerClosure = factory.getNewClosure();
-        ParallelToDo workerToDo = new ParallelToDo();
+        BlockingQueue<Object> workerToDo = QueueFactory.createSaturationToDo();
         SaturationContext<C, A> saturationContext = new SaturationContext<>(
                 config,
                 this,
@@ -115,7 +116,8 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
             });
         });
 
-        initAndStartThreads();
+        submitWorkerTasksToThreadPool();
+
         if (config.collectControlNodeStatistics()) {
             controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
         }
@@ -177,16 +179,19 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
             }
             allWorkersConverged = true;
 
+            if (config.collectControlNodeStatistics()) {
+                controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
+            }
+
             // all workers converged
-            for (Thread t : threadPool) {
-                t.interrupt();
+            for (SaturationContext<C, A> worker : contexts) {
+                worker.getToDo().add(SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
         if (config.collectControlNodeStatistics()) {
-            controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
             controlNodeStatistics.startStopwatch(StatisticsComponent.CONTROL_NODE_WAITING_FOR_CLOSURE_RESULTS);
         }
 
@@ -209,12 +214,10 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
         }
     }
 
-    private void initAndStartThreads() {
-        this.threadPool = new ArrayList<>();
+    private void submitWorkerTasksToThreadPool() {
         for (SaturationContext<C, A> worker : this.contexts) {
-            this.threadPool.add(new Thread(worker));
+            this.threadPool.submit(worker);
         }
-        this.threadPool.forEach(Thread::start);
     }
 
     public boolean allWorkersConverged() {

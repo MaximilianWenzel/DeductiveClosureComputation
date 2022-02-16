@@ -12,14 +12,13 @@ import benchmark.transitiveclosure.ToldReachability;
 import enums.MessageDistributionType;
 import enums.SaturationApproach;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
-import org.roaringbitmap.RoaringBitmap;
 
 import java.io.File;
 import java.util.*;
 
 public class IndividualExperiments {
 
-    private static final boolean collectWorkerNodeStatistics = true;
+    private static final boolean collectWorkerNodeStatistics = false;
 
     private static final int EXPERIMENT_ROUNDS = 1;
     private static final int WARM_UP_ROUNDS = 1;
@@ -36,7 +35,7 @@ public class IndividualExperiments {
         //    binaryTreeDepthList.add(i);
         //}
         //binaryTreeDepthList.add(16);
-        binaryTreeDepthList.add(17);
+        binaryTreeDepthList.add(10);
 
         initialEchoAxioms = new UnifiedSet<>();
         //initialEchoAxioms.add(10_000);
@@ -55,7 +54,7 @@ public class IndividualExperiments {
 
         numberOfWorkersList = new UnifiedSet<>();
         //numberOfWorkersList.add(1);
-        numberOfWorkersList.add(2);
+        //numberOfWorkersList.add(2);
         //numberOfWorkersList.add(3);
         numberOfWorkersList.add(4);
 
@@ -83,28 +82,35 @@ public class IndividualExperiments {
 
     public static void benchmark(File outputDirectory) {
         Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
-        includedApproaches.add(SaturationApproach.SINGLE_THREADED);
+        //includedApproaches.add(SaturationApproach.SINGLE_THREADED);
         includedApproaches.add(SaturationApproach.PARALLEL);
-        includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
+        //includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_DOCKER_CONTAINER);
 
-        binaryTreeBenchmark(outputDirectory, includedApproaches, binaryTreeDepthList, numberOfWorkersList);
-        //chainGraphBenchmark(outputDirectory, includedApproaches, chainDepthList, numberOfWorkersList);
-        //echoBenchmark(outputDirectory, includedApproaches, initialEchoAxioms, numberOfWorkersList);
+        binaryTreeBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS,
+                includedApproaches, binaryTreeDepthList, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
+        //chainGraphBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS,
+        //        includedApproaches, chainDepthList, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
+        //echoBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS,
+        //        includedApproaches, initialEchoAxioms, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
     }
 
     public static void binaryTreeBenchmark(File outputDirectory,
+                                           int warmUpRounds,
+                                           int experimentRounds,
                                            Set<SaturationApproach> includedApproaches,
                                            Set<Integer> binaryTreeDepthList,
-                                           Set<Integer> numberOfWorkersList) {
+                                           Set<Integer> numberOfWorkersList,
+                                           boolean collectWorkerNodeStatistics,
+                                           Set<MessageDistributionType> messageDistributionTypes) {
 
         SaturationBenchmark<ReachabilityClosure, Reachability> binaryTreeBenchmark = new SaturationBenchmark<>(
                 "BinaryTree",
                 includedApproaches,
                 outputDirectory,
-                WARM_UP_ROUNDS,
-                EXPERIMENT_ROUNDS,
+                warmUpRounds,
+                experimentRounds,
                 collectWorkerNodeStatistics,
                 messageDistributionTypes
         );
@@ -121,20 +127,23 @@ public class IndividualExperiments {
             }
         }
         binaryTreeBenchmark.finishBenchmark();
-
     }
 
     public static void chainGraphBenchmark(File outputDirectory,
+                                           int warmUpRounds,
+                                           int experimentRounds,
                                            Set<SaturationApproach> includedApproaches,
                                            Set<Integer> chainDepthList,
-                                           Set<Integer> numberOfWorkersList) {
+                                           Set<Integer> numberOfWorkersList,
+                                           boolean collectWorkerNodeStatistics,
+                                           Set<MessageDistributionType> messageDistributionTypes) {
 
         SaturationBenchmark<ReachabilityClosure, Reachability> chainGraphBenchmark = new SaturationBenchmark<>(
                 "ChainGraph",
                 includedApproaches,
                 outputDirectory,
-                WARM_UP_ROUNDS,
-                EXPERIMENT_ROUNDS,
+                warmUpRounds,
+                experimentRounds,
                 collectWorkerNodeStatistics,
                 messageDistributionTypes
         );
@@ -154,15 +163,19 @@ public class IndividualExperiments {
     }
 
     public static void echoBenchmark(File outputDirectory,
+                                     int warmUpRounds,
+                                     int experimentRounds,
                                      Set<SaturationApproach> includedApproaches,
                                      Set<Integer> initialMessagesList,
-                                     Set<Integer> numberOfWorkersList) {
+                                     Set<Integer> numberOfWorkersList,
+                                     boolean collectWorkerNodeStatistics,
+                                     Set<MessageDistributionType> messageDistributionTypes) {
         SaturationBenchmark<EchoClosure, EchoAxiom> echoBenchmark = new SaturationBenchmark<>(
                 "Echo",
                 includedApproaches,
                 outputDirectory,
-                WARM_UP_ROUNDS,
-                EXPERIMENT_ROUNDS,
+                warmUpRounds,
+                experimentRounds,
                 collectWorkerNodeStatistics,
                 messageDistributionTypes
         );

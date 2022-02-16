@@ -1,5 +1,8 @@
 package util;
 
+import data.ToDoQueue;
+
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -12,7 +15,7 @@ public class QueueFactory {
     private static final int CAPACITY_MESSAGE_WRITER = 1_000_000;
 
     public static <E> BlockingQueue<E> createSaturationToDo() {
-        return new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
+        return new LinkedBlockingQueue<>();
     }
 
     public static <E> BlockingQueue<E> createDistributedSaturationToDo() {
@@ -21,5 +24,9 @@ public class QueueFactory {
 
     public static <E> BlockingQueue<E> createNIOMessageWriterQueue() {
         return new ArrayBlockingQueue<>(CAPACITY_MESSAGE_WRITER);
+    }
+
+    public static <E> Queue<E> getSingleThreadedToDo() {
+        return new LinkedBlockingQueue<>();
     }
 }

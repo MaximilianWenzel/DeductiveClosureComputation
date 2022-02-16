@@ -90,6 +90,15 @@ public class TransitiveReachabilityTest {
             ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM,
                     numberOfThreadsPerSingleWorker, false);
 
+            generator = new ReachabilityBinaryTreeGenerator(7);
+            initializationFactory = new ReachabilitySaturationInitializationFactory(
+                    generator.generateGraph(),
+                    1,
+                    0
+            );
+            ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, workersInSeparateJVM,
+                    numberOfThreadsPerSingleWorker, false);
+
             if (!workersInSeparateJVM) {
                 generator = new ReachabilityBinaryTreeGenerator(7);
                 initializationFactory = new ReachabilitySaturationInitializationFactory(

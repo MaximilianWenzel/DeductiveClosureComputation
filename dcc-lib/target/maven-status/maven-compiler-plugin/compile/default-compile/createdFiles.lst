@@ -309,7 +309,6 @@ benchmark\jmh\jmh_generated\NIONetworkingComponentBenchmark_jmhType.class
 benchmark\jmh\SenderStub$1.class
 networking\netty\NettySocketManager$MessageReader.class
 benchmark\rdfsreasoning\rules\RuleRDFS12.class
-data\ParallelToDo.class
 benchmark\jmh\jmh_generated\InterProcessCommunicationBenchmark_jmhType.class
 benchmark\jmh\jmh_generated\JMHIteratorConcat_addToArrayBlockingQueue_jmhTest.class
 reasoning\saturation\distributed\states\controlnode\ControlNodeState.class
@@ -323,7 +322,6 @@ benchmark\jmh\jmh_generated\KryoNetBenchmark_jmhType_B2.class
 networking\reactor\netty\echo\NettyKryoEncoder.class
 benchmark\jmh\jmh_generated\AddElementComparison_jmhType.class
 eldlsyntax\ELRole.class
-data\SingleThreadToDo.class
 benchmark\jmh\jmh_generated\InterProcessCommunicationBenchmark_jmhType_B2.class
 nio2kryo\Nio2KryoClient$ReadWriteContext.class
 eldlsyntax\ELEntity.class

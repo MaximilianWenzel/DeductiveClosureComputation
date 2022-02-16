@@ -33,5 +33,10 @@ public class EchoSaturationTest {
                 numWorkers, 1_000);
 
         ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 1, false);
+
+        numWorkers = 1;
+        initializationFactory = new EchoSaturationInitializationFactory(
+                numWorkers, 1_000);
+        ClosureComputationTestUtil.distributedClosureComputation(initializationFactory, false, 1, false);
     }
 }
