@@ -1,21 +1,5 @@
 package reasoning.saturation.distributed.communication;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Maps;
-import data.Closure;
-import enums.SaturationStatusMessage;
-import networking.NetworkingComponent;
-import networking.ServerData;
-import networking.acknowledgement.AcknowledgementEventManager;
-import networking.connectors.ConnectionModel;
-import networking.io.SocketManager;
-import networking.messages.*;
-import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
-import reasoning.saturation.models.DistributedWorkerModel;
-import reasoning.saturation.workload.WorkloadDistributor;
-import util.ConsoleUtils;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
@@ -24,6 +8,28 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
+
+import data.Closure;
+import enums.SaturationStatusMessage;
+import networking.NetworkingComponent;
+import networking.ServerData;
+import networking.acknowledgement.AcknowledgementEventManager;
+import networking.connectors.ConnectionModel;
+import networking.io.MessageHandler;
+import networking.io.SocketManager;
+import networking.messages.AcknowledgementMessage;
+import networking.messages.InitializeWorkerMessage;
+import networking.messages.MessageModel;
+import networking.messages.RequestAxiomMessageCount;
+import networking.messages.StateInfoMessage;
+import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
+import reasoning.saturation.models.DistributedWorkerModel;
+import reasoning.saturation.workload.WorkloadDistributor;
+import util.ConsoleUtils;
 
 public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable> {
 
@@ -186,10 +192,15 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
         public WorkerConnectionModel(ServerData serverData,
                                      DistributedWorkerModel<C, A> workerModel) {
-            super(serverData, (socketID, message) -> {
-                networkingLoop.onNewMessageReceived(message);
-            });
-            this.workerModel = workerModel;
+			super(serverData, new MessageHandler() {
+
+				@Override
+				public void process(long socketID, Object message) {
+					networkingLoop.onNewMessageReceived(message);
+
+				}
+			});
+			this.workerModel = workerModel;
         }
 
         @Override
