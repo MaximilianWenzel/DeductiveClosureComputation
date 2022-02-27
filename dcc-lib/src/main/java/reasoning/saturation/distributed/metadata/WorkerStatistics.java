@@ -1,6 +1,7 @@
 package reasoning.saturation.distributed.metadata;
 
 import com.google.common.base.Stopwatch;
+import enums.MessageDistributionType;
 import enums.StatisticsComponent;
 
 import java.io.Serializable;
@@ -27,6 +28,57 @@ public class WorkerStatistics implements Serializable {
 
     public WorkerStatistics() {
 
+    }
+
+    public static List<String> getWorkerStatsHeader() {
+        List<String> statsHeader = new ArrayList<>();
+        statsHeader.add("WorkerInitializingConnectionsToOtherWorkersMS");
+        statsHeader.add("WorkerWaitingTimeWhileSaturationMS");
+        statsHeader.add("ApplyingRulesTimeWhileSaturationMS");
+        statsHeader.add("DistributingAxiomsTimeMS");
+        statsHeader.add("ToDoIsEmptyEvent");
+        statsHeader.add("NumberOfProcessedAxioms");
+        statsHeader.add("NumberOfDerivedInferences");
+        statsHeader.add("NumberOfSentAxioms");
+        statsHeader.add("NumberOfReceivedAxioms");
+        return statsHeader;
+    }
+
+    public static List<String> getWorkerStatsSummaryHeader() {
+        List<String> statsHeader = new ArrayList<>();
+        statsHeader.add("benchmarkType");
+        statsHeader.add("approach");
+        statsHeader.add("numWorkers");
+        statsHeader.add("messageDistribution");
+        statsHeader.add("AVGWorkerInitializingConnectionsToOtherWorkersMS");
+        statsHeader.add("AVGWorkerWaitingTimeWhileSaturationMS");
+        statsHeader.add("AVGApplyingRulesTimeWhileSaturationMS");
+        statsHeader.add("AVGDistributingAxiomsTimeMS");
+        statsHeader.add("AVGToDoIsEmptyEvent");
+        statsHeader.add("AVGNumberOfProcessedAxioms");
+        statsHeader.add("AVGNumberOfDerivedInferences");
+        statsHeader.add("AVGNumberOfSentAxioms");
+        statsHeader.add("AVGNumberOfReceivedAxioms");
+        return statsHeader;
+    }
+
+    public static List<String> getSummarizedWorkerStatistics(List<WorkerStatistics> stats, String benchmarkType, String approach,
+                                                             long numberOfWorkers, MessageDistributionType messageDistributionType) {
+        List<String> result = new ArrayList<>();
+        result.add(benchmarkType);
+        result.add(approach);
+        result.add("" + numberOfWorkers);
+        result.add(messageDistributionType.toString().toLowerCase());
+        result.add("" + stats.stream().mapToDouble(WorkerStatistics::getInitializingConnectionsToOtherWorkersMS).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(WorkerStatistics::getWaitingTimeWhileSaturationMS).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(WorkerStatistics::getApplyingRulesTimeWhileSaturationMS).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(WorkerStatistics::getDistributingAxiomsTimeMS).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(s -> s.getTodoIsEmptyEvent().get()).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfProcessedAxioms().get()).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfDerivedInferences().get()).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfSentAxioms().get()).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfReceivedAxioms().get()).average().getAsDouble());
+        return result;
     }
 
     public void startStopwatch(StatisticsComponent component) {
@@ -67,7 +119,6 @@ public class WorkerStatistics implements Serializable {
         }
     }
 
-
     public AtomicLong getTodoIsEmptyEvent() {
         return todoIsEmptyEvent;
     }
@@ -97,21 +148,6 @@ public class WorkerStatistics implements Serializable {
         distributingAxiomsTimeMS = distributingAxiomsTime.elapsed(TimeUnit.MILLISECONDS);
     }
 
-
-    public static List<String> getWorkerStatsHeader() {
-        List<String> statsHeader = new ArrayList<>();
-        statsHeader.add("WorkerInitializingConnectionsToOtherWorkersMS");
-        statsHeader.add("WorkerWaitingTimeWhileSaturationMS");
-        statsHeader.add("ApplyingRulesTimeWhileSaturationMS");
-        statsHeader.add("DistributingAxiomsTimeMS");
-        statsHeader.add("ToDoIsEmptyEvent");
-        statsHeader.add("NumberOfProcessedAxioms");
-        statsHeader.add("NumberOfDerivedInferences");
-        statsHeader.add("NumberOfSentAxioms");
-        statsHeader.add("NumberOfReceivedAxioms");
-        return statsHeader;
-    }
-
     public List<Long> getWorkerStatistics() {
         List<Long> stats = new ArrayList<>();
         stats.add(initializingConnectionsToOtherWorkersMS);
@@ -124,5 +160,21 @@ public class WorkerStatistics implements Serializable {
         stats.add(numberOfSentAxioms.get());
         stats.add(numberOfReceivedAxioms.get());
         return stats;
+    }
+
+    private long getInitializingConnectionsToOtherWorkersMS() {
+        return initializingConnectionsToOtherWorkersMS;
+    }
+
+    private long getWaitingTimeWhileSaturationMS() {
+        return waitingTimeWhileSaturationMS;
+    }
+
+    private long getApplyingRulesTimeWhileSaturationMS() {
+        return applyingRulesTimeWhileSaturationMS;
+    }
+
+    private long getDistributingAxiomsTimeMS() {
+        return distributingAxiomsTimeMS;
     }
 }

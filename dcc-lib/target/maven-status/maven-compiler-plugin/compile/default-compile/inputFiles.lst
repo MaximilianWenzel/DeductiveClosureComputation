@@ -1,3 +1,4 @@
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\until\serialization\async\NullSerializer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\states\workernode\WorkerStateConverged.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\transitiveclosure\ReachabilityWorkloadDistributor.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\rules\UnfoldSubsumptionRule.java
@@ -8,6 +9,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\reactor\netty\echo\ReactorNettyServer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\rules\UnfoldExistentialRule.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELAxiom.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Nio2EndOfStream.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\NIO2MicroBenchmarkWithoutQueues.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\rules\ComposeConjunctionRule.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\workergeneration\SaturationDockerWorkerGenerator.java
@@ -19,8 +21,10 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\netty\helloworld\ResponseDataEncoder.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\NIO2MicroBenchmark.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Edge.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\until\serialization\async\SerializerRegistration.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\graphgeneration\ChainGraphGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\data\Closure.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\until\serialization\async\Serializer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\JMHIteratorConcat.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\enums\NetworkingComponentType.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleRDFS13.java
@@ -38,12 +42,14 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\echoclosure\EchoBToARule.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\netty\helloworld\ResponseDataDecoder.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\workergeneration\SaturationWorkerThreadGenerator.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Nio2AsyncServer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\states\controlnode\CNSFinished.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELConceptAssertion.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\metadata\SaturationConfiguration.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\netty\helloworld\ResponseData.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\InterProcessCommunicationBenchmark.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\transitiveclosure\InitRule.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\graphgeneration\ReachabilityRandomDigraphGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\states\controlnode\CNSWaitingForClosureResults.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\metadata\WorkerStatistics.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\io\nio2\NIO2MessageReader.java
@@ -52,6 +58,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\util\serialization\JavaSerializer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELOntology.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\netty\helloworld\ProcessingHandler.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Nio2AsyncClient.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\netty\helloworld\RequestDataEncoder.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\rules\ReflexiveSubsumptionRule.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\rules\ReflexiveSubsumptionRuleVisitor.java
@@ -78,6 +85,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\OWLELSaturationInitializationFactory.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\util\ConsoleUtils.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\models\DistributedWorkerModel.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\until\serialization\async\AsyncSerializable.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\util\serialization\Serializer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\graphgeneration\GraphGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\DistributedSaturation.java
@@ -122,6 +130,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELRole.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\SerializationBenchmark.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\NioObjectChannel.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\until\serialization\async\StringSerializer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleRDFS4a.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\echoclosure\EchoAxiomB.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\echoclosure\EchoAxiom.java
@@ -165,6 +174,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\netty\NettyMicroBenchmark.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\FluxSinkBenchmark.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\NetworkingComponent.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Nio2AsyncPublisher.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\SaturationControlNode.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\echoclosure\EchoAxiomGenerator.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\netty\NettyNetworkingComponent.java
@@ -178,6 +188,8 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\transitiveclosure\ReachabilitySaturationInitializationFactory.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\rules\InferenceProcessor.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\parallel\ParallelSaturation.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\graphgeneration\StaticGraphGenerator.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\communication\NIO2NetworkingPipeline.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\io\nio\NIOMessageReader.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Writer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\echoclosure\EchoWorkloadDistributor.java
@@ -205,6 +217,7 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Nio2KryoClient.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\jmh\KryoNetBenchmark.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleGRDFD2.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\Nio2AsyncSubscriber.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleRDFS2.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELObject.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\data\DefaultClosure.java
@@ -218,13 +231,15 @@ D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\exceptions\MessageProtocolViolationException.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\rdfsreasoning\rules\RuleRDFS4b.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\eldlsyntax\ELEntities.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\until\serialization\async\AsyncSerializableSerializer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\KryoConfig.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\graphgeneration\RandomDigraph.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\SaturationInitializationFactory.java
-D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\communication\NIO2NetworkingLoop.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\messages\MessageType.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\eldlreasoning\rules\OWLELRule.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\networking\messages\MessageModelVisitor.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\reasoning\saturation\distributed\states\workernode\WorkerStateInitializing.java
+D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\until\serialization\async\AsyncSerializer.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\benchmark\IndividualExperiments.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\nio2kryo\MulticastProcessor.java
 D:\Max\Studium\21WiSe\AutomatedReasoning\Git\DeductiveClosureComputation\dcc-lib\src\main\java\data\DatasetFragment.java

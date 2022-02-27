@@ -6,7 +6,7 @@ import networking.ServerData;
 import networking.messages.InitializeWorkerMessage;
 import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.rules.Rule;
-import reasoning.saturation.distributed.communication.NIO2NetworkingLoop;
+import reasoning.saturation.distributed.communication.NIO2NetworkingPipeline;
 import reasoning.saturation.distributed.communication.WorkerCommunicationChannel;
 import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -40,7 +40,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
     private WorkerStatistics stats = new WorkerStatistics();
     private boolean terminateAfterSaturation = false;
 
-    private WorkerNetworkingLoop networkingLoop;
+    private WorkerNetworkingPipeline networkingLoop;
 
     public SaturationWorker(ServerData serverData,
                             IncrementalReasonerType incrementalReasonerType,
@@ -87,7 +87,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
         if (threadPool == null || threadPool.isShutdown()) {
             threadPool = Executors.newFixedThreadPool(numberOfThreads);
         }
-        this.networkingLoop = new WorkerNetworkingLoop(threadPool, terminateAfterSaturation);
+        this.networkingLoop = new WorkerNetworkingPipeline(threadPool, terminateAfterSaturation);
         this.communicationChannel = new WorkerCommunicationChannel<>(
                 serverData,
                 networkingLoop
@@ -185,9 +185,9 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
         PARALLEL;
     }
 
-    private class WorkerNetworkingLoop extends NIO2NetworkingLoop {
+    private class WorkerNetworkingPipeline extends NIO2NetworkingPipeline {
 
-        public WorkerNetworkingLoop(ExecutorService threadPool, boolean terminateAfterFinishing) {
+        public WorkerNetworkingPipeline(ExecutorService threadPool, boolean terminateAfterFinishing) {
             super(threadPool, terminateAfterFinishing);
         }
 

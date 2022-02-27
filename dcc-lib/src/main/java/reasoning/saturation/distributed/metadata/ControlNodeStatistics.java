@@ -1,6 +1,7 @@
 package reasoning.saturation.distributed.metadata;
 
 import com.google.common.base.Stopwatch;
+import enums.MessageDistributionType;
 import enums.StatisticsComponent;
 
 import java.util.ArrayList;
@@ -22,6 +23,10 @@ public class ControlNodeStatistics {
 
     public static List<String> getControlNodeStatsHeader() {
         List<String> header = new ArrayList<>();
+        header.add("benchmarkType");
+        header.add("approach");
+        header.add("numWorkers");
+        header.add("messageDistribution");
         header.add("NumberOfReceivedAxiomCountMessages");
         header.add("SumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent");
         header.add("WorkerInitializationTimeMS");
@@ -90,13 +95,18 @@ public class ControlNodeStatistics {
         return numberOfReceivedAxiomCountMessages;
     }
 
-    public List<Long> getControlNodeStatistics() {
-        List<Long> stats = new ArrayList<>();
-        stats.add(numberOfReceivedAxiomCountMessages.get());
-        stats.add(sumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent.get());
-        stats.add(workerInitializationTimeMS);
-        stats.add(totalSaturationTimeMS);
-        stats.add(collectingClosureResultsFromWorkersMS);
+    public List<String> getControlNodeStatistics(String benchmarkType, String approach,
+                                               long numberOfWorkers, MessageDistributionType messageDistributionType) {
+        List<String> stats = new ArrayList<>();
+        stats.add(benchmarkType);
+        stats.add(approach);
+        stats.add(messageDistributionType.toString().toLowerCase());
+        stats.add("" + numberOfWorkers);
+        stats.add("" + numberOfReceivedAxiomCountMessages.get());
+        stats.add("" + sumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent.get());
+        stats.add("" + workerInitializationTimeMS);
+        stats.add("" + totalSaturationTimeMS);
+        stats.add("" + collectingClosureResultsFromWorkersMS);
         return stats;
     }
 

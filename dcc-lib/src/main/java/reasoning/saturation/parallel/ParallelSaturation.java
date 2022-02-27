@@ -86,7 +86,6 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
     }
 
     private void init() {
-
         // init workers
         if (config.collectControlNodeStatistics()) {
             controlNodeStatistics.startStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);

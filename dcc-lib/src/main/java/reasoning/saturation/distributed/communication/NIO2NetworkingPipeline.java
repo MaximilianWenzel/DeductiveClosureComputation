@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class NIO2NetworkingLoop implements Runnable {
+public abstract class NIO2NetworkingPipeline implements Runnable {
     private ExecutorService threadPool;
     private AtomicBoolean mainLoopSubmittedToThreadPool = new AtomicBoolean(false);
     private NIO2NetworkingComponent networkingComponent;
@@ -26,7 +26,7 @@ public abstract class NIO2NetworkingLoop implements Runnable {
 
     private Object currentElement;
 
-    public NIO2NetworkingLoop(ExecutorService threadPool, boolean terminateAfterFinishing) {
+    public NIO2NetworkingPipeline(ExecutorService threadPool, boolean terminateAfterFinishing) {
         this.threadPool = threadPool;
         this.terminateAfterFinishing = terminateAfterFinishing;
         init();

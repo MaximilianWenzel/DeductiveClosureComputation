@@ -35,6 +35,7 @@ public abstract class BinaryTreeGenerator<E> extends GraphGenerator<E> {
 
     @Override
     public List<E> generateGraph() {
+        nodeIndex.set(0);
         edges = new ArrayList<>(this.totalNumberOfEdges);
         generateGraphRec(1, nodeIDs.get(nodeIndex.getAndIncrement()));
         return edges;

@@ -51,19 +51,16 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
         }
 
         // distribute axiom only if it is not contained in closure
-        if (!closure.contains(axiom)) {
-            Stream<Long> workerIDs = distributor.getRelevantWorkerIDsForAxiom(axiom);
-            workerIDs.forEach(workerID -> {
-                sentAxiomsCount.incrementAndGet();
-                if (statistics != null) {
-                    statistics.getNumberOfSentAxioms().incrementAndGet();
-                }
-                SaturationContext<C, A> saturationContext = workerIDToSaturationContext.get(workerID);
-                BlockingQueue<Object> toDo = saturationContext.getToDo();
-                toDo.add(axiom);
-            });
-        }
-
+        Stream<Long> workerIDs = distributor.getRelevantWorkerIDsForAxiom(axiom);
+        workerIDs.forEach(workerID -> {
+            sentAxiomsCount.incrementAndGet();
+            if (statistics != null) {
+                statistics.getNumberOfSentAxioms().incrementAndGet();
+            }
+            SaturationContext<C, A> saturationContext = workerIDToSaturationContext.get(workerID);
+            BlockingQueue<Object> toDo = saturationContext.getToDo();
+            toDo.add(axiom);
+        });
 
         if (statistics != null) {
             statistics.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);

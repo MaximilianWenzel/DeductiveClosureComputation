@@ -54,9 +54,9 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     private DistributedSaturationConfiguration config;
     private WorkerStatistics stats;
 
-    private NIO2NetworkingLoop networkingLoop;
+    private NIO2NetworkingPipeline networkingLoop;
 
-    public WorkerCommunicationChannel(ServerData serverData, NIO2NetworkingLoop networkingLoop) {
+    public WorkerCommunicationChannel(ServerData serverData, NIO2NetworkingPipeline networkingLoop) {
         this.serverData = serverData;
         this.networkingLoop = networkingLoop;
         init();
@@ -135,10 +135,16 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
                     .forEach(receiverWorkerID -> {
                         if (receiverWorkerID != this.workerID) {
                             sentAxiomMessages.incrementAndGet();
+                            if (config.collectWorkerNodeStatistics()) {
+                                stats.getNumberOfSentAxioms().getAndIncrement();
+                            }
                             networkingLoop.sendMessage(workerIDToSocketID.get(receiverWorkerID), inference);
                         } else {
                             if (config.getMessageDistributionType().equals(MessageDistributionType.SEND_ALL_MESSAGES_OVER_NETWORK)) {
                                 sentAxiomMessages.incrementAndGet();
+                                if (config.collectWorkerNodeStatistics()) {
+                                    stats.getNumberOfSentAxioms().getAndIncrement();
+                                }
                                 networkingLoop.sendMessage(workerIDToSocketID.get(receiverWorkerID), inference);
                             } else {
                                 // add axioms from this worker directly to the queue

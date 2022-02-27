@@ -1,8 +1,10 @@
 package reasoning.saturation;
 
 import data.Closure;
+import enums.StatisticsComponent;
 import reasoning.reasoner.IncrementalStreamReasoner;
 import reasoning.rules.Rule;
+import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import util.QueueFactory;
@@ -17,19 +19,21 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
     private final Queue<A> toDo = QueueFactory.getSingleThreadedToDo();
     private C closure;
     private Collection<? extends Rule<C, A>> rules;
+    private Iterator<? extends A> initialAxioms;
 
     private IncrementalStreamReasoner<C, A> incrementalReasoner;
     private SaturationConfiguration config = new SaturationConfiguration();
-    private WorkerStatistics stats = new WorkerStatistics();
+    private WorkerStatistics workerStats = new WorkerStatistics();
+    private ControlNodeStatistics controlNodeStats = new ControlNodeStatistics();
 
     public SingleThreadedSaturation(Iterator<? extends A> initialAxioms, Collection<? extends Rule<C, A>> rules,
                                     C closure) {
         this.rules = rules;
         this.closure = closure;
+        this.initialAxioms = initialAxioms;
         initializeRules();
-        initializeToDoQueue(initialAxioms);
 
-        this.incrementalReasoner = new IncrementalStreamReasoner<>(this.rules, this.closure, config, stats);
+        this.incrementalReasoner = new IncrementalStreamReasoner<>(this.rules, this.closure, config, workerStats);
     }
 
     public SingleThreadedSaturation(SaturationConfiguration config,
@@ -38,10 +42,10 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
         this.rules = rules;
         this.closure = closure;
         this.config = config;
+        this.initialAxioms = initialAxioms;
         initializeRules();
-        initializeToDoQueue(initialAxioms);
 
-        this.incrementalReasoner = new IncrementalStreamReasoner<>(this.rules, this.closure, this.config, this.stats);
+        this.incrementalReasoner = new IncrementalStreamReasoner<>(this.rules, this.closure, this.config, this.workerStats);
     }
 
     private void initializeRules() {
@@ -55,14 +59,28 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
     }
 
     public C saturate() {
+        controlNodeStats.startStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
+        initializeToDoQueue(initialAxioms);
         while (!toDo.isEmpty()) {
             incrementalReasoner.getStreamOfInferencesForGivenAxiom(toDo.remove())
                     .forEach(toDo::add);
         }
+        controlNodeStats.stopStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
+        workerStats.getTodoIsEmptyEvent().incrementAndGet();
+        workerStats.collectStopwatchTimes();
+        controlNodeStats.collectStopwatchTimes();
         return closure;
     }
 
     public C getClosure() {
         return closure;
+    }
+
+    public ControlNodeStatistics getControlNodeStatistics() {
+        return this.controlNodeStats;
+    }
+
+    public WorkerStatistics getWorkerStatistics() {
+        return this.workerStats;
     }
 }

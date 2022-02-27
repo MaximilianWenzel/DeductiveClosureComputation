@@ -50,13 +50,13 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
 
     protected DistributedSaturationConfiguration config;
 
-    protected NIO2NetworkingLoop networkingLoop;
+    protected NIO2NetworkingPipeline networkingLoop;
 
     public ControlNodeCommunicationChannel(List<DistributedWorkerModel<C, A>> workers,
                                            WorkloadDistributor<C, A> workloadDistributor,
                                            Iterator<? extends A> initialAxioms,
                                            DistributedSaturationConfiguration config,
-                                           NIO2NetworkingLoop networkingLoop) {
+                                           NIO2NetworkingPipeline networkingLoop) {
         this.workers = workers;
         this.workloadDistributor = workloadDistributor;
         this.initialAxioms = initialAxioms;
@@ -78,10 +78,24 @@ public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Ser
     public void initializeConnectionToWorkerServers() {
         workers.stream().map(p -> new WorkerConnectionModel(p.getServerData(), p))
                 .forEach(s -> {
-                    try {
-                        networkingComponent.connectToServer(s);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    // try multiple times to connect to worker server since the server might not have been restarted yet
+                    boolean connectionEstablished = false;
+                    for (int i = 0; i < 10; i++) {
+                        try {
+                            networkingComponent.connectToServer(s);
+                            connectionEstablished = true;
+                            break;
+                        } catch (IOException e) {
+                            // could not connect to server
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+                    }
+                    if (!connectionEstablished) {
+                        throw new IllegalStateException("Could not establish connection to worker server.");
                     }
                 });
     }

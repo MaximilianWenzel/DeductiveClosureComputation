@@ -10,9 +10,11 @@ networking\NetworkingTest$7.class
 networking\NetworkingTest$8.class
 owl\OWLELSaturationTest.class
 networking\NetworkingTest$1.class
+util\serialization\async\AsyncSerializerTest.class
 networking\NetworkingTest$3.class
 networking\NetworkingTest$6.class
 serialization\KryoSerialization.class
+util\serialization\async\Node.class
 serialization\JavaSerialization.class
 networking\NetworkingTest$2.class
 util\ClosureComputationTestUtil.class

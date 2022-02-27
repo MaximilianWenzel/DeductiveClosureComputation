@@ -70,10 +70,7 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable> ex
 
     @Override
     public void visit(A axiom) {
-        communicationChannel.distributeInferences(incrementalReasoner.getStreamOfInferencesForGivenAxiom(axiom)
-                .filter(inference -> !this.worker.getClosure().contains(inference))
-        );
-
+        communicationChannel.distributeInferences(incrementalReasoner.getStreamOfInferencesForGivenAxiom(axiom));
     }
 
 }

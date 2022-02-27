@@ -121,19 +121,6 @@ public class ClosureComputationTestUtil {
         Set<A> singleThreadedResults = singleThreadedClosureComputation(factory);
         assertEquals(singleThreadedResults, distributedResults);
 
-        List<WorkerStatistics> workerStatistics = saturation.getWorkerStatistics();
-        ControlNodeStatistics controlNodeStatistics = saturation.getControlNodeStatistics();
-
-        System.out.println(ConsoleUtils.getSeparator());
-        System.out.println("Statistics");
-        System.out.println(ConsoleUtils.getSeparator());
-        System.out.println(WorkerStatistics.getWorkerStatsHeader());
-        workerStatistics.forEach(w -> System.out.println(w.getWorkerStatistics()));
-
-        System.out.println(ControlNodeStatistics.getControlNodeStatsHeader());
-        System.out.println(controlNodeStatistics.getControlNodeStatistics());
-        System.out.println(ConsoleUtils.getSeparator());
-
         workerGenerator.stopWorkers();
 
         if (workersInSeparateJVMs) {

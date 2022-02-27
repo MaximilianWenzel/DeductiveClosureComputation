@@ -1,5 +1,6 @@
 package benchmark.transitiveclosure;
 
+import benchmark.graphgeneration.GraphGenerator;
 import org.roaringbitmap.RoaringBitmap;
 import reasoning.rules.Rule;
 import reasoning.saturation.SaturationInitializationFactory;
@@ -12,27 +13,15 @@ import java.util.List;
 
 public class ReachabilitySaturationInitializationFactory extends SaturationInitializationFactory<ReachabilityClosure, Reachability> {
 
-    private List<? extends Reachability> initialAxioms;
     private int numberOfWorkers;
     private int ruleDelayInNanoSec;
     private List<WorkerModel<ReachabilityClosure, Reachability>> workerModels;
+    private GraphGenerator<ToldReachability> graphGenerator;
 
-    private RoaringBitmap nodeIDs = new RoaringBitmap();
-
-
-    public ReachabilitySaturationInitializationFactory(List<? extends Reachability> initialAxioms, int numberOfWorkers, int ruleDelayInNanoSec) {
-        this.initialAxioms = initialAxioms;
+    public ReachabilitySaturationInitializationFactory(GraphGenerator<ToldReachability> graphGenerator, int numberOfWorkers, int ruleDelayInNanoSec) {
+        this.graphGenerator = graphGenerator;
         this.numberOfWorkers = numberOfWorkers;
         this.ruleDelayInNanoSec = ruleDelayInNanoSec;
-        init();
-    }
-
-
-    private void init() {
-        for (Reachability r : initialAxioms) {
-            nodeIDs.add(r.getSourceNode());
-            nodeIDs.add(r.getDestinationNode());
-        }
     }
 
     @Override
@@ -56,7 +45,7 @@ public class ReachabilitySaturationInitializationFactory extends SaturationIniti
 
     @Override
     public Iterator<? extends Reachability> getInitialAxioms() {
-        return initialAxioms.iterator();
+        return graphGenerator.generateGraph().iterator();
     }
 
     @Override

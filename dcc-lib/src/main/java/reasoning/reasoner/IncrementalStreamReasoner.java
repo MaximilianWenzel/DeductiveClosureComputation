@@ -50,6 +50,10 @@ public class IncrementalStreamReasoner<C extends Closure<A>, A extends Serializa
         }
         try {
             if (closure.add(axiom)) {
+                if (config.collectWorkerNodeStatistics()) {
+                    this.stats.getNumberOfProcessedAxioms().incrementAndGet();
+                }
+
                 Stream<A> inferences = rules.stream().flatMap(rule -> rule.streamOfInferences(axiom));
                 return inferences;
             } else {

@@ -36,4 +36,12 @@ public abstract class Reachability implements Serializable {
     public int hashCode() {
         return Objects.hash(sourceNode, destinationNode);
     }
+
+    public void setSourceNode(int sourceNode) {
+        this.sourceNode = sourceNode;
+    }
+
+    public void setDestinationNode(int destinationNode) {
+        this.destinationNode = destinationNode;
+    }
 }

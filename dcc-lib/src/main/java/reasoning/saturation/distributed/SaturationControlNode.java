@@ -3,7 +3,7 @@ package reasoning.saturation.distributed;
 import data.Closure;
 import networking.messages.MessageEnvelope;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
-import reasoning.saturation.distributed.communication.NIO2NetworkingLoop;
+import reasoning.saturation.distributed.communication.NIO2NetworkingPipeline;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -37,7 +37,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable>
     private List<WorkerStatistics> workerStatistics = new ArrayList<>();
 
     private ExecutorService threadPool;
-    private NIO2NetworkingLoop networkingLoop;
+    private NIO2NetworkingPipeline networkingLoop;
 
 
     protected SaturationControlNode(List<DistributedWorkerModel<C, A>> workers,
@@ -57,7 +57,7 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable>
 
     private void init() {
         this.threadPool = Executors.newFixedThreadPool(numberOfThreads);
-        this.networkingLoop = new ControlNodeNetworkingLoop(threadPool);
+        this.networkingLoop = new ControlNodeNetworkingPipeline(threadPool);
         this.communicationChannel = new ControlNodeCommunicationChannel<>(
                 workers, workloadDistributor, initialAxioms,
                 config, networkingLoop);
@@ -106,9 +106,9 @@ public class SaturationControlNode<C extends Closure<A>, A extends Serializable>
     }
 
 
-    private class ControlNodeNetworkingLoop extends NIO2NetworkingLoop {
+    private class ControlNodeNetworkingPipeline extends NIO2NetworkingPipeline {
 
-        public ControlNodeNetworkingLoop(ExecutorService threadPool) {
+        public ControlNodeNetworkingPipeline(ExecutorService threadPool) {
             super(threadPool, true);
         }
 

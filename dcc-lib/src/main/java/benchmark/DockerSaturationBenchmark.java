@@ -3,20 +3,20 @@ package benchmark;
 import enums.MessageDistributionType;
 import enums.SaturationApproach;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
-import util.ConsoleUtils;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.Set;
-import java.util.logging.Logger;
 
 public class DockerSaturationBenchmark {
 
-    private static final boolean collectWorkerNodeStatistics = false;
-    private static final int EXPERIMENT_ROUNDS = 3;
-    private static final int WARM_UP_ROUNDS = 2;
+    private static boolean collectWorkerNodeStatistics = false;
+    private static int EXPERIMENT_ROUNDS = 3;
+    private static int WARM_UP_ROUNDS = 2;
 
     private static final File outputDirectory = new File("saturation");
 
+    private static Set<Integer> randomDigraphNodes;
     private static Set<Integer> binaryTreeDepthList;
     private static Set<Integer> initialEchoAxioms;
     private static Set<Integer> chainDepthList;
@@ -30,6 +30,11 @@ public class DockerSaturationBenchmark {
     }
 
     static {
+        randomDigraphNodes = new UnifiedSet<>();
+        randomDigraphNodes.add(480);
+        randomDigraphNodes.add(512);
+        //randomDigraphNodes.add(960);
+
         binaryTreeDepthList = new UnifiedSet<>();
         for (int i = 17; i <= 20; i++) {
             binaryTreeDepthList.add(i);
@@ -48,10 +53,24 @@ public class DockerSaturationBenchmark {
     }
 
     public static void main(String[] args) {
-        // args: <APPROACH> <NUM_WORKERS> <BENCHMARK>
+        // args: <APPROACH> <NUM_WORKERS> <BENCHMARK> <COLLECT-WORKER-STATS>
         String approach = args[0];
         int numWorkers = Integer.parseInt(args[1]);
         String benchmark = args[2];
+
+        // collect worker statistics
+        if (args.length > 3) {
+            collectWorkerNodeStatistics = Boolean.parseBoolean(args[3]);
+            if (collectWorkerNodeStatistics) {
+                WARM_UP_ROUNDS = 1;
+                EXPERIMENT_ROUNDS = 1;
+                initialEchoAxioms = Collections.singleton(10_000_000);
+                binaryTreeDepthList = Collections.singleton(20);
+                randomDigraphNodes = Collections.singleton(480);
+            }
+        } else {
+            collectWorkerNodeStatistics = false;
+        }
 
         numberOfWorkersList = new UnifiedSet<>();
         numberOfWorkersList.add(numWorkers);
@@ -60,7 +79,7 @@ public class DockerSaturationBenchmark {
         switch (approach) {
             case "single-machine":
                 includedApproaches.add(SaturationApproach.SINGLE_THREADED);
-                includedApproaches.add(SaturationApproach.PARALLEL);
+                includedApproaches.add(SaturationApproach.MULTITHREADED);
                 includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
                 includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
                 break;
@@ -84,8 +103,12 @@ public class DockerSaturationBenchmark {
                 IndividualExperiments.chainGraphBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS, includedApproaches,
                         chainDepthList, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
                 break;
+            case "randomdigraph":
+                IndividualExperiments.randomDigraphBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS, includedApproaches,
+                        randomDigraphNodes, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
+                break;
             default:
-                throw new IllegalArgumentException("Unknown benchmark type: " + benchmark + ", allowed: echo | binarytree | chaingraph");
+                throw new IllegalArgumentException("Unknown benchmark type: " + benchmark + ", allowed: echo | binarytree | chaingraph | randomdigraph");
         }
     }
 
