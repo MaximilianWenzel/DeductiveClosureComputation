@@ -100,8 +100,8 @@ public class ControlNodeStatistics {
         List<String> stats = new ArrayList<>();
         stats.add(benchmarkType);
         stats.add(approach);
-        stats.add(messageDistributionType.toString().toLowerCase());
         stats.add("" + numberOfWorkers);
+        stats.add(messageDistributionType.toString().toLowerCase());
         stats.add("" + numberOfReceivedAxiomCountMessages.get());
         stats.add("" + sumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent.get());
         stats.add("" + workerInitializationTimeMS);

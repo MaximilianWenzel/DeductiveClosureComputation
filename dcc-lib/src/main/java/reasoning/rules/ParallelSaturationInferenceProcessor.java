@@ -54,9 +54,6 @@ public class ParallelSaturationInferenceProcessor<C extends Closure<A>, A extend
         Stream<Long> workerIDs = distributor.getRelevantWorkerIDsForAxiom(axiom);
         workerIDs.forEach(workerID -> {
             sentAxiomsCount.incrementAndGet();
-            if (statistics != null) {
-                statistics.getNumberOfSentAxioms().incrementAndGet();
-            }
             SaturationContext<C, A> saturationContext = workerIDToSaturationContext.get(workerID);
             BlockingQueue<Object> toDo = saturationContext.getToDo();
             toDo.add(axiom);

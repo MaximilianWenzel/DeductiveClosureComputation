@@ -2,7 +2,7 @@ package reasoning.saturation;
 
 import data.Closure;
 import enums.StatisticsComponent;
-import reasoning.reasoner.IncrementalStreamReasoner;
+import reasoning.reasoner.DefaultIncrementalReasoner;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -21,7 +21,7 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
     private Collection<? extends Rule<C, A>> rules;
     private Iterator<? extends A> initialAxioms;
 
-    private IncrementalStreamReasoner<C, A> incrementalReasoner;
+    private DefaultIncrementalReasoner<C, A> incrementalReasoner;
     private SaturationConfiguration config = new SaturationConfiguration();
     private WorkerStatistics workerStats = new WorkerStatistics();
     private ControlNodeStatistics controlNodeStats = new ControlNodeStatistics();
@@ -33,7 +33,7 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
         this.initialAxioms = initialAxioms;
         initializeRules();
 
-        this.incrementalReasoner = new IncrementalStreamReasoner<>(this.rules, this.closure, config, workerStats);
+        this.incrementalReasoner = new DefaultIncrementalReasoner<>(this.rules, this.closure, config, workerStats);
     }
 
     public SingleThreadedSaturation(SaturationConfiguration config,
@@ -45,7 +45,7 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
         this.initialAxioms = initialAxioms;
         initializeRules();
 
-        this.incrementalReasoner = new IncrementalStreamReasoner<>(this.rules, this.closure, this.config, this.workerStats);
+        this.incrementalReasoner = new DefaultIncrementalReasoner<>(this.rules, this.closure, this.config, this.workerStats);
     }
 
     private void initializeRules() {
@@ -62,8 +62,18 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
         controlNodeStats.startStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
         initializeToDoQueue(initialAxioms);
         while (!toDo.isEmpty()) {
-            incrementalReasoner.getStreamOfInferencesForGivenAxiom(toDo.remove())
-                    .forEach(toDo::add);
+            Collection<A> inferences = incrementalReasoner.getInferencesForGivenAxiom(toDo.remove());
+
+            if (config.collectWorkerNodeStatistics()) {
+                workerStats.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+            }
+            for (A inference : inferences) {
+                workerStats.getNumberOfDerivedInferences().incrementAndGet();
+                toDo.add(inference);
+            }
+            if (config.collectWorkerNodeStatistics()) {
+                workerStats.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
+            }
         }
         controlNodeStats.stopStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
         workerStats.getTodoIsEmptyEvent().incrementAndGet();

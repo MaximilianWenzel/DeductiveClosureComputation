@@ -106,6 +106,19 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
             );
             context.setInferenceProcessor(inferenceProcessor);
         }
+
+        if (config.collectControlNodeStatistics()) {
+            controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
+        }
+    }
+
+    public C saturate() {
+        submitWorkerTasksToThreadPool();
+
+        if (config.collectControlNodeStatistics()) {
+            controlNodeStatistics.startStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
+        }
+
         // distribute initial axioms
         initialAxioms.forEachRemaining(axiom -> {
             Stream<Long> workerIDs = workloadDistributor.getRelevantWorkerIDsForAxiom(axiom);
@@ -115,17 +128,6 @@ public class ParallelSaturation<C extends Closure<A>, A extends Serializable> {
             });
         });
 
-        submitWorkerTasksToThreadPool();
-
-        if (config.collectControlNodeStatistics()) {
-            controlNodeStatistics.stopStopwatch(StatisticsComponent.CONTROL_NODE_INITIALIZING_ALL_WORKERS);
-        }
-    }
-
-    public C saturate() {
-        if (config.collectControlNodeStatistics()) {
-            controlNodeStatistics.startStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
-        }
         try {
             while (!allWorkersConverged) {
 

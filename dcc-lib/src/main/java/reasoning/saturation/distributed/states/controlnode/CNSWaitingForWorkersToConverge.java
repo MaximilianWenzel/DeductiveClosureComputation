@@ -37,7 +37,9 @@ public class CNSWaitingForWorkersToConverge<C extends Closure<A>, A extends Seri
 
     @Override
     public void visit(A axiom) {
+        // distribute initial axiom to workers
         communicationChannel.distributeAxiom(axiom);
+        communicationChannel.addNextInitialAxiomToToDoQueue();
     }
 
 

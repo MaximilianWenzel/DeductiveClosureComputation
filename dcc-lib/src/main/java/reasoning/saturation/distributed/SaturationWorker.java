@@ -4,7 +4,7 @@ import data.Closure;
 import exceptions.NotImplementedException;
 import networking.ServerData;
 import networking.messages.InitializeWorkerMessage;
-import reasoning.reasoner.IncrementalStreamReasoner;
+import reasoning.reasoner.DefaultIncrementalReasoner;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.communication.NIO2NetworkingPipeline;
 import reasoning.saturation.distributed.communication.WorkerCommunicationChannel;
@@ -35,7 +35,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
     private ExecutorService threadPool = null;
 
     private WorkerState<C, A> state;
-    private IncrementalStreamReasoner<C, A> incrementalReasoner;
+    private DefaultIncrementalReasoner<C, A> incrementalReasoner;
     private DistributedSaturationConfiguration config;
     private WorkerStatistics stats = new WorkerStatistics();
     private boolean terminateAfterSaturation = false;
@@ -125,7 +125,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
         return communicationChannel;
     }
 
-    public IncrementalStreamReasoner<C, A> getIncrementalReasoner() {
+    public DefaultIncrementalReasoner<C, A> getIncrementalReasoner() {
         return incrementalReasoner;
     }
 
@@ -153,7 +153,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
 
         switch (incrementalReasonerType) {
             case SINGLE_THREADED:
-                this.incrementalReasoner = new IncrementalStreamReasoner<>(rules, closure, config, stats);
+                this.incrementalReasoner = new DefaultIncrementalReasoner<>(rules, closure, config, stats);
                 break;
             default:
                 throw new NotImplementedException();

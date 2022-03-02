@@ -6,6 +6,7 @@ reasoning\saturation\distributed\SaturationControlNode.class
 benchmark\echoclosure\EchoAxiomGenerator.class
 benchmark\jmh\KryoNetBenchmark.class
 benchmark\rdfsreasoning\rules\RuleRDFS3.class
+reasoning\reasoner\DefaultIncrementalReasoner.class
 benchmark\eldlreasoning\compression\HashDictionary.class
 benchmark\SaturationBenchmark.class
 benchmark\jmh\jmh_generated\AddElementComparison_jmhType_B1.class
@@ -256,6 +257,7 @@ benchmark\transitiveclosure\DerivedReachability.class
 benchmark\rdfsreasoning\RDFSWorkloadDistributor.class
 networking\reactor\netty\echo\ReactorNettyServer.class
 util\LogFormatter.class
+reasoning\saturation\distributed\communication\ControlNodeCommunicationChannel$WorkerConnectionModel$1.class
 networking\netty\helloworld\NettyServer.class
 reasoning\saturation\distributed\states\workernode\WorkerStateSendingClosureResults.class
 benchmark\transitiveclosure\Reachability.class

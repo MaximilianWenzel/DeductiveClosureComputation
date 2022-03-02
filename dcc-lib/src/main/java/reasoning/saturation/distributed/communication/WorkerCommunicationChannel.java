@@ -23,6 +23,7 @@ import util.ConsoleUtils;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -55,6 +56,8 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     private WorkerStatistics stats;
 
     private NIO2NetworkingPipeline networkingLoop;
+
+    private Iterator<A> closureResultsIterator;
 
     public WorkerCommunicationChannel(ServerData serverData, NIO2NetworkingPipeline networkingLoop) {
         this.serverData = serverData;
@@ -127,10 +130,13 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
 
     public void distributeInferences(Stream<A> inferenceStream) {
         if (config.collectWorkerNodeStatistics()) {
-            stats.getNumberOfDerivedInferences().incrementAndGet();
             stats.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
         }
         inferenceStream.forEach(inference -> {
+            if (config.collectWorkerNodeStatistics()) {
+                stats.getNumberOfDerivedInferences().incrementAndGet();
+            }
+
             workloadDistributor.getRelevantWorkerIDsForAxiom(inference)
                     .forEach(receiverWorkerID -> {
                         if (receiverWorkerID != this.workerID) {
@@ -169,9 +175,14 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
 
     public void addClosureAxiomsToToDo(C closure) {
         Collection<A> closureResults = closure.getClosureResults();
+        this.closureResultsIterator = closureResults.iterator();
+        addNextClosureResultAxiomToToDo();
+    }
 
-        // add closure iterator to to-do queue
-        closureResults.forEach(networkingLoop::addToToDoQueue);
+    public void addNextClosureResultAxiomToToDo() {
+        if (closureResultsIterator.hasNext()) {
+            networkingLoop.addToToDoQueue(closureResultsIterator.next());
+        }
     }
 
     public void sendToControlNode(Serializable message) {

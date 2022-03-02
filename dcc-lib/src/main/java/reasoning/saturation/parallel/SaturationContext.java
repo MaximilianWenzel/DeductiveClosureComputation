@@ -5,7 +5,7 @@ import enums.SaturationStatusMessage;
 import enums.StatisticsComponent;
 import networking.messages.AxiomCount;
 import networking.messages.RequestAxiomMessageCount;
-import reasoning.reasoner.IncrementalStreamReasoner;
+import reasoning.reasoner.DefaultIncrementalReasoner;
 import reasoning.rules.ParallelSaturationInferenceProcessor;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -35,7 +35,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
     private final AtomicInteger saturationStage = new AtomicInteger(0);
 
     private final SaturationConfiguration config;
-    private IncrementalStreamReasoner<C, A> incrementalReasoner;
+    private DefaultIncrementalReasoner<C, A> incrementalReasoner;
     private WorkloadDistributor<C, A> workloadDistributor;
     private ParallelSaturationInferenceProcessor<C, A> inferenceProcessor;
 
@@ -61,7 +61,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
         if (config.collectWorkerNodeStatistics()) {
             this.statistics = new WorkerStatistics();
         }
-        this.incrementalReasoner = new IncrementalStreamReasoner<>(rules, closure, config, statistics);
+        this.incrementalReasoner = new DefaultIncrementalReasoner<>(rules, closure, config, statistics);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
                         this.statistics.stopStopwatch(StatisticsComponent.WORKER_WAITING_TIME_SATURATION);
                     }
                 } else {
-                    message = toDo.take();
+                    message = toDo.poll();
                 }
 
                 if (message == SaturationStatusMessage.CONTROL_NODE_REQUEST_SEND_CLOSURE_RESULT) {
@@ -104,8 +104,11 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
                         this.statistics.getNumberOfReceivedAxioms().incrementAndGet();
                     }
                     receivedAxioms.incrementAndGet();
-                    incrementalReasoner.getStreamOfInferencesForGivenAxiom((A) message)
-                            .forEach(inference -> this.inferenceProcessor.processInference(inference));
+                    Collection<A> inferences = incrementalReasoner.getInferencesForGivenAxiom((A) message);
+
+                    for (A inference : inferences) {
+                        this.inferenceProcessor.processInference(inference);
+                    }
                 }
             }
 

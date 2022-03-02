@@ -1,9 +1,5 @@
 package util;
 
-import data.ToDoQueue;
-
-import java.io.Serializable;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;

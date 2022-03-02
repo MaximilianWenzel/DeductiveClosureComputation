@@ -4,7 +4,7 @@ import data.Closure;
 import exceptions.MessageProtocolViolationException;
 import networking.acknowledgement.AcknowledgementEventManager;
 import networking.messages.*;
-import reasoning.reasoner.IncrementalStreamReasoner;
+import reasoning.reasoner.DefaultIncrementalReasoner;
 import reasoning.saturation.distributed.SaturationWorker;
 import reasoning.saturation.distributed.communication.WorkerCommunicationChannel;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
@@ -30,7 +30,7 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable> 
     protected WorkerCommunicationChannel<C, A> communicationChannel;
     protected AcknowledgementEventManager acknowledgementEventManager;
 
-    protected IncrementalStreamReasoner<C, A> incrementalReasoner;
+    protected DefaultIncrementalReasoner<C, A> incrementalReasoner;
 
     public WorkerState(SaturationWorker<C, A> worker) {
         this.worker = worker;
@@ -44,7 +44,7 @@ public abstract class WorkerState<C extends Closure<A>, A extends Serializable> 
 
     public void mainWorkerLoop(Object msg) {
         if (msg instanceof MessageModel) {
-            ((MessageModel<C, A>)msg).accept(this);
+            ((MessageModel<C, A>) msg).accept(this);
         } else {
             this.visit((A) msg);
         }

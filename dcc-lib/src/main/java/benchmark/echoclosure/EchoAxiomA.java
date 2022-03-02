@@ -14,4 +14,5 @@ public class EchoAxiomA extends EchoAxiom {
     public String toString() {
         return "EchoAxiomA(" + x + ")";
     }
+
 }

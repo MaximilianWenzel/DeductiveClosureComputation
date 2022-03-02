@@ -22,7 +22,7 @@ public class IndividualExperiments {
 
     private static final boolean collectWorkerNodeStatistics = false;
 
-    private static final int EXPERIMENT_ROUNDS = 2;
+    private static final int EXPERIMENT_ROUNDS = 1;
     private static final int WARM_UP_ROUNDS = 1;
 
     private static Set<Integer> binaryTreeDepthList;
@@ -34,6 +34,7 @@ public class IndividualExperiments {
 
     static {
         randomDigraphNodes = new UnifiedSet<>();
+        //randomDigraphNodes.add(100);
         //randomDigraphNodes.add(480);
         randomDigraphNodes.add(512);
         //randomDigraphNodes.add(960);
@@ -48,7 +49,7 @@ public class IndividualExperiments {
         //    binaryTreeDepthList.add(i);
         //}
         //binaryTreeDepthList.add(16);
-        binaryTreeDepthList.add(13);
+        binaryTreeDepthList.add(17);
 
         initialEchoAxioms = new UnifiedSet<>();
         //initialEchoAxioms.add(10_000);
@@ -57,8 +58,8 @@ public class IndividualExperiments {
         //initialEchoAxioms.add(100_000);
         //initialEchoAxioms.add(200_000);
         //initialEchoAxioms.add(500_000);
-        initialEchoAxioms.add(1_000_000);
-        initialEchoAxioms.add(10_000_000);
+        initialEchoAxioms.add(2_000_000);
+        //initialEchoAxioms.add(10_000_000);
 
         chainDepthList = new UnifiedSet<>();
         for (int i = 100; i <= 1000; i += 100) {
@@ -95,7 +96,7 @@ public class IndividualExperiments {
 
     public static void benchmark(File outputDirectory) {
         Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
-        includedApproaches.add(SaturationApproach.SINGLE_THREADED);
+        //includedApproaches.add(SaturationApproach.SINGLE_THREADED);
         //includedApproaches.add(SaturationApproach.MULTITHREADED);
         includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
         //includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);

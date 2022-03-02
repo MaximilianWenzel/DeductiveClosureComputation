@@ -28,6 +28,6 @@ public class EchoAxiom implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(x);
+        return Objects.hash(this.getClass(), x);
     }
 }

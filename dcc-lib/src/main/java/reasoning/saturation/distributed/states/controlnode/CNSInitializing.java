@@ -60,7 +60,7 @@ public class CNSInitializing<C extends Closure<A>, A extends Serializable> exten
             saturationControlNode.switchState(new CNSWaitingForWorkersToConverge<>(saturationControlNode));
 
             // distribute initial axioms
-            communicationChannel.addInitialAxiomsToToDoQueue();
+            communicationChannel.addNextInitialAxiomToToDoQueue();
         }
     }
 

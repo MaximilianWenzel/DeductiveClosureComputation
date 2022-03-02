@@ -21,7 +21,6 @@ public class DistributedSaturation<C extends Closure<A>, A extends Serializable>
     protected List<DistributedWorkerModel<C, A>> workers;
     protected SaturationControlNode<C, A> controlNode;
     protected DistributedSaturationConfiguration config;
-    protected int numberOfThreadsForControlNode;
 
     public DistributedSaturation(List<DistributedWorkerModel<C, A>> workers,
                                  WorkloadDistributor<C, A> workloadDistributor,

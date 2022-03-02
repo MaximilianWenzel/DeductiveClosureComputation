@@ -167,7 +167,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
     }
 
     public void runParallelSaturationBenchmark() {
-        log.info("Parallel");
+        log.info("multithreaded");
         log.info("# Initial Axioms: " + numberOfInitialAxioms);
         log.info("# Workers: " + workers.size());
 
@@ -175,7 +175,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
 
         DescriptiveStatistics measurements = runtime.getRuntimeWithSendingClosureResults();
         CSVRow rowWithSendingClosureResults = new CSVRow(
-                "parallel",
+                "multithreaded",
                 numberOfInitialAxioms,
                 MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO,
                 true,
@@ -187,7 +187,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
 
         measurements = runtime.getRuntimeWithoutSendingClosureResults();
         CSVRow rowWithoutSendingClosureResults = new CSVRow(
-                "parallel",
+                "multithreaded",
                 numberOfInitialAxioms,
                 MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO,
                 false,
@@ -425,7 +425,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
                 if (roundNumber == this.numberOfWarmUpRounds + this.numberOfExperimentRepetitions) {
                     createStatisticsCSVFiles(
                             benchmarkType,
-                            "parallel",
+                            "multithreaded",
                             workers.size(),
                             MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO,
                             controlNodeStatistics,

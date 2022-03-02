@@ -31,7 +31,7 @@ public class DockerSaturationBenchmark {
 
     static {
         randomDigraphNodes = new UnifiedSet<>();
-        randomDigraphNodes.add(480);
+        //randomDigraphNodes.add(480);
         randomDigraphNodes.add(512);
         //randomDigraphNodes.add(960);
 
@@ -64,8 +64,8 @@ public class DockerSaturationBenchmark {
             if (collectWorkerNodeStatistics) {
                 WARM_UP_ROUNDS = 1;
                 EXPERIMENT_ROUNDS = 1;
-                initialEchoAxioms = Collections.singleton(10_000_000);
-                binaryTreeDepthList = Collections.singleton(20);
+                initialEchoAxioms = Collections.singleton(5_000_000);
+                binaryTreeDepthList = Collections.singleton(19);
                 randomDigraphNodes = Collections.singleton(480);
             }
         } else {

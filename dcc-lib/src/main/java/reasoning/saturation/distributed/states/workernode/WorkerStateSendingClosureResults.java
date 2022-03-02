@@ -67,6 +67,7 @@ public class WorkerStateSendingClosureResults<C extends Closure<A>, A extends Se
     @Override
     public void visit(A axiom) {
         communicationChannel.sendToControlNode(axiom);
+        communicationChannel.addNextClosureResultAxiomToToDo();
     }
 
 }
