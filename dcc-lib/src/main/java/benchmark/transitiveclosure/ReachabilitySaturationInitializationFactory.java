@@ -1,7 +1,6 @@
 package benchmark.transitiveclosure;
 
-import benchmark.graphgeneration.GraphGenerator;
-import org.roaringbitmap.RoaringBitmap;
+import benchmark.graphgeneration.DirectedGraphGenerator;
 import reasoning.rules.Rule;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.models.WorkerModel;
@@ -13,12 +12,12 @@ import java.util.List;
 
 public class ReachabilitySaturationInitializationFactory extends SaturationInitializationFactory<ReachabilityClosure, Reachability> {
 
-    private int numberOfWorkers;
-    private int ruleDelayInNanoSec;
+    private final int numberOfWorkers;
+    private final int ruleDelayInNanoSec;
     private List<WorkerModel<ReachabilityClosure, Reachability>> workerModels;
-    private GraphGenerator<ToldReachability> graphGenerator;
+    private final DirectedGraphGenerator<ToldReachability> graphGenerator;
 
-    public ReachabilitySaturationInitializationFactory(GraphGenerator<ToldReachability> graphGenerator, int numberOfWorkers, int ruleDelayInNanoSec) {
+    public ReachabilitySaturationInitializationFactory(DirectedGraphGenerator<ToldReachability> graphGenerator, int numberOfWorkers, int ruleDelayInNanoSec) {
         this.graphGenerator = graphGenerator;
         this.numberOfWorkers = numberOfWorkers;
         this.ruleDelayInNanoSec = ruleDelayInNanoSec;

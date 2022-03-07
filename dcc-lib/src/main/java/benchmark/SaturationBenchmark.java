@@ -20,7 +20,7 @@ import reasoning.saturation.distributed.metadata.DistributedSaturationConfigurat
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.WorkerModel;
-import reasoning.saturation.parallel.ParallelSaturation;
+import reasoning.saturation.parallel.MultithreadedSaturation;
 import util.CSVUtils;
 import util.ConsoleUtils;
 
@@ -34,23 +34,28 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
+/**
+ * This class can be used in order to execute benchmarks for computing the deductive closure for a given set of rules and axioms.
+ * @param <C> Type of the resulting deductive closure of the given problem.
+ * @param <A> Type of the axioms of the resulting deductive closure of the given problem.
+ */
 public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
     private static final List<List<?>> csvRows = new ArrayList<>();
-    private Logger log = ConsoleUtils.getLogger();
+    private final Logger log = ConsoleUtils.getLogger();
     private int numberOfExperimentRepetitions = 2;
     private int numberOfWarmUpRounds = 2;
-    private Set<SaturationApproach> includedApproaches;
+    private final Set<SaturationApproach> includedApproaches;
     private Stopwatch stopwatch;
-    private File outputDirectory;
-    private String benchmarkType;
-    private Set<MessageDistributionType> messageDistributionTypes;
+    private final File outputDirectory;
+    private final String benchmarkType;
+    private final Set<MessageDistributionType> messageDistributionTypes;
     private boolean workerNodeStatistics = false;
     private SaturationInitializationFactory<C, A> initializationFactory;
     private Iterator<? extends A> initialAxioms;
     private long numberOfInitialAxioms;
     private List<WorkerModel<C, A>> workers;
     private SaturationWorkerGenerator workerGenerator;
-    private List<String> csvHeader;
+    private final List<String> csvHeader;
 
     {
         this.csvHeader = new ArrayList<>();
@@ -160,7 +165,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
                 runtimeInMSStats.getMax(),
                 runtimeInMSStats.getMean()
         );
-        this.csvRows.add(row.toCSVRow());
+        csvRows.add(row.toCSVRow());
 
         log.info(ConsoleUtils.getSeparator());
 
@@ -401,7 +406,7 @@ public class SaturationBenchmark<C extends Closure<A>, A extends Serializable> {
                 log.info("Round " + (roundNumber - numberOfWarmUpRounds));
             }
 
-            ParallelSaturation<C, A> saturation = new ParallelSaturation<>(
+            MultithreadedSaturation<C, A> saturation = new MultithreadedSaturation<>(
                     new SaturationConfiguration(true, workerNodeStatistics),
                     initializationFactory,
                     threadPool

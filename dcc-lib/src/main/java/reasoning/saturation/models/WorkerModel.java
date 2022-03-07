@@ -5,8 +5,11 @@ import reasoning.rules.Rule;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * This class represents an internal representation of a given worker. It defines the worker ID which can be used in order to partition the
+ * data, e.g., by using the hash-based partitioning approach, and the rules that are assigned to the respective worker.
+ */
 public class WorkerModel<C extends Closure<A>, A extends Serializable> implements Serializable {
 
     protected long id;

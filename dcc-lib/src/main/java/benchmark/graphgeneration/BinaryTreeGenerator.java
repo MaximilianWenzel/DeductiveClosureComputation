@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class BinaryTreeGenerator<E> extends GraphGenerator<E> {
+public abstract class BinaryTreeGenerator<E> extends DirectedGraphGenerator<E> {
 
     /*
     d: depth

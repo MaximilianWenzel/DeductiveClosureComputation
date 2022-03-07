@@ -1,9 +1,7 @@
 package benchmark.eldlreasoning.rules;
 
 import eldlsyntax.*;
-import reasoning.rules.InferenceProcessor;
 
-import java.io.Serializable;
 import java.util.stream.Stream;
 
 /**
@@ -13,7 +11,7 @@ public class SubsumedByTopRule extends OWLELRule {
 
     private ELConcept topConcept;
 
-    private SubsumedByTopRuleVisitor visitor;
+    private final SubsumedByTopRuleVisitor visitor;
 
     public SubsumedByTopRule(ELConcept topConcept) {
         super();
@@ -26,12 +24,12 @@ public class SubsumedByTopRule extends OWLELRule {
     }
 
     @Override
-    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
-        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
-        visitor.setStreamBuilder(inferences);
+    public Stream<ELConceptInclusion> streamOfConclusions(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> conclusions = Stream.builder();
+        visitor.setStreamBuilder(conclusions);
         axiom.getSubConcept().accept(visitor);
         axiom.getSuperConcept().accept(visitor);
-        return visitor.getInferenceStream();
+        return visitor.getConclusionStream();
     }
 
 }

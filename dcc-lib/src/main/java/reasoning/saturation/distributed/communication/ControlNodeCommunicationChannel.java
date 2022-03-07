@@ -31,6 +31,13 @@ import reasoning.saturation.models.DistributedWorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 import util.ConsoleUtils;
 
+/**
+ * This class is used in the distributed saturation in order to manage all network communication related issues for the control node. For
+ * instance, in order to initially connect to all worker nodes or broadcast a message.
+ *
+ * @param <C> Type of the resulting deductive closure.
+ * @param <A> Type of the axioms in the deductive closure.
+ */
 public class ControlNodeCommunicationChannel<C extends Closure<A>, A extends Serializable> {
 
     private final Logger log = ConsoleUtils.getLogger();

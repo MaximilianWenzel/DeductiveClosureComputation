@@ -23,16 +23,16 @@ public class UnfoldSubsumptionRule extends OWLELRule {
     }
 
     @Override
-    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
-        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
+    public Stream<ELConceptInclusion> streamOfConclusions(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> conclusions = Stream.builder();
         ELConcept c = axiom.getSubConcept();
         ELConcept d = axiom.getSuperConcept();
 
         for (ELConceptInclusion conceptIncl : ontology) {
             if (d.equals(conceptIncl.getSubConcept())) {
-                inferences.add(new ELConceptInclusion(c, conceptIncl.getSuperConcept()));
+                conclusions.add(new ELConceptInclusion(c, conceptIncl.getSuperConcept()));
             }
         }
-        return inferences.build();
+        return conclusions.build();
     }
 }

@@ -16,6 +16,13 @@ import java.io.Serializable;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
+/**
+ * This class is a representation of the current state of a given worker in the distributed saturation procedure. Each distinct state
+ * provides a state-dependent processing of the received messages.
+ *
+ * @param <C> Type of the resulting deductive closure.
+ * @param <A> Type of the axioms in the deductive closure.
+ */
 public abstract class WorkerState<C extends Closure<A>, A extends Serializable> implements MessageModelVisitor<C, A>,
         AxiomVisitor<A> {
 

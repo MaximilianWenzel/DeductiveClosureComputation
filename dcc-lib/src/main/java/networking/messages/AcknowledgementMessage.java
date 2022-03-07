@@ -1,7 +1,13 @@
 package networking.messages;
 
+/**
+ * A message which can be used in order to acknowledge on the application layer another message model object.
+ */
 public class AcknowledgementMessage extends MessageModel {
 
+    /**
+     * Message ID of the message which is to be acknowledged.
+     */
     private long acknowledgedMessageID;
 
     protected AcknowledgementMessage() {

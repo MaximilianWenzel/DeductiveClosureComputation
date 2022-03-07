@@ -16,7 +16,7 @@ public class RuleRDFS8 extends Rule<RDFSClosure, TripleID> {
     long rdfsResourceID;
 
     @Override
-    public Stream<TripleID> streamOfInferences(TripleID axiom) {
+    public Stream<TripleID> streamOfConclusions(TripleID axiom) {
         if (axiom.getObject() != rdfsClassID || axiom.getPredicate() != rdfTypeID) {
             return Stream.empty();
         }

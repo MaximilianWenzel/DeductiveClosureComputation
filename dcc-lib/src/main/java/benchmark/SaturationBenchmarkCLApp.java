@@ -2,166 +2,118 @@ package benchmark;
 
 import enums.MessageDistributionType;
 import enums.SaturationApproach;
-import picocli.CommandLine;
+import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.Set;
 
-@CommandLine.Command(name = "benchmark", subcommands = {CommandLine.HelpCommand.class},
-        description = "Executes a variety of different saturation benchmarks.")
+/**
+ * This class represents a console application which can be used to execute a closure computation benchmarks for different problems.
+ */
 public class SaturationBenchmarkCLApp {
 
+    private static final File outputDirectory = new File("saturation");
+    private static final Set<Integer> chainDepthList;
+    private static final Set<MessageDistributionType> messageDistributionTypes;
+    private static boolean collectWorkerNodeStatistics = false;
+    private static int EXPERIMENT_ROUNDS = 3;
+    private static int WARM_UP_ROUNDS = 2;
+    private static Set<Integer> randomDigraphNodes;
+    private static Set<Integer> binaryTreeDepthList;
+    private static Set<Integer> initialEchoAxioms;
+    private static Set<Integer> numberOfWorkersList;
+
+    static {
+        messageDistributionTypes = new UnifiedSet<>();
+        messageDistributionTypes.add(MessageDistributionType.SEND_ALL_MESSAGES_OVER_NETWORK);
+        messageDistributionTypes.add(MessageDistributionType.ADD_OWN_MESSAGES_DIRECTLY_TO_TODO);
+    }
+
+    static {
+        randomDigraphNodes = new UnifiedSet<>();
+        //randomDigraphNodes.add(480);
+        randomDigraphNodes.add(512);
+        //randomDigraphNodes.add(960);
+
+        binaryTreeDepthList = new UnifiedSet<>();
+        for (int i = 17; i <= 20; i++) {
+            binaryTreeDepthList.add(i);
+        }
+
+        initialEchoAxioms = new UnifiedSet<>();
+        initialEchoAxioms.add(500_000);
+        initialEchoAxioms.add(1_000_000);
+        initialEchoAxioms.add(5_000_000);
+        initialEchoAxioms.add(10_000_000);
+
+        chainDepthList = new UnifiedSet<>();
+        for (int i = 100; i <= 1000; i += 100) {
+            chainDepthList.add(i);
+        }
+    }
+
     public static void main(String[] args) {
-        int exitCode = new CommandLine(new SaturationBenchmarkCLApp()).execute(args);
-        System.exit(exitCode);
-    }
+        // args: <APPROACH> <NUM_WORKERS> <BENCHMARK> <COLLECT-WORKER-STATS>
+        String approach = args[0];
+        int numWorkers = Integer.parseInt(args[1]);
+        String benchmark = args[2];
 
-    @CommandLine.Command(mixinStandardHelpOptions = true, subcommands = {CommandLine.HelpCommand.class},
-            description = "Executes a benchmark where the transitive closure of a given binary tree is computed.")
-    public void binaryTree(
-            @CommandLine.Option(
-                    names = {"-a", "--includedApproaches"},
-                    arity = "1..*",
-                    paramLabel = "APPROACHES",
-                    required = true)
-                    SaturationApproach[] approaches,
-            @CommandLine.Option(
-                    names = {"-w", "--warmUpRounds"},
-            defaultValue = "2")
-                    int warmUpRounds,
-            @CommandLine.Option(
-                    names = {"-w", "--warmUpRounds"},
-                    defaultValue = "3")
-                    int experimentRounds,
-            @CommandLine.Option(
-                    names = {"-w", "--numberOfWorkers"},
-                    arity = "1..*",
-                    paramLabel = "NUM_WORKERS",
-                    required = true)
-                    Integer[] numberOfWorkers,
-            @CommandLine.Option(
-                    names = {"-d", "--depth"},
-                    arity = "1..*",
-                    paramLabel = "DEPTH",
-                    required = true)
-                    Integer[] binaryTreeDepth,
-            @CommandLine.Option(
-                    names = {"-m", "--messageDistributionTypes"},
-                    arity = "1..2",
-                    required = true)
-                    MessageDistributionType[] messageDistributionTypes,
-            @CommandLine.Option(names = {"-o", "--outputDirectory"},
-                    required = true)
-                    File outputDirectory) {
-        IndividualExperiments.binaryTreeBenchmark(
-                outputDirectory,
-                warmUpRounds,
-                experimentRounds,
-                Arrays.stream(approaches).collect(Collectors.toSet()),
-                Arrays.stream(binaryTreeDepth).collect(Collectors.toSet()),
-                Arrays.stream(numberOfWorkers).collect(Collectors.toSet()),
-                false,
-                Arrays.stream(messageDistributionTypes).collect(Collectors.toSet())
-        );
-    }
+        // collect worker statistics
+        if (args.length > 3) {
+            collectWorkerNodeStatistics = Boolean.parseBoolean(args[3]);
+            if (collectWorkerNodeStatistics) {
+                WARM_UP_ROUNDS = 1;
+                EXPERIMENT_ROUNDS = 1;
+                initialEchoAxioms = Collections.singleton(5_000_000);
+                binaryTreeDepthList = Collections.singleton(19);
+                randomDigraphNodes = Collections.singleton(480);
+            }
+        } else {
+            collectWorkerNodeStatistics = false;
+        }
 
-    @CommandLine.Command(mixinStandardHelpOptions = true, subcommands = {CommandLine.HelpCommand.class},
-            description = "Executes a benchmark where the transitive closure of a given chain graph is computed.")
-    public void chainGraph(
-            @CommandLine.Option(
-                    names = {"-a", "--includedApproaches"},
-                    arity = "1..*",
-                    paramLabel = "APPROACHES",
-                    required = true)
-                    SaturationApproach[] approaches,
-            @CommandLine.Option(
-                    names = {"-w", "--warmUpRounds"},
-                    defaultValue = "2")
-                    int warmUpRounds,
-            @CommandLine.Option(
-                    names = {"-w", "--warmUpRounds"},
-                    defaultValue = "3")
-                    int experimentRounds,
-            @CommandLine.Option(
-                    names = {"-w", "--numberOfWorkers"},
-                    arity = "1..*",
-                    paramLabel = "NUM_WORKERS",
-                    required = true)
-                    Integer[] numberOfWorkers,
-            @CommandLine.Option(
-                    names = {"-d", "--chainGraphDepth"},
-                    arity = "1..*",
-                    paramLabel = "DEPTH",
-                    required = true)
-                    Integer[] chainGraphDepth,
-            @CommandLine.Option(
-                    names = {"-m", "--messageDistributionTypes"},
-                    arity = "1..2",
-                    required = true)
-                    MessageDistributionType[] messageDistributionTypes,
-            @CommandLine.Option(names = {"-o", "--outputDirectory"},
-                    required = true)
-                    File outputDirectory) {
-        IndividualExperiments.chainGraphBenchmark(
-                outputDirectory,
-                warmUpRounds,
-                experimentRounds,
-                Arrays.stream(approaches).collect(Collectors.toSet()),
-                Arrays.stream(chainGraphDepth).collect(Collectors.toSet()),
-                Arrays.stream(numberOfWorkers).collect(Collectors.toSet()),
-                false,
-                Arrays.stream(messageDistributionTypes).collect(Collectors.toSet())
-        );
-    }
+        numberOfWorkersList = new UnifiedSet<>();
+        numberOfWorkersList.add(numWorkers);
 
-    @CommandLine.Command(mixinStandardHelpOptions = true, subcommands = {CommandLine.HelpCommand.class},
-            description = "Executes an echo benchmark where all initial axioms are echoed a single time between the workers.")
-    public void echo(
-            @CommandLine.Option(
-                    names = {"-a", "--includedApproaches"},
-                    arity = "1..*",
-                    paramLabel = "APPROACHES",
-                    required = true)
-                    SaturationApproach[] approaches,
-            @CommandLine.Option(
-                    names = {"-w", "--warmUpRounds"},
-                    defaultValue = "2")
-                    int warmUpRounds,
-            @CommandLine.Option(
-                    names = {"-w", "--warmUpRounds"},
-                    defaultValue = "3")
-                    int experimentRounds,
-            @CommandLine.Option(
-                    names = {"-w", "--numberOfWorkers"},
-                    arity = "1..*",
-                    paramLabel = "NUM_WORKERS",
-                    required = true)
-                    Integer[] numberOfWorkers,
-            @CommandLine.Option(
-                    names = {"-e", "--initialEchoAxioms"},
-                    arity = "1..*",
-                    paramLabel = "DEPTH",
-                    required = true)
-                    Integer[] initialEchoAxioms,
-            @CommandLine.Option(
-                    names = {"-m", "--messageDistributionTypes"},
-                    arity = "1..2",
-                    required = true)
-                    MessageDistributionType[] messageDistributionTypes,
-            @CommandLine.Option(names = {"-o", "--outputDirectory"},
-                    required = true)
-                    File outputDirectory) {
-        IndividualExperiments.echoBenchmark(
-                outputDirectory,
-                warmUpRounds,
-                experimentRounds,
-                Arrays.stream(approaches).collect(Collectors.toSet()),
-                Arrays.stream(initialEchoAxioms).collect(Collectors.toSet()),
-                Arrays.stream(numberOfWorkers).collect(Collectors.toSet()),
-                false,
-                Arrays.stream(messageDistributionTypes).collect(Collectors.toSet())
-        );
+        Set<SaturationApproach> includedApproaches = new UnifiedSet<>();
+        switch (approach) {
+            case "single-machine":
+                includedApproaches.add(SaturationApproach.SINGLE_THREADED);
+                includedApproaches.add(SaturationApproach.MULTITHREADED);
+                includedApproaches.add(SaturationApproach.DISTRIBUTED_MULTITHREADED);
+                includedApproaches.add(SaturationApproach.DISTRIBUTED_SEPARATE_JVM);
+                break;
+            case "docker-network":
+                includedApproaches.add(SaturationApproach.DISTRIBUTED_DOCKER);
+                break;
+            default:
+                throw new IllegalArgumentException("allowed: single-machine | docker-network");
+        }
+
+        switch (benchmark.toLowerCase()) {
+            case "echo":
+                IndividualSaturationBenchmarks.echoBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS, includedApproaches,
+                        initialEchoAxioms, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
+                break;
+            case "binarytree":
+                IndividualSaturationBenchmarks.binaryTreeBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS, includedApproaches,
+                        binaryTreeDepthList, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
+                break;
+            case "chaingraph":
+                IndividualSaturationBenchmarks.chainGraphBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS, includedApproaches,
+                        chainDepthList, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
+                break;
+            case "randomdigraph":
+                IndividualSaturationBenchmarks.randomDigraphBenchmark(outputDirectory, WARM_UP_ROUNDS, EXPERIMENT_ROUNDS,
+                        includedApproaches,
+                        randomDigraphNodes, numberOfWorkersList, collectWorkerNodeStatistics, messageDistributionTypes);
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Unknown benchmark type: " + benchmark + ", allowed: echo | binarytree | chaingraph | randomdigraph");
+        }
     }
 
 }
+

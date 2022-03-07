@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * This class can be used in order to collect statistics for the control node in the computation of the deductive
+ * closure for a given set of rules and axioms.
+ */
 public class ControlNodeStatistics {
 
     transient Stopwatch workerInitializationTimeSW = Stopwatch.createUnstarted();
@@ -18,8 +22,8 @@ public class ControlNodeStatistics {
     private long totalSaturationTimeMS = -1L;
     private long collectingClosureResultsFromWorkersMS = -1L;
 
-    private AtomicLong numberOfReceivedAxiomCountMessages = new AtomicLong(0);
-    private AtomicLong sumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent = new AtomicLong(0);
+    private final AtomicLong numberOfReceivedAxiomCountMessages = new AtomicLong(0);
+    private final AtomicLong sumOfReceivedAxiomsEqualsSumOfSentAxiomsEvent = new AtomicLong(0);
 
     public static List<String> getControlNodeStatsHeader() {
         List<String> header = new ArrayList<>();

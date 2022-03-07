@@ -48,7 +48,7 @@ public class Node implements AsyncSerializable {
 		}
 		int leftDepth = getDepth(n.left_);
 		int rightDepth = getDepth(n.right_);
-		return (leftDepth < rightDepth ? rightDepth : leftDepth) + 1;
+		return (Math.max(leftDepth, rightDepth)) + 1;
 	}
 
 	String getName() {

@@ -6,10 +6,10 @@ import java.util.Set;
 
 public class RDFSReasoningDictionary {
 
-    private HashDictionarySection resourcesDictionarySection;
-    private HashDictionarySection literalsDictionarySection;
-    private Set<Long> rdfClassIDs;
-    private Set<Long> propertyIDs;
+    private final HashDictionarySection resourcesDictionarySection;
+    private final HashDictionarySection literalsDictionarySection;
+    private final Set<Long> rdfClassIDs;
+    private final Set<Long> propertyIDs;
 
     private long literalIDsOffset;
     private long maxID;

@@ -8,6 +8,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+/**
+ * This class provides methods in order to deserialize messages from the appropriate socket inbound buffer and initiates by itself an
+ * asynchronous, non-blocking read operation using the NIO library to receive new messages.
+ */
 public class NIOMessageReader {
 
     // TODO user defined buffer size
@@ -20,10 +24,10 @@ public class NIOMessageReader {
 
     protected boolean newMessageStarts = true;
     protected boolean endOfStreamReached = false;
-    private Serializer serializer = new KryoSerializer();
+    private final Serializer serializer = new KryoSerializer();
 
-    private MessageHandler messageHandler;
-    private long socketID;
+    private final MessageHandler messageHandler;
+    private final long socketID;
 
     public NIOMessageReader(long socketID, SocketChannel socketChannel, MessageHandler messageHandler) {
         this.socketChannel = socketChannel;

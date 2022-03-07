@@ -13,7 +13,7 @@ public class RuleRDFS4a extends Rule<RDFSClosure, TripleID> {
     long rdfTypeID;
 
     @Override
-    public Stream<TripleID> streamOfInferences(TripleID axiom) {
+    public Stream<TripleID> streamOfConclusions(TripleID axiom) {
         // given: rel(x, a, y)
         long x = axiom.getSubject();
         return Stream.of(new TripleID(x, rdfTypeID, closure.getRDFSResourceID()));

@@ -10,14 +10,11 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.SaturationInitializationFactory;
 import reasoning.saturation.SingleThreadedSaturation;
 import reasoning.saturation.distributed.DistributedSaturation;
-import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
 import reasoning.saturation.distributed.metadata.DistributedSaturationConfiguration;
-import reasoning.saturation.distributed.metadata.WorkerStatistics;
 import reasoning.saturation.models.DistributedWorkerModel;
-import reasoning.saturation.parallel.ParallelSaturation;
+import reasoning.saturation.parallel.MultithreadedSaturation;
 
 import java.io.Serializable;
-import java.lang.reflect.Executable;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -47,7 +44,7 @@ public class ClosureComputationTestUtil {
     public static <C extends Closure<A>, A extends Serializable> Set<A> parallelClosureComputation(
             SaturationInitializationFactory<C, A> factory) {
         ExecutorService threadPool = Executors.newFixedThreadPool(factory.getWorkerModels().size());
-        ParallelSaturation<C, A> saturation = new ParallelSaturation<>(
+        MultithreadedSaturation<C, A> saturation = new MultithreadedSaturation<>(
                 factory,
                 threadPool
         );
@@ -65,7 +62,7 @@ public class ClosureComputationTestUtil {
             SaturationInitializationFactory<C, A> factory,
             boolean workersInSeparateJVMs,
             int numberOfThreadsForSingleWorker, boolean sendAllMessagesOverNetwork) {
-        List<ServerData> serverDataList = null;
+        List<ServerData> serverDataList;
         SaturationWorkerGenerator workerGenerator;
         int numberOfWorkers = factory.getWorkerModels().size();
 

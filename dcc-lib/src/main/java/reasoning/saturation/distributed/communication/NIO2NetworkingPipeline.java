@@ -2,27 +2,25 @@ package reasoning.saturation.distributed.communication;
 
 import networking.NIO2NetworkingComponent;
 import networking.messages.MessageEnvelope;
-import org.apache.commons.collections4.QueueUtils;
-import org.apache.commons.collections4.iterators.IteratorChain;
 import util.QueueFactory;
 
 import java.io.Serializable;
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * This class represents a pipeline which uses the NIO2 networking component in order to receive messages over the network, process them,
+ * and send newly generated messages over the network to an appropriate recipient. Newly generated messages that are destined to the same
+ * networking node are again processed by the defined method. All these tasks can be executed by a thread pool which uses only a single
+ * thread.
+ */
 public abstract class NIO2NetworkingPipeline implements Runnable {
-    private ExecutorService threadPool;
-    private AtomicBoolean mainLoopSubmittedToThreadPool = new AtomicBoolean(false);
+    private final ExecutorService threadPool;
+    private final AtomicBoolean mainLoopSubmittedToThreadPool = new AtomicBoolean(false);
+    private final Queue<Object> toDoMessages = QueueFactory.createDistributedSaturationToDo();
     private NIO2NetworkingComponent networkingComponent;
     private boolean terminateAfterFinishing;
-
-    private Queue<Object> toDoMessages = QueueFactory.createDistributedSaturationToDo();
     private MessageEnvelope currentMessageToSend = null;
 
     private Object currentElement;

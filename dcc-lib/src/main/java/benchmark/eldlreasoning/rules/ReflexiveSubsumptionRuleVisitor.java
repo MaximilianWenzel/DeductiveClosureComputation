@@ -3,49 +3,48 @@ package benchmark.eldlreasoning.rules;
 import eldlsyntax.*;
 
 import java.io.Serializable;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ReflexiveSubsumptionRuleVisitor implements ELConcept.Visitor, Serializable {
-    private Stream.Builder<ELConceptInclusion> inferenceBuilder;
+    private Stream.Builder<ELConceptInclusion> conclusionBuilder;
 
     public ReflexiveSubsumptionRuleVisitor() {
 
     }
 
-    public Stream.Builder<ELConceptInclusion> getInferenceBuilder() {
-        return inferenceBuilder;
+    public Stream.Builder<ELConceptInclusion> getConclusionBuilder() {
+        return conclusionBuilder;
     }
 
-    public void setInferenceBuilder(Stream.Builder<ELConceptInclusion> inferenceBuilder) {
-        this.inferenceBuilder = inferenceBuilder;
+    public void setConclusionBuilder(Stream.Builder<ELConceptInclusion> conclusionBuilder) {
+        this.conclusionBuilder = conclusionBuilder;
     }
 
     @Override
     public void visit(ELConceptBottom concept) {
-        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
+        conclusionBuilder.add(new ELConceptInclusion(concept, concept));
     }
 
     @Override
     public void visit(ELConceptConjunction concept) {
-        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
+        conclusionBuilder.add(new ELConceptInclusion(concept, concept));
         concept.getFirstConjunct().accept(this);
         concept.getSecondConjunct().accept(this);
     }
 
     @Override
     public void visit(ELConceptExistentialRestriction concept) {
-        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
+        conclusionBuilder.add(new ELConceptInclusion(concept, concept));
         concept.getFiller().accept(this);
     }
 
     @Override
     public void visit(ELConceptName concept) {
-        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
+        conclusionBuilder.add(new ELConceptInclusion(concept, concept));
     }
 
     @Override
     public void visit(ELConceptTop concept) {
-        inferenceBuilder.add(new ELConceptInclusion(concept, concept));
+        conclusionBuilder.add(new ELConceptInclusion(concept, concept));
     }
 }

@@ -9,7 +9,7 @@ import java.io.Serializable;
 
 public class WorkerStateSendingClosureResults<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
 
-    private long sendClosureResultMessageID;
+    private final long sendClosureResultMessageID;
     private boolean closureResultRequestAcknowledged = false;
 
     public WorkerStateSendingClosureResults(SaturationWorker<C, A> worker, long sendClosureResultMessageID) {

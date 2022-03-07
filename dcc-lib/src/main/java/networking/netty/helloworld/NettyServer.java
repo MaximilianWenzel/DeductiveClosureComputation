@@ -11,7 +11,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 public class NettyServer implements Runnable {
 
-    private int port;
+    private final int port;
 
     public NettyServer(int port) {
         this.port = port;

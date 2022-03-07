@@ -14,13 +14,13 @@ public class InitRule extends Rule<ReachabilityClosure, Reachability> {
     }
 
     @Override
-    public Stream<Reachability> streamOfInferences(Reachability axiom) {
-        Stream.Builder<Reachability> inferences = Stream.builder();
+    public Stream<Reachability> streamOfConclusions(Reachability axiom) {
+        Stream.Builder<Reachability> conclusions = Stream.builder();
 
         if (axiom instanceof ToldReachability) {
-            inferences.accept(new DerivedReachability(axiom.getSourceNode(), axiom.getDestinationNode()));
+            conclusions.accept(new DerivedReachability(axiom.getSourceNode(), axiom.getDestinationNode()));
         }
 
-        return inferences.build();
+        return conclusions.build();
     }
 }

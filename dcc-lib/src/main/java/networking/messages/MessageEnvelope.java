@@ -2,6 +2,9 @@ package networking.messages;
 
 import java.io.Serializable;
 
+/**
+ * This class is used in order to assign a given object to the designated socket to which it is to be sent.
+ */
 public class MessageEnvelope implements Serializable {
     private long socketID;
     private Serializable message;

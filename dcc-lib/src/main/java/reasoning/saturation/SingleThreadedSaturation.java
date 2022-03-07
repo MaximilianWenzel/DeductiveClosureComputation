@@ -14,17 +14,24 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Queue;
 
+/**
+ * A class which can be used in order to compute the deductive closure for a given set of axioms and a set of rules using only a single
+ * thread.
+ *
+ * @param <C> Type of the resulting deductive closure.
+ * @param <A> Type of the axioms in the deductive closure.
+ */
 public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializable> implements Saturation<C, A> {
 
     private final Queue<A> toDo = QueueFactory.getSingleThreadedToDo();
-    private C closure;
-    private Collection<? extends Rule<C, A>> rules;
-    private Iterator<? extends A> initialAxioms;
+    private final C closure;
+    private final Collection<? extends Rule<C, A>> rules;
+    private final Iterator<? extends A> initialAxioms;
 
-    private DefaultIncrementalReasoner<C, A> incrementalReasoner;
+    private final DefaultIncrementalReasoner<C, A> incrementalReasoner;
+    private final WorkerStatistics workerStats = new WorkerStatistics();
+    private final ControlNodeStatistics controlNodeStats = new ControlNodeStatistics();
     private SaturationConfiguration config = new SaturationConfiguration();
-    private WorkerStatistics workerStats = new WorkerStatistics();
-    private ControlNodeStatistics controlNodeStats = new ControlNodeStatistics();
 
     public SingleThreadedSaturation(Iterator<? extends A> initialAxioms, Collection<? extends Rule<C, A>> rules,
                                     C closure) {
@@ -62,14 +69,14 @@ public class SingleThreadedSaturation<C extends Closure<A>, A extends Serializab
         controlNodeStats.startStopwatch(StatisticsComponent.CONTROL_NODE_SATURATION_TIME);
         initializeToDoQueue(initialAxioms);
         while (!toDo.isEmpty()) {
-            Collection<A> inferences = incrementalReasoner.getInferencesForGivenAxiom(toDo.remove());
+            Collection<A> conclusions = incrementalReasoner.getConclusionsForGivenAxiom(toDo.remove());
 
             if (config.collectWorkerNodeStatistics()) {
                 workerStats.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
             }
-            for (A inference : inferences) {
-                workerStats.getNumberOfDerivedInferences().incrementAndGet();
-                toDo.add(inference);
+            for (A conclusion : conclusions) {
+                workerStats.getNumberOfDerivedConclusions().incrementAndGet();
+                toDo.add(conclusion);
             }
             if (config.collectWorkerNodeStatistics()) {
                 workerStats.stopStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);

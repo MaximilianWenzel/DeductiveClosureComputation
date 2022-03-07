@@ -24,7 +24,7 @@ public interface ELEntity {
 	 * @return the hash code of the given entity
 	 * @see #equals(ELEntity, Object)
 	 */
-	public static int hashCode(ELEntity e) {
+	static int hashCode(ELEntity e) {
 		if (e == null) {
 			return 0;
 		}
@@ -43,7 +43,7 @@ public interface ELEntity {
 	 * @return {@code true} if the two given entities are equal and
 	 *         {@code false} otherwise
 	 */
-	public static boolean equals(ELEntity entity, Object other) {
+	static boolean equals(ELEntity entity, Object other) {
 		if (entity == null) {
 			return other == null;
 		}
@@ -56,7 +56,7 @@ public interface ELEntity {
 	 * @param entity
 	 * @return the string representation of the given entity
 	 */
-	public static String toString(ELEntity entity) {
+	static String toString(ELEntity entity) {
 		return entity.getName();
 	}
 
@@ -65,7 +65,7 @@ public interface ELEntity {
 	 * 
 	  * Implementation taken from https://github.com/ykazakov/rw19-dl and adjusted to EL++ description logic (DL).
 	 */
-	public interface Visitor {
+	interface Visitor {
 
 		void visit(ELConceptName concept);
 

@@ -1,12 +1,10 @@
 package benchmark.rdfsreasoning.rules;
 
 import benchmark.rdfsreasoning.RDFSClosure;
-import org.apache.jena.graph.Triple;
 import org.rdfhdt.hdt.triples.TripleID;
 import reasoning.rules.Rule;
 
 import java.util.Iterator;
-import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -19,8 +17,8 @@ public class RuleRDFS3 extends Rule<RDFSClosure, TripleID> {
     TripleID triplePattern = new TripleID();
 
     @Override
-    public Stream<TripleID> streamOfInferences(TripleID axiom) {
-        Stream.Builder<TripleID> inferences = Stream.builder();
+    public Stream<TripleID> streamOfConclusions(TripleID axiom) {
+        Stream.Builder<TripleID> conclusions = Stream.builder();
         // given: rel(y, a, z)
         long a = axiom.getPredicate();
         long z = axiom.getObject();
@@ -28,7 +26,7 @@ public class RuleRDFS3 extends Rule<RDFSClosure, TripleID> {
         Iterator<TripleID> rangeRDFClassIDsForA = closure.search(triplePattern);
 
         rangeRDFClassIDsForA.forEachRemaining(tID -> {
-            inferences.add(new TripleID(z, rdfTypeID, tID.getObject()));
+            conclusions.add(new TripleID(z, rdfTypeID, tID.getObject()));
         });
 
         // given: range(a, x)
@@ -36,10 +34,10 @@ public class RuleRDFS3 extends Rule<RDFSClosure, TripleID> {
             long x = axiom.getObject();
             triplePattern.setAll(0, a, 0);
             Iterator<TripleID> itID = closure.search(triplePattern);
-            itID.forEachRemaining(tID -> inferences.add(new TripleID(z, rdfTypeID, x)));
+            itID.forEachRemaining(tID -> conclusions.add(new TripleID(z, rdfTypeID, x)));
         }
 
-        return inferences.build();
+        return conclusions.build();
     }
 
     public void setClosure(RDFSClosure closure) {

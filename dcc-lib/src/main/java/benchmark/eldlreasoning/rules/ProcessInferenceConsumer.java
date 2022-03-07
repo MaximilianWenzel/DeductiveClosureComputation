@@ -1,23 +1,23 @@
 package benchmark.eldlreasoning.rules;
 
-import reasoning.rules.InferenceProcessor;
+import reasoning.rules.ConclusionProcessor;
 
 import java.io.Serializable;
 import java.util.function.Consumer;
 
 public class ProcessInferenceConsumer<A extends Serializable> implements Consumer<A> {
-    private InferenceProcessor<A> inferenceProcessor;
+    private ConclusionProcessor<A> conclusionProcessor;
 
     ProcessInferenceConsumer() {
 
     }
 
-    public ProcessInferenceConsumer(InferenceProcessor<A> inferenceProcessor) {
-        this.inferenceProcessor = inferenceProcessor;
+    public ProcessInferenceConsumer(ConclusionProcessor<A> conclusionProcessor) {
+        this.conclusionProcessor = conclusionProcessor;
     }
 
     @Override
     public void accept(A axiom) {
-        inferenceProcessor.processInference(axiom);
+        conclusionProcessor.processConclusion(axiom);
     }
 }

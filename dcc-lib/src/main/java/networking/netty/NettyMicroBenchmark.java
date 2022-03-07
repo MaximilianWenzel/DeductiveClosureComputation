@@ -87,7 +87,7 @@ public class NettyMicroBenchmark {
 
         Flux<Edge> flux = Flux.fromStream(Stream.generate(() -> new Edge(rnd.nextInt(10_000), rnd.nextInt(10_000)))
                 .limit(MESSAGE_COUNT));
-        private BlockingQueue<Integer> result;
+        private final BlockingQueue<Integer> result;
         private int sentMessages = 0;
         private int hashSum = 0;
         private ChannelHandlerContext ctx;
@@ -143,7 +143,7 @@ public class NettyMicroBenchmark {
 
         int receivedMessages = 0;
         int hashSum = 0;
-        private BlockingQueue<Integer> result = NettyMicroBenchmark.hashSumResults;
+        private final BlockingQueue<Integer> result = NettyMicroBenchmark.hashSumResults;
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {

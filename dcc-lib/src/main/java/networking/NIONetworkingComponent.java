@@ -14,6 +14,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
+/**
+ * This class represents an abstraction from individual network socket connections and can be used in order to connect to remote servers,
+ * to open new server sockets, or to send messages to already established connections. It uses the Java NIO library in order to provide
+ * non-blocking asynchronous I/O operations.
+ */
 public class NIONetworkingComponent implements Runnable, NetworkingComponent {
 
 
@@ -34,7 +39,6 @@ public class NIONetworkingComponent implements Runnable, NetworkingComponent {
     protected Runnable runnableForMainNIOLoop;
 
     public NIONetworkingComponent(Runnable runnableForMainNIOLoop) {
-        this.serversToConnectTo.addAll(serversToConnectTo);
         this.runnableForMainNIOLoop = runnableForMainNIOLoop;
         init();
     }

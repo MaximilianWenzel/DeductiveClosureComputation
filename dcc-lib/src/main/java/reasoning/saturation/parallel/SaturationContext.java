@@ -6,7 +6,7 @@ import enums.StatisticsComponent;
 import networking.messages.AxiomCount;
 import networking.messages.RequestAxiomMessageCount;
 import reasoning.reasoner.DefaultIncrementalReasoner;
-import reasoning.rules.ParallelSaturationInferenceProcessor;
+import reasoning.rules.MultithreadedSaturationConclusionProcessor;
 import reasoning.rules.Rule;
 import reasoning.saturation.distributed.metadata.SaturationConfiguration;
 import reasoning.saturation.distributed.metadata.WorkerStatistics;
@@ -19,6 +19,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Represents a worker task which is deployed in the multi-threaded deductive closure computation procedure.
+ */
 public class SaturationContext<C extends Closure<A>, A extends Serializable>
         implements Runnable {
 
@@ -28,7 +31,7 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
     private final Collection<? extends Rule<C, A>> rules;
     private final C closure;
     private final BlockingQueue<Object> toDo;
-    private final ParallelSaturation<C, A> controlNode;
+    private final MultithreadedSaturation<C, A> controlNode;
 
     private final AtomicInteger receivedAxioms = new AtomicInteger(0);
     private final AtomicInteger sentAxioms = new AtomicInteger(0);
@@ -36,13 +39,13 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
 
     private final SaturationConfiguration config;
     private DefaultIncrementalReasoner<C, A> incrementalReasoner;
-    private WorkloadDistributor<C, A> workloadDistributor;
-    private ParallelSaturationInferenceProcessor<C, A> inferenceProcessor;
+    private final WorkloadDistributor<C, A> workloadDistributor;
+    private MultithreadedSaturationConclusionProcessor<C, A> conclusionProcessor;
 
     private boolean lastMessageWasAxiomCountRequest = false;
     private WorkerStatistics statistics = null;
 
-    public SaturationContext(SaturationConfiguration config, ParallelSaturation<C, A> controlNode,
+    public SaturationContext(SaturationConfiguration config, MultithreadedSaturation<C, A> controlNode,
                              Collection<? extends Rule<C, A>> rules,
                              WorkloadDistributor<C, A> workloadDistributor,
                              C closure,
@@ -104,10 +107,10 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
                         this.statistics.getNumberOfReceivedAxioms().incrementAndGet();
                     }
                     receivedAxioms.incrementAndGet();
-                    Collection<A> inferences = incrementalReasoner.getInferencesForGivenAxiom((A) message);
+                    Collection<A> conclusions = incrementalReasoner.getConclusionsForGivenAxiom((A) message);
 
-                    for (A inference : inferences) {
-                        this.inferenceProcessor.processInference(inference);
+                    for (A conclusion : conclusions) {
+                        this.conclusionProcessor.processConclusion(conclusion);
                     }
                 }
             }
@@ -149,8 +152,8 @@ public class SaturationContext<C extends Closure<A>, A extends Serializable>
         }
     }
 
-    public void setInferenceProcessor(ParallelSaturationInferenceProcessor<C, A> inferenceProcessor) {
-        this.inferenceProcessor = inferenceProcessor;
+    public void setConclusionProcessor(MultithreadedSaturationConclusionProcessor<C, A> conclusionProcessor) {
+        this.conclusionProcessor = conclusionProcessor;
         this.rules.forEach(r -> {
             r.setClosure(closure);
         });

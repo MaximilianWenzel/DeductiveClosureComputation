@@ -8,8 +8,8 @@ import java.nio.ByteBuffer;
 
 public class JavaSerializer implements Serializer {
 
-    private ByteBufferInput bbi = new ByteBufferInput();
-    private ByteBufferOutput bbo = new ByteBufferOutput();
+    private final ByteBufferInput bbi = new ByteBufferInput();
+    private final ByteBufferOutput bbo = new ByteBufferOutput();
 
     @Override
     public byte[] serialize(Serializable object) throws IOException {

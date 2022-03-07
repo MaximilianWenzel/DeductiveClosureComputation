@@ -5,11 +5,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class RequestDataEncoder
         extends MessageToByteEncoder<RequestData> {
 
-    private final Charset charset = Charset.forName("UTF-8");
+    private final Charset charset = StandardCharsets.UTF_8;
 
     @Override
     protected void encode(ChannelHandlerContext ctx,

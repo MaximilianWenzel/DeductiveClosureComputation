@@ -10,8 +10,11 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
+/**
+ * This class provides methods in order to deserialize messages from the appropriate socket inbound buffer and initiates by itself an
+ * asynchronous, non-blocking read operation using the NIO.2 Asynchronous Socket Channel API to receive new messages.
+ */
 public class NIO2MessageReader {
 
     protected AsynchronousSocketChannel socketChannel;
@@ -20,16 +23,15 @@ public class NIO2MessageReader {
     protected int readBytes;
     protected boolean newMessageStarts = true;
     protected boolean endOfStreamReached = false;
-    // TODO user defined buffer size
     private final int BUFFER_SIZE = 512 << 10;
     private final int MESSAGE_SIZE_BYTES = 4;
     protected ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private final Serializer serializer = new KryoSerializer();
 
-    private MessageHandler messageHandler;
-    private long socketID;
+    private final MessageHandler messageHandler;
+    private final long socketID;
 
-    private AtomicBoolean currentlyReading = new AtomicBoolean(false);
+    private final AtomicBoolean currentlyReading = new AtomicBoolean(false);
 
     public NIO2MessageReader(long socketID, AsynchronousSocketChannel socketChannel,
                              MessageHandler messageHandler) {

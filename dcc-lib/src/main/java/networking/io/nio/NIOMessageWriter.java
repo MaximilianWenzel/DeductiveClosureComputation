@@ -10,16 +10,20 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.BlockingQueue;
 
+/**
+ * This class provides methods in order to serialize messages to the appropriate socket outbound buffer and initiates by itself an
+ * asynchronous, non-blocking write operation using the NIO library.
+ */
 public class NIOMessageWriter {
     private final SocketChannel socketChannel;
     private final int BUFFER_SIZE = 2 << 20;
     private final int STOP_SERIALIZATION_TO_BUFFER_THRESHOLD = (int) (BUFFER_SIZE * 0.9);
     // TODO user defined buffer size
-    private BlockingQueue<Serializable> messagesToSend = QueueFactory.createNIOMessageWriterQueue();
-    private int numBytesForLength = 4;
+    private final BlockingQueue<Serializable> messagesToSend = QueueFactory.createNIOMessageWriterQueue();
+    private final int numBytesForLength = 4;
 
-    private Serializer serializer = new KryoSerializer();
-    private ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    private final Serializer serializer = new KryoSerializer();
+    private final ByteBuffer messageBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     public NIOMessageWriter(SocketChannel socketChannel) {
         this.socketChannel = socketChannel;

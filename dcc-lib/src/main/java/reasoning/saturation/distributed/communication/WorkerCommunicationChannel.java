@@ -29,6 +29,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+/**
+ * This class is used in the distributed saturation in order to manage all network communication related issues for a given worker node, for
+ * instance, to initiate all connections to other worker nodes or to send messages.
+ *
+ * @param <C> Type of the resulting deductive closure.
+ * @param <A> Type of the axioms in the deductive closure.
+ */
 public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializable> {
 
     private final Logger log = ConsoleUtils.getLogger();
@@ -36,27 +43,20 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
     private final ServerData serverData;
     private final AtomicInteger sentAxiomMessages = new AtomicInteger(0);
     private final AtomicInteger receivedAxiomMessages = new AtomicInteger(0);
-
+    private final AtomicInteger saturationStage = new AtomicInteger(0);
+    private final NIO2NetworkingPipeline networkingLoop;
     private NetworkingComponent networkingComponent;
-
     private long workerID = -1L;
     private List<DistributedWorkerModel<C, A>> workers;
     private WorkloadDistributor<C, A> workloadDistributor;
-
     private BiMap<Long, Long> socketIDToWorkerID;
     private BiMap<Long, Long> workerIDToSocketID;
-
     private long controlNodeSocketID = -1L;
     private boolean allConnectionsEstablished = false;
     private AcknowledgementEventManager acknowledgementEventManager;
     private List<A> initialAxioms;
-    private AtomicInteger saturationStage = new AtomicInteger(0);
-
     private DistributedSaturationConfiguration config;
     private WorkerStatistics stats;
-
-    private NIO2NetworkingPipeline networkingLoop;
-
     private Iterator<A> closureResultsIterator;
 
     public WorkerCommunicationChannel(ServerData serverData, NIO2NetworkingPipeline networkingLoop) {
@@ -128,33 +128,33 @@ public class WorkerCommunicationChannel<C extends Closure<A>, A extends Serializ
         send(receiverSocketID, ack);
     }
 
-    public void distributeInferences(Stream<A> inferenceStream) {
+    public void distributeConclusions(Stream<A> conclusionStream) {
         if (config.collectWorkerNodeStatistics()) {
             stats.startStopwatch(StatisticsComponent.WORKER_DISTRIBUTING_AXIOMS_TIME);
         }
-        inferenceStream.forEach(inference -> {
+        conclusionStream.forEach(conclusion -> {
             if (config.collectWorkerNodeStatistics()) {
-                stats.getNumberOfDerivedInferences().incrementAndGet();
+                stats.getNumberOfDerivedConclusions().incrementAndGet();
             }
 
-            workloadDistributor.getRelevantWorkerIDsForAxiom(inference)
+            workloadDistributor.getRelevantWorkerIDsForAxiom(conclusion)
                     .forEach(receiverWorkerID -> {
                         if (receiverWorkerID != this.workerID) {
                             sentAxiomMessages.incrementAndGet();
                             if (config.collectWorkerNodeStatistics()) {
                                 stats.getNumberOfSentAxioms().getAndIncrement();
                             }
-                            networkingLoop.sendMessage(workerIDToSocketID.get(receiverWorkerID), inference);
+                            networkingLoop.sendMessage(workerIDToSocketID.get(receiverWorkerID), conclusion);
                         } else {
                             if (config.getMessageDistributionType().equals(MessageDistributionType.SEND_ALL_MESSAGES_OVER_NETWORK)) {
                                 sentAxiomMessages.incrementAndGet();
                                 if (config.collectWorkerNodeStatistics()) {
                                     stats.getNumberOfSentAxioms().getAndIncrement();
                                 }
-                                networkingLoop.sendMessage(workerIDToSocketID.get(receiverWorkerID), inference);
+                                networkingLoop.sendMessage(workerIDToSocketID.get(receiverWorkerID), conclusion);
                             } else {
                                 // add axioms from this worker directly to the queue
-                                networkingLoop.addToToDoQueue(inference);
+                                networkingLoop.addToToDoQueue(conclusion);
                             }
                         }
                     });

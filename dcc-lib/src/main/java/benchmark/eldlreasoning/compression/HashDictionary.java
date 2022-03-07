@@ -8,9 +8,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class HashDictionary {
 
-    private AtomicInteger idCounter = new AtomicInteger(1);
-    private Map<String, Integer> idToStringMap = new HashMap<>();
-    private List<String> implicitIDToStringMap = new ArrayList<>();
+    private final AtomicInteger idCounter = new AtomicInteger(1);
+    private final Map<String, Integer> idToStringMap = new HashMap<>();
+    private final List<String> implicitIDToStringMap = new ArrayList<>();
 
     public HashDictionary() {
 

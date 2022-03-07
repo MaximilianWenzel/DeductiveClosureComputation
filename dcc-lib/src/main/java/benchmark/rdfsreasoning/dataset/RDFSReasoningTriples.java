@@ -9,19 +9,19 @@ import java.util.*;
 
 public class RDFSReasoningTriples {
 
-    private long domainID;
-    private long rangeID;
-    private long rdfTypeID;
-    private long subPropertyOfID;
-    private long subClassOfID;
-    private Map<Long, Set<Long>> predicateIDToSubjectObjectPair = new HashMap<>();
-    private Map<Long, Set<Long>> propertyIDToDomainIDs = new HashMap<>();
-    private Map<Long, Set<Long>> propertyIDToRangeIDs = new HashMap<>();
-    private Map<Long, Set<Long>> propertyIDToSuperPropertyIDs = new HashMap<>();
-    private Map<Long, Set<Long>> rdfClassIDToSuperRDFClassIDs = new HashMap<>();
-    private Map<Long, Set<Long>> propertyIDToSubPropertyIDs = new HashMap<>();
-    private Map<Long, Set<Long>> rdfClassIDToSubRDFClassIDs = new HashMap<>();
-    private Map<Long, RoaringBitmap> rdfClassIDToInstancesIDs = new HashMap<>();
+    private final long domainID;
+    private final long rangeID;
+    private final long rdfTypeID;
+    private final long subPropertyOfID;
+    private final long subClassOfID;
+    private final Map<Long, Set<Long>> predicateIDToSubjectObjectPair = new HashMap<>();
+    private final Map<Long, Set<Long>> propertyIDToDomainIDs = new HashMap<>();
+    private final Map<Long, Set<Long>> propertyIDToRangeIDs = new HashMap<>();
+    private final Map<Long, Set<Long>> propertyIDToSuperPropertyIDs = new HashMap<>();
+    private final Map<Long, Set<Long>> rdfClassIDToSuperRDFClassIDs = new HashMap<>();
+    private final Map<Long, Set<Long>> propertyIDToSubPropertyIDs = new HashMap<>();
+    private final Map<Long, Set<Long>> rdfClassIDToSubRDFClassIDs = new HashMap<>();
+    private final Map<Long, RoaringBitmap> rdfClassIDToInstancesIDs = new HashMap<>();
 
     public RDFSReasoningTriples(long domainID, long rangeID, long rdfTypeID, long subPropertyOfID, long subClassOfID) {
         this.domainID = domainID;

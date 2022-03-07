@@ -14,6 +14,13 @@ import util.ConsoleUtils;
 import java.io.Serializable;
 import java.util.logging.Logger;
 
+/**
+ * This class is a representation of the current state of the control node in the distributed saturation procedure. Each distinct state
+ * provides a state-dependent processing of the received messages.
+ *
+ * @param <C> Type of the resulting deductive closure.
+ * @param <A> Type of the axioms in the deductive closure.
+ */
 public abstract class ControlNodeState<C extends Closure<A>, A extends Serializable> implements MessageModelVisitor<C, A>,
         AxiomVisitor<A> {
 

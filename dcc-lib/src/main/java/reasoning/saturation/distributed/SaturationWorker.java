@@ -26,12 +26,12 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
 
     private static final Logger log = ConsoleUtils.getLogger();
     private final IncrementalReasonerType incrementalReasonerType;
-    private ServerData serverData;
+    private final ServerData serverData;
     private C closure;
     private Collection<? extends Rule<C, A>> rules;
 
     private WorkerCommunicationChannel<C, A> communicationChannel;
-    private int numberOfThreads;
+    private final int numberOfThreads;
     private ExecutorService threadPool = null;
 
     private WorkerState<C, A> state;
@@ -182,7 +182,7 @@ public class SaturationWorker<C extends Closure<A>, A extends Serializable> {
 
     public enum IncrementalReasonerType {
         SINGLE_THREADED,
-        PARALLEL;
+        PARALLEL
     }
 
     private class WorkerNetworkingPipeline extends NIO2NetworkingPipeline {

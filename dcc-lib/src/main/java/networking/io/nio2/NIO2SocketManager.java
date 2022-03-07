@@ -2,7 +2,6 @@ package networking.io.nio2;
 
 import networking.io.MessageHandler;
 import networking.io.SocketManager;
-import networking.messages.MessageEnvelope;
 
 import java.io.IOException;
 import java.io.Serializable;

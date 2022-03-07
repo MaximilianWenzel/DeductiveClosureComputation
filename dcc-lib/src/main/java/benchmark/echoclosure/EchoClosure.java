@@ -8,7 +8,7 @@ import java.util.List;
 
 public class EchoClosure implements Closure<EchoAxiom> {
 
-    private UnifiedSet<EchoAxiom> axioms = new UnifiedSet<>();
+    private final UnifiedSet<EchoAxiom> axioms = new UnifiedSet<>();
 
     @Override
     public boolean add(EchoAxiom axiom) {

@@ -47,28 +47,24 @@ public class ComposeConjunctionRule extends OWLELRule {
     }
 
     @Override
-    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
-        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
+    public Stream<ELConceptInclusion> streamOfConclusions(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> conclusions = Stream.builder();
         ELConcept c = axiom.getSubConcept();
         ELConcept d1 = axiom.getSuperConcept();
 
-        for (Object obj : closure) {
-            if (!(obj instanceof ELConceptInclusion)) {
-                continue;
-            }
-            ELConceptInclusion conceptInclusion = (ELConceptInclusion) obj;
+        for (ELConceptInclusion conceptInclusion : closure) {
             if (c.equals(conceptInclusion.getSubConcept())) {
                 ELConcept d2 = conceptInclusion.getSuperConcept();
                 ELConceptConjunction conjunction = new ELConceptConjunction(d1, d2);
                 if (this.negativeConceptsFromOntology.contains(conjunction)) {
-                    inferences.add(new ELConceptInclusion(c, conjunction));
+                    conclusions.add(new ELConceptInclusion(c, conjunction));
                 }
                 ELConceptConjunction conjunction2 = new ELConceptConjunction(d2, d1);
                 if (this.negativeConceptsFromOntology.contains(conjunction2)) {
-                    inferences.add(new ELConceptInclusion(c, conjunction2));
+                    conclusions.add(new ELConceptInclusion(c, conjunction2));
                 }
             }
         }
-        return inferences.build();
+        return conclusions.build();
     }
 }

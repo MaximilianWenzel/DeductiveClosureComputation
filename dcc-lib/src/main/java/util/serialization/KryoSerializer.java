@@ -5,7 +5,6 @@ import com.esotericsoftware.kryo.io.ByteBufferInput;
 import com.esotericsoftware.kryo.io.ByteBufferOutput;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import io.netty.buffer.ByteBuf;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -14,10 +13,10 @@ import java.nio.ByteBuffer;
 
 public class KryoSerializer implements Serializer {
 
-    private Kryo kryo;
-    private ByteBufferInput bbi = new ByteBufferInput();
-    private ByteBufferOutput bbo = new ByteBufferOutput();
-    private Input in = new Input();
+    private final Kryo kryo;
+    private final ByteBufferInput bbi = new ByteBufferInput();
+    private final ByteBufferOutput bbo = new ByteBufferOutput();
+    private final Input in = new Input();
 
     {
         kryo = new Kryo();

@@ -6,13 +6,18 @@ import org.roaringbitmap.RoaringBitmap;
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+/**
+ * If the initial axioms are not assigned to appropriate workers using the hash-based partitioning approach, this class can be deployed in
+ * order to assign the responsible worker IDs to the initial axioms in a memory efficient way.
+ *
+ * @param <A> Types of the deployed axioms.
+ */
 public class InitialAxiomsDistributor<A extends Serializable> {
 
+    private final List<? extends A> initialAxioms;
+    private final WorkloadDistributor<?, A> workloadDistributor;
     private Map<Long, RoaringBitmap> workerIDToInitialAxiomsIndex;
-    private List<? extends A> initialAxioms;
-    private WorkloadDistributor<?, A> workloadDistributor;
 
     public InitialAxiomsDistributor(List<? extends A> initialAxioms, WorkloadDistributor<?, A> workloadDistributor) {
         this.initialAxioms = initialAxioms;
@@ -35,7 +40,7 @@ public class InitialAxiomsDistributor<A extends Serializable> {
 
     public List<A> getInitialAxioms(Long workerID) {
         RoaringBitmap initialAxiomsPos = workerIDToInitialAxiomsIndex.get(workerID);
-        List<A> workerAxioms = null;
+        List<A> workerAxioms;
         if (initialAxiomsPos == null) {
             workerAxioms = Collections.emptyList();
         } else {

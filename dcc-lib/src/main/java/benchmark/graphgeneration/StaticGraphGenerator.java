@@ -1,13 +1,11 @@
 package benchmark.graphgeneration;
 
-import benchmark.transitiveclosure.Reachability;
 import benchmark.transitiveclosure.ToldReachability;
-import org.apache.jena.graph.Graph;
 
 import java.util.List;
 
-public class StaticGraphGenerator extends GraphGenerator<ToldReachability> {
-    private List<ToldReachability> initialAxioms;
+public class StaticGraphGenerator extends DirectedGraphGenerator<ToldReachability> {
+    private final List<ToldReachability> initialAxioms;
 
     public StaticGraphGenerator(List<ToldReachability> initialAxioms) {
         this.initialAxioms = initialAxioms;

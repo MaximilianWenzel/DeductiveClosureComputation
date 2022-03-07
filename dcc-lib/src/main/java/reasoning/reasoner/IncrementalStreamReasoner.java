@@ -8,8 +8,6 @@ import reasoning.saturation.distributed.metadata.WorkerStatistics;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.concurrent.BlockingQueue;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class IncrementalStreamReasoner<C extends Closure<A>, A extends Serializable> {
@@ -28,23 +26,23 @@ public class IncrementalStreamReasoner<C extends Closure<A>, A extends Serializa
         this.stats = stats;
     }
 
-    public Stream<A> getStreamOfInferencesForGivenAxioms(Stream<A> axioms) {
+    public Stream<A> getStreamOfConclusionsForGivenAxioms(Stream<A> axioms) {
 
         if (config.collectWorkerNodeStatistics()) {
             stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
         }
 
-        Stream<A> inferences = axioms.filter(closure::add)
-                .flatMap(axiom -> rules.stream().flatMap(rule -> rule.streamOfInferences(axiom)));
+        Stream<A> conclusions = axioms.filter(closure::add)
+                .flatMap(axiom -> rules.stream().flatMap(rule -> rule.streamOfConclusions(axiom)));
 
         if (config.collectWorkerNodeStatistics()) {
             stats.stopStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
         }
 
-        return inferences;
+        return conclusions;
     }
 
-    public Stream<A> getStreamOfInferencesForGivenAxiom(A axiom) {
+    public Stream<A> getStreamOfConclusionsForGivenAxiom(A axiom) {
         if (config.collectWorkerNodeStatistics()) {
             stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
         }
@@ -54,8 +52,8 @@ public class IncrementalStreamReasoner<C extends Closure<A>, A extends Serializa
                     this.stats.getNumberOfProcessedAxioms().incrementAndGet();
                 }
 
-                Stream<A> inferences = rules.stream().flatMap(rule -> rule.streamOfInferences(axiom));
-                return inferences;
+                Stream<A> conclusions = rules.stream().flatMap(rule -> rule.streamOfConclusions(axiom));
+                return conclusions;
             } else {
                 return Stream.empty();
             }

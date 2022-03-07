@@ -16,7 +16,7 @@ public class RuleRDFS13 extends Rule<RDFSClosure, TripleID> {
     long rdfsMemberID;
 
     @Override
-    public Stream<TripleID> streamOfInferences(TripleID axiom) {
+    public Stream<TripleID> streamOfConclusions(TripleID axiom) {
         if (axiom.getPredicate() != rdfTypeID || axiom.getObject() != rdfsContainerMembershipPropertyID) {
             return Stream.empty();
         }

@@ -2,6 +2,10 @@ package reasoning.saturation.distributed.metadata;
 
 import java.io.Serializable;
 
+/**
+ * This class contains the configuration for computing the deductive closure, e.g., in order to determine whether more finegrained
+ * statistics shall be collected.
+ */
 public class SaturationConfiguration implements Serializable {
 
     protected boolean collectControlNodeStatistics = false;

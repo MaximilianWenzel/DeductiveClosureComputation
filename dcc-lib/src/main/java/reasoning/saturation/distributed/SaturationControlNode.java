@@ -1,7 +1,6 @@
 package reasoning.saturation.distributed;
 
 import data.Closure;
-import networking.messages.MessageEnvelope;
 import reasoning.saturation.distributed.communication.ControlNodeCommunicationChannel;
 import reasoning.saturation.distributed.communication.NIO2NetworkingPipeline;
 import reasoning.saturation.distributed.metadata.ControlNodeStatistics;
@@ -19,23 +18,29 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+/**
+ * This class is the representation of the control node in the distributed saturation which distributes the initial axioms, determines
+ * whether all workers have converged, and finally collects the closure results of each worker.
+ *
+ * @param <C> Type of the resulting deductive closure.
+ * @param <A> Type of the axioms in the deductive closure.
+ */
 public class SaturationControlNode<C extends Closure<A>, A extends Serializable> {
 
     private final List<DistributedWorkerModel<C, A>> workers;
-    private C resultingClosure;
+    private final C resultingClosure;
+    private final int numberOfThreads;
+    private final WorkloadDistributor<C, A> workloadDistributor;
+    private final Iterator<? extends A> initialAxioms;
+    private final DistributedSaturationConfiguration config;
+    private final ControlNodeStatistics stats = new ControlNodeStatistics();
+    private final List<WorkerStatistics> workerStatistics = new ArrayList<>();
     private ControlNodeCommunicationChannel<C, A> communicationChannel;
-    private BlockingQueue<MessageEnvelope> messagesThatCouldNotBeSent = new LinkedBlockingQueue<>();
     private ControlNodeState<C, A> state;
-
-    private int numberOfThreads;
-    private WorkloadDistributor<C, A> workloadDistributor;
-    private Iterator<? extends A> initialAxioms;
-    private DistributedSaturationConfiguration config;
-    private ControlNodeStatistics stats = new ControlNodeStatistics();
-    private List<WorkerStatistics> workerStatistics = new ArrayList<>();
-
     private ExecutorService threadPool;
     private NIO2NetworkingPipeline networkingLoop;
 

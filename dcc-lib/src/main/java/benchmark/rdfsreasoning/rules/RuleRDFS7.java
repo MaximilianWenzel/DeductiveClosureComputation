@@ -15,8 +15,8 @@ public class RuleRDFS7 extends Rule<RDFSClosure, TripleID> {
     long subPropertyOfID;
 
     @Override
-    public Stream<TripleID> streamOfInferences(TripleID axiom) {
-        Stream.Builder<TripleID> inferences = Stream.builder();
+    public Stream<TripleID> streamOfConclusions(TripleID axiom) {
+        Stream.Builder<TripleID> conclusions = Stream.builder();
         if (axiom.getPredicate() == subPropertyOfID) {
             // given: subPropertyOf(a, b)
             long a = axiom.getSubject();
@@ -25,7 +25,7 @@ public class RuleRDFS7 extends Rule<RDFSClosure, TripleID> {
             // find: rel(x, a, y)
             triplePattern.setAll(0, a, 0);
             Iterator<TripleID> itID = closure.search(triplePattern);
-            itID.forEachRemaining(tID -> inferences.add(new TripleID(tID.getSubject(), b, tID.getObject())));
+            itID.forEachRemaining(tID -> conclusions.add(new TripleID(tID.getSubject(), b, tID.getObject())));
         }
 
         // given: rel(x, a, y)
@@ -35,9 +35,9 @@ public class RuleRDFS7 extends Rule<RDFSClosure, TripleID> {
         triplePattern.setAll(a, subPropertyOfID, 0);
         // find: subPropertyOf(a, b)
         Iterator<TripleID> itID = closure.search(triplePattern);
-        itID.forEachRemaining(tID -> inferences.add(new TripleID(x, tID.getPredicate(), y)));
+        itID.forEachRemaining(tID -> conclusions.add(new TripleID(x, tID.getPredicate(), y)));
 
-        return inferences.build();
+        return conclusions.build();
     }
 
     public void setClosure(RDFSClosure closure) {

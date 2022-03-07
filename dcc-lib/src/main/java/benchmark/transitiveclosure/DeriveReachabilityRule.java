@@ -1,7 +1,6 @@
 package benchmark.transitiveclosure;
 
 import com.google.common.base.Stopwatch;
-import org.roaringbitmap.IntConsumer;
 import org.roaringbitmap.RoaringBitmap;
 import reasoning.rules.Rule;
 
@@ -24,8 +23,8 @@ public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachabili
     }
 
     @Override
-    public Stream<Reachability> streamOfInferences(Reachability axiom) {
-        Stream<Reachability> inferences;
+    public Stream<Reachability> streamOfConclusions(Reachability axiom) {
+        Stream<Reachability> conclusions;
         if (ruleDelayInNanoSec > 0) {
             Stopwatch s = Stopwatch.createStarted();
             while (true) {
@@ -42,7 +41,7 @@ public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachabili
             // search for: derived(x, y)
             int z = axiom.getDestinationNode();
             RoaringBitmap nodesWithConnectionToY = this.closure.getDerivedIncomingConnectedNodes(axiom.getSourceNode());
-            inferences = nodesWithConnectionToY.stream().mapToObj(x -> new DerivedReachability(x, z));
+            conclusions = nodesWithConnectionToY.stream().mapToObj(x -> new DerivedReachability(x, z));
         } else if (axiom instanceof DerivedReachability) {
             // x: source node
             // y: destination node
@@ -50,10 +49,10 @@ public class DeriveReachabilityRule extends Rule<ReachabilityClosure, Reachabili
             // search for: told(y, z)
             RoaringBitmap reachableFromY = this.closure.getToldOutgoingConnectedNodes(axiom.getDestinationNode());
             int x = axiom.getSourceNode();
-            inferences = reachableFromY.stream().mapToObj(z -> new DerivedReachability(x, z));
+            conclusions = reachableFromY.stream().mapToObj(z -> new DerivedReachability(x, z));
         } else {
-            inferences = Stream.empty();
+            conclusions = Stream.empty();
         }
-        return inferences;
+        return conclusions;
     }
 }

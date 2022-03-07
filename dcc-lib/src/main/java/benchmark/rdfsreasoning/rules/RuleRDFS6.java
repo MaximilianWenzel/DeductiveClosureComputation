@@ -14,7 +14,7 @@ public class RuleRDFS6 extends Rule<RDFSClosure, TripleID> {
     long rdfTypeID;
 
     @Override
-    public Stream<TripleID> streamOfInferences(TripleID axiom) {
+    public Stream<TripleID> streamOfConclusions(TripleID axiom) {
         // given: type(x, rdf:Property)
         if (axiom.getPredicate() != rdfTypeID) {
             return Stream.empty();

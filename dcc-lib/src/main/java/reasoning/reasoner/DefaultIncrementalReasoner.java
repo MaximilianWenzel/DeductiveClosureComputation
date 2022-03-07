@@ -11,8 +11,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+/**
+ * This class represents an implementation of a default incremental reasoner which deduces new axioms in the following way: If a given axiom
+ * is not yet contained in the closure object, it is added to it, else the processing of the axiom ends and no new conclusions have been
+ * derived. If it was not contained in the closure object yet, the incremental reasoner derives all conclusions for the given axiom using
+ * the given rules and the closure object. The resulting set of conclusions is eventually returned.
+ *
+ * @param <C> Type of the closure object whose axioms are used to derive new conclusions.
+ * @param <A> Type of the axioms in the closure object.
+ */
 public class DefaultIncrementalReasoner<C extends Closure<A>, A extends Serializable> {
 
     protected final Collection<? extends Rule<C, A>> rules;
@@ -29,7 +37,7 @@ public class DefaultIncrementalReasoner<C extends Closure<A>, A extends Serializ
         this.stats = stats;
     }
 
-    public Collection<A> getInferencesForGivenAxiom(A axiom) {
+    public Collection<A> getConclusionsForGivenAxiom(A axiom) {
         if (config.collectWorkerNodeStatistics()) {
             stats.startStopwatch(StatisticsComponent.WORKER_APPLYING_RULES_TIME_SATURATION);
         }
@@ -39,9 +47,9 @@ public class DefaultIncrementalReasoner<C extends Closure<A>, A extends Serializ
                     this.stats.getNumberOfProcessedAxioms().incrementAndGet();
                 }
 
-                List<A> inferences = rules.stream().flatMap(rule -> rule.streamOfInferences(axiom))
+                List<A> conclusions = rules.stream().flatMap(rule -> rule.streamOfConclusions(axiom))
                         .collect(Collectors.toList());
-                return inferences;
+                return conclusions;
             } else {
                 return Collections.emptyList();
             }

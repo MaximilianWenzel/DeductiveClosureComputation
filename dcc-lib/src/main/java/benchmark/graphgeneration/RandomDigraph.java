@@ -3,7 +3,7 @@ package benchmark.graphgeneration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class RandomDigraph<E> extends GraphGenerator<E> {
+public abstract class RandomDigraph<E> extends DirectedGraphGenerator<E> {
     protected List<E> edges;
     protected int numberOfNodes;
     protected double probabilityForEdgeBetweenTwoNodes;

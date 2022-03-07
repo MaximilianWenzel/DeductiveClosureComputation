@@ -5,11 +5,8 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import reasoning.saturation.distributed.SaturationWorker;
 import util.NetworkingUtils;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,10 +14,10 @@ import java.util.Set;
 
 public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
 
-    private int numberOfWorkers;
+    private final int numberOfWorkers;
     private List<ServerData> serverDataList;
-    private List<Process> workerProcesses = new ArrayList<>();
-    private int numberOfThreadsForSingleWorker;
+    private final List<Process> workerProcesses = new ArrayList<>();
+    private final int numberOfThreadsForSingleWorker;
 
     public SaturationJVMWorkerGenerator(int numberOfWorkers, int numberOfThreadsForSingleWorker) {
         this.numberOfWorkers = numberOfWorkers;
@@ -33,7 +30,7 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
         serverDataList = new ArrayList<>();
         Set<Integer> freePorts = new UnifiedSet<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            int freePort = 0;
+            int freePort;
             do {
                 freePort = NetworkingUtils.getFreePort();
             } while (!freePorts.add(freePort));
@@ -59,8 +56,6 @@ public class SaturationJVMWorkerGenerator implements SaturationWorkerGenerator {
     }
 
     private void startWorkerJVM(int portNumber) throws IOException, InterruptedException, URISyntaxException {
-        //String classpath = SaturationJVMWorkerGenerator.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        //classpath = URLDecoder.decode(classpath, "UTF-8");
         String classpath = System.getProperty("java.class.path");
 
         String javaBinPath = Paths.get(System.getProperty("java.home"), "bin", "java").toString();

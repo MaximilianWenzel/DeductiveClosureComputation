@@ -21,7 +21,7 @@ public class SubsumedByTopRuleVisitor implements ELConcept.Visitor, Serializable
         this.streamBuilder = streamBuilder;
     }
 
-    public Stream<ELConceptInclusion> getInferenceStream() {
+    public Stream<ELConceptInclusion> getConclusionStream() {
         return streamBuilder.build();
     }
 

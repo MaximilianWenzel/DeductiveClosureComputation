@@ -1,11 +1,8 @@
 package benchmark.rdfsreasoning;
 
 import org.rdfhdt.hdt.triples.TripleID;
-import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
-import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 
 public class RDFSWorkloadDistributor extends WorkloadDistributor<RDFSClosure, TripleID> {

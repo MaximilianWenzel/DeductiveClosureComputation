@@ -2,7 +2,6 @@ package benchmark.rdfsreasoning.rules;
 
 import benchmark.rdfsreasoning.RDFSClosure;
 import org.rdfhdt.hdt.triples.TripleID;
-import org.rdfhdt.hdt.triples.impl.TripleIDInt;
 import reasoning.rules.Rule;
 
 import java.util.stream.Stream;
@@ -17,7 +16,7 @@ public class RuleGRDFD2 extends Rule<RDFSClosure, TripleID> {
 
 
     @Override
-    public Stream<TripleID> streamOfInferences(TripleID axiom) {
+    public Stream<TripleID> streamOfConclusions(TripleID axiom) {
         return Stream.of(new TripleID(axiom.getPredicate(), rdfTypeID, rdfPropertyID));
     }
 

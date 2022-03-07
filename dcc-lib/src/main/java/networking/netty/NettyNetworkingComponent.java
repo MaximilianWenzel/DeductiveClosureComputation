@@ -2,14 +2,11 @@ package networking.netty;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import networking.ServerData;
 import util.ConsoleUtils;
 
@@ -25,9 +22,9 @@ public class NettyNetworkingComponent {
 
     private static final int BUFFER_SIZE = 512 << 10;
 
-    private Logger log = ConsoleUtils.getLogger();
+    private final Logger log = ConsoleUtils.getLogger();
 
-    private ConcurrentMap<Long, NettySocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, NettySocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
     private EventLoopGroup group;
     private int numberOfThreads = 1;
 
@@ -134,9 +131,9 @@ public class NettyNetworkingComponent {
 
     private class DefaultChannelInitializer extends ChannelInitializer<Channel> {
 
-        private List<? extends ChannelHandler> outboundHandlers;
-        private List<? extends ChannelHandler> inboundHandlers;
-        private Consumer<NettySocketManager> onConnectionEstablished;
+        private final List<? extends ChannelHandler> outboundHandlers;
+        private final List<? extends ChannelHandler> inboundHandlers;
+        private final Consumer<NettySocketManager> onConnectionEstablished;
 
         public DefaultChannelInitializer(Consumer<NettySocketManager> onConnectionEstablished,
                                          List<? extends ChannelHandler> inboundHandler,

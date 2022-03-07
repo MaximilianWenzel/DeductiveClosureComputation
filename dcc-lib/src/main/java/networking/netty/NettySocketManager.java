@@ -1,15 +1,12 @@
 package networking.netty;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
 import networking.io.SocketManager;
-import networking.messages.MessageEnvelope;
 import util.serialization.KryoSerializer;
 
 import java.io.IOException;
@@ -20,7 +17,7 @@ import java.util.List;
 public class NettySocketManager implements SocketManager {
 
     private final static int MESSAGE_SIZE_BYTES = 4;
-    private SocketChannel socketChannel;
+    private final SocketChannel socketChannel;
 
 
     public NettySocketManager(SocketChannel socketChannel) {
@@ -60,7 +57,7 @@ public class NettySocketManager implements SocketManager {
     public static class KryoDecoder extends ByteToMessageDecoder {
 
         private boolean newMessageStarts = true;
-        private KryoSerializer serializer = new KryoSerializer();
+        private final KryoSerializer serializer = new KryoSerializer();
         private int messageSizeInBytes;
         private int readBytes = 0;
         private int totalProcessedBytes = 0;
@@ -111,7 +108,7 @@ public class NettySocketManager implements SocketManager {
 
     public static class KryoEncoder extends MessageToByteEncoder<Serializable> {
 
-        private KryoSerializer serializer = new KryoSerializer();
+        private final KryoSerializer serializer = new KryoSerializer();
 
         @Override
         protected void encode(ChannelHandlerContext channelHandlerContext, Serializable serializable, ByteBuf byteBuf) {

@@ -1,7 +1,7 @@
 package networking;
 
-import benchmark.jmh.ReceiverStub;
-import benchmark.jmh.SenderStub;
+import benchmark.microbenchmark.ReceiverStub;
+import benchmark.microbenchmark.SenderStub;
 import enums.NetworkingComponentType;
 import networking.connectors.ConnectionModel;
 import networking.io.MessageHandler;

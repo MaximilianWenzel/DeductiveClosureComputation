@@ -1,15 +1,11 @@
 package benchmark.eldlreasoning;
 
 import data.DefaultClosure;
-import eldlsyntax.ELConcept;
 import eldlsyntax.ELConceptExistentialRestriction;
 import eldlsyntax.ELConceptInclusion;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
-import reasoning.saturation.models.WorkerModel;
 import reasoning.saturation.workload.WorkloadDistributor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 

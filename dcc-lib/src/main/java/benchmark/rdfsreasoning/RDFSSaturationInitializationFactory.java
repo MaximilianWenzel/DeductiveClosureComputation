@@ -4,7 +4,6 @@ import benchmark.rdfsreasoning.dataset.RDFDataset;
 import benchmark.rdfsreasoning.dataset.RDFSReasoningDictionary;
 import benchmark.rdfsreasoning.dataset.RDFSReasoningTriples;
 import benchmark.rdfsreasoning.rules.*;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.rdfhdt.hdt.triples.TripleID;
 import reasoning.rules.Rule;
 import reasoning.saturation.SaturationInitializationFactory;
@@ -14,16 +13,15 @@ import reasoning.saturation.workload.WorkloadDistributor;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 public class RDFSSaturationInitializationFactory
         extends SaturationInitializationFactory<RDFSClosure, TripleID> {
 
-    private RDFDataset rdfDataset;
+    private final RDFDataset rdfDataset;
     private RDFSReasoningTriples triples;
     private RDFSReasoningDictionary dictionary;
 
-    private int numberOfWorkers;
+    private final int numberOfWorkers;
     private List<WorkerModel<RDFSClosure, TripleID>> workerModels = null;
 
     public RDFSSaturationInitializationFactory(RDFDataset rdfDataset, int numberOfWorkers) {

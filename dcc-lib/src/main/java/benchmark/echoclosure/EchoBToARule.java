@@ -13,11 +13,11 @@ public class EchoBToARule extends Rule<EchoClosure, EchoAxiom> {
     }
 
     @Override
-    public Stream<EchoAxiom> streamOfInferences(EchoAxiom axiom) {
-        Stream.Builder<EchoAxiom> inferences = Stream.builder();
+    public Stream<EchoAxiom> streamOfConclusions(EchoAxiom axiom) {
+        Stream.Builder<EchoAxiom> conclusions = Stream.builder();
         if (axiom instanceof EchoAxiomB) {
-            inferences.add(new EchoAxiomA(axiom.getX() - 1));
+            conclusions.add(new EchoAxiomA(axiom.getX() - 1));
         }
-        return inferences.build();
+        return conclusions.build();
     }
 }

@@ -90,7 +90,6 @@ public class ELOntology {
 	 * @return the resulting ontology with the added axiom
 	 */
 	public ELOntology add(ELAxiom axiom) {
-		axiom = Objects.requireNonNull(axiom);
 		axiom.accept(new ELAxiom.Visitor() {
 
 			@Override
@@ -118,7 +117,6 @@ public class ELOntology {
 	 * @return the resulting ontology after removal of the axiom
 	 */
 	public ELOntology remove(ELAxiom axiom) {
-		axiom = Objects.requireNonNull(axiom);
 		axiom.accept(new ELAxiom.Visitor() {
 
 			@Override

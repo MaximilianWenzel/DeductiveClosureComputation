@@ -15,7 +15,7 @@ public class IndexedELOntology extends ELOntology {
     private final ELConcept bottom = new ELConceptBottom();
 
 
-    private AtomicInteger zero = new AtomicInteger(0);
+    private final AtomicInteger zero = new AtomicInteger(0);
 
 
     public IndexedELOntology() {
@@ -108,7 +108,6 @@ public class IndexedELOntology extends ELOntology {
      * @return the resulting ontology with the added axiom
      */
     public ELOntology add(ELAxiom axiom) {
-        axiom = Objects.requireNonNull(axiom);
         axiom.accept(new ELAxiom.Visitor() {
 
             @Override
@@ -136,7 +135,6 @@ public class IndexedELOntology extends ELOntology {
      * @return the resulting ontology after removal of the axiom
      */
     public ELOntology remove(ELAxiom axiom) {
-        axiom = Objects.requireNonNull(axiom);
         axiom.accept(new ELAxiom.Visitor() {
 
             @Override

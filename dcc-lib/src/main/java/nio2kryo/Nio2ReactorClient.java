@@ -51,7 +51,7 @@ public class Nio2ReactorClient {
 		Random rnd = new Random(123); // reproducible runs
 
 		Flux<Serializable> stream = Flux.range(1, COUNT)
-				.map(ignore -> (Axiom) new Edge(rnd.nextInt(1000),
+				.map(ignore -> new Edge(rnd.nextInt(1000),
 						rnd.nextInt(1000)));
 
 		AsynchronousChannelGroup group = AsynchronousChannelGroup

@@ -8,7 +8,6 @@ import util.NetworkingUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerator {
 
@@ -27,7 +26,7 @@ public class SaturationWorkerThreadGenerator implements SaturationWorkerGenerato
         serverDataList = new ArrayList<>();
         Set<Integer> freePorts = new UnifiedSet<>();
         for (int i = 0; i < numberOfWorkers; i++) {
-            int freePort = 0;
+            int freePort;
             do {
                 freePort = NetworkingUtils.getFreePort();
             } while (!freePorts.add(freePort));

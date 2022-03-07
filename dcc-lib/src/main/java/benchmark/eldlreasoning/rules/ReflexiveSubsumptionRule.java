@@ -1,10 +1,7 @@
 package benchmark.eldlreasoning.rules;
 
 import eldlsyntax.*;
-import reasoning.rules.InferenceProcessor;
 
-import java.io.Serializable;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -12,7 +9,7 @@ import java.util.stream.Stream;
  */
 public class ReflexiveSubsumptionRule extends OWLELRule {
 
-    private ReflexiveSubsumptionRuleVisitor visitor;
+    private final ReflexiveSubsumptionRuleVisitor visitor;
 
     public ReflexiveSubsumptionRule() {
         super();
@@ -20,11 +17,11 @@ public class ReflexiveSubsumptionRule extends OWLELRule {
     }
 
     @Override
-    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
-        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
-        visitor.setInferenceBuilder(inferences);
+    public Stream<ELConceptInclusion> streamOfConclusions(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> conclusions = Stream.builder();
+        visitor.setConclusionBuilder(conclusions);
         axiom.getSubConcept().accept(visitor);
         axiom.getSuperConcept().accept(visitor);
-        return inferences.build();
+        return conclusions.build();
     }
 }

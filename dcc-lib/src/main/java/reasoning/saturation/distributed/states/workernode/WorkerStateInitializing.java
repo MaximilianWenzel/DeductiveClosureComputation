@@ -19,7 +19,7 @@ public class WorkerStateInitializing<C extends Closure<A>, A extends Serializabl
     /**
      * Received axiom messages from other workers while in state 'initialized'.
      */
-    private List<A> bufferedAxiomMessages = new ArrayList<>();
+    private final List<A> bufferedAxiomMessages = new ArrayList<>();
 
     public WorkerStateInitializing(SaturationWorker<C, A> worker) {
         super(worker);

@@ -13,8 +13,8 @@ public class EchoSaturationInitializationFactory
         extends SaturationInitializationFactory<EchoClosure, EchoAxiom> {
 
     private List<EchoAxiom> initialAxioms;
-    private int numberOfWorkers;
-    private int numberOfInitialAxioms;
+    private final int numberOfWorkers;
+    private final int numberOfInitialAxioms;
     private List<WorkerModel<EchoClosure, EchoAxiom>> workerModels;
 
     public EchoSaturationInitializationFactory(int numberOfWorkers, int numberOfInitialAxioms) {

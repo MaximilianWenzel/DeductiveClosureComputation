@@ -23,15 +23,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
+/**
+ * This class represents an abstraction from individual network socket connections and can be used in order to connect to remote servers, to
+ * open new server sockets, or to send messages to already established connections. It uses the Java NIO.2 library in order to provide
+ * non-blocking asynchronous I/O operations.
+ */
 public class NIO2NetworkingComponent implements NetworkingComponent {
 
+    private final Logger log = ConsoleUtils.getLogger();
+    private final Consumer<Long> onSocketOutboundBufferHasSpace;
     protected Consumer<MessageEnvelope> onMessageCouldNotBeSent;
     protected ConcurrentMap<Long, NIO2SocketManager> socketIDToSocketManager = new ConcurrentHashMap<>();
     protected AsynchronousChannelGroup asynchronousChannelGroup;
     protected ExecutorService threadPool;
     protected List<AsynchronousServerSocketChannel> serverSocketChannels = new ArrayList<>();
-    private Logger log = ConsoleUtils.getLogger();
-    private Consumer<Long> onSocketOutboundBufferHasSpace;
 
     public NIO2NetworkingComponent(ExecutorService threadPool, Consumer<Long> onSocketOutboundBufferHasSpace) {
         this.threadPool = threadPool;
@@ -83,7 +88,8 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
         try {
             log.info("Connecting to server: " + hostAddress);
             client.connect(hostAddress).get();
-            NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor(), onSocketOutboundBufferHasSpace);
+            NIO2SocketManager socketManager = new NIO2SocketManager(client, serverConnector.getMessageProcessor(),
+                    onSocketOutboundBufferHasSpace);
             socketIDToSocketManager.put(socketManager.getSocketID(), socketManager);
             socketManager.startReading();
             serverConnector.onConnectionEstablished(socketManager);
@@ -163,8 +169,8 @@ public class NIO2NetworkingComponent implements NetworkingComponent {
 
 
     private class ServerSocketCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {
-        private ConnectionModel portListener;
-        private AsynchronousServerSocketChannel serverSocket;
+        private final ConnectionModel portListener;
+        private final AsynchronousServerSocketChannel serverSocket;
 
         public ServerSocketCompletionHandler(ConnectionModel portListener,
                                              AsynchronousServerSocketChannel serverSocket) {

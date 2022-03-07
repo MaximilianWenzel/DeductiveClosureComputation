@@ -3,12 +3,15 @@ package networking.io;
 import java.io.IOException;
 import java.io.Serializable;
 
+/**
+ * This class represents an abstraction from a given socket connection to send messages.
+ */
 public interface SocketManager {
-    public boolean sendMessage(Serializable message);
+    boolean sendMessage(Serializable message);
 
-    public boolean hasMessagesToSend();
+    boolean hasMessagesToSend();
 
-    public void close() throws IOException;
+    void close() throws IOException;
 
     boolean hasMessagesToRead();
 

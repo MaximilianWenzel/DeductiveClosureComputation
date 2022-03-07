@@ -1,5 +1,8 @@
 package networking.messages;
 
+/**
+ * A request message which is sent from the control node to a worker node in order to request an axiom count message.
+ */
 public class RequestAxiomMessageCount extends MessageModel {
 
     private int stage;

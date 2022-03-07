@@ -21,11 +21,8 @@ public class ELConceptTop extends ELConcept {
             return true;
         }
         // else
-        if (obj instanceof ELConceptTop) {
-            return true;
-        }
+        return obj instanceof ELConceptTop;
         // else
-        return false;
     }
 
     @Override

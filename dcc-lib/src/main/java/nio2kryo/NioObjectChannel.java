@@ -10,7 +10,7 @@ import java.nio.channels.SocketChannel;
 class NioObjectChannel implements Reader, Writer {
 
 	// private static int BUFFER_LIMIT_ = 128;
-	private static int BUFFER_LIMIT_ = 4096 * 4;
+	private static final int BUFFER_LIMIT_ = 4096 * 4;
 
 	/**
 	 * number of bytes occupied by the size information
@@ -100,12 +100,9 @@ class NioObjectChannel implements Reader, Writer {
 			}
 			toReadBytes = in_.readShortUnsigned();
 		}
-		if (in_.limit() - in_.position() < toReadBytes) {
-			// System.out.println("Not enough bytes!");
-			return false;
-		}
-		return true;
-	}
+        // System.out.println("Not enough bytes!");
+        return in_.limit() - in_.position() >= toReadBytes;
+    }
 
 	@Override
 	public void write(Object o) {

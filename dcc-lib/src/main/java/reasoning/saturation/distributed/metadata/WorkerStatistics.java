@@ -10,7 +10,16 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * This class can be used in order to collect finegrained statistics for the workers in the computation of the deductive
+ * closure for a given set of rules and axioms.
+ */
 public class WorkerStatistics implements Serializable {
+    private final AtomicLong todoIsEmptyEvent = new AtomicLong(0);
+    private final AtomicLong numberOfProcessedAxioms = new AtomicLong(0);
+    private final AtomicLong numberOfDerivedConclusions = new AtomicLong(0);
+    private final AtomicLong numberOfSentAxioms = new AtomicLong(0);
+    private final AtomicLong numberOfReceivedAxioms = new AtomicLong(0);
     // worker statistics
     transient Stopwatch initializingConnectionsToOtherWorkersSW = Stopwatch.createUnstarted();
     transient Stopwatch waitingTimeWhileSaturationSW = Stopwatch.createUnstarted();
@@ -20,11 +29,6 @@ public class WorkerStatistics implements Serializable {
     private long waitingTimeWhileSaturationMS = -1L;
     private long applyingRulesTimeWhileSaturationMS = -1L;
     private long distributingAxiomsTimeMS = -1L;
-    private AtomicLong todoIsEmptyEvent = new AtomicLong(0);
-    private AtomicLong numberOfProcessedAxioms = new AtomicLong(0);
-    private AtomicLong numberOfDerivedInferences = new AtomicLong(0);
-    private AtomicLong numberOfSentAxioms = new AtomicLong(0);
-    private AtomicLong numberOfReceivedAxioms = new AtomicLong(0);
 
     public WorkerStatistics() {
 
@@ -75,7 +79,7 @@ public class WorkerStatistics implements Serializable {
         result.add("" + stats.stream().mapToDouble(WorkerStatistics::getDistributingAxiomsTimeMS).average().getAsDouble());
         result.add("" + stats.stream().mapToDouble(s -> s.getTodoIsEmptyEvent().get()).average().getAsDouble());
         result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfProcessedAxioms().get()).average().getAsDouble());
-        result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfDerivedInferences().get()).average().getAsDouble());
+        result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfDerivedConclusions().get()).average().getAsDouble());
         result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfSentAxioms().get()).average().getAsDouble());
         result.add("" + stats.stream().mapToDouble(s -> s.getNumberOfReceivedAxioms().get()).average().getAsDouble());
         return result;
@@ -127,8 +131,8 @@ public class WorkerStatistics implements Serializable {
         return numberOfProcessedAxioms;
     }
 
-    public AtomicLong getNumberOfDerivedInferences() {
-        return numberOfDerivedInferences;
+    public AtomicLong getNumberOfDerivedConclusions() {
+        return numberOfDerivedConclusions;
     }
 
     public AtomicLong getNumberOfSentAxioms() {
@@ -156,7 +160,7 @@ public class WorkerStatistics implements Serializable {
         stats.add(distributingAxiomsTimeMS);
         stats.add(todoIsEmptyEvent.get());
         stats.add(numberOfProcessedAxioms.get());
-        stats.add(numberOfDerivedInferences.get());
+        stats.add(numberOfDerivedConclusions.get());
         stats.add(numberOfSentAxioms.get());
         stats.add(numberOfReceivedAxioms.get());
         return stats;

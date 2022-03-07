@@ -10,6 +10,13 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * A initialization message which is sent from the control node to a worker node. It determines which rules are assigned to the worker and
+ * how newly deduced conclusions are distributed to the workers.
+ *
+ * @param <C> Type of the resulting deductive closure.
+ * @param <A> Type of the axioms in the deductive closure.
+ */
 public class InitializeWorkerMessage<C extends Closure<A>, A extends Serializable>
         extends MessageModel<C, A> {
 

@@ -1,5 +1,9 @@
 package networking.messages;
 
+/**
+ * A message that is sent from the worker nodes to the control node which contains information concerning the number of sent and received
+ * axioms. The message is required by the control node to determine if all workers converged.
+ */
 public class AxiomCount extends MessageModel {
     int stage;
     int sentAxioms;

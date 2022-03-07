@@ -16,8 +16,8 @@ public class UnfoldExistentialRule extends OWLELRule {
     }
 
     @Override
-    public Stream<ELConceptInclusion> streamOfInferences(ELConceptInclusion axiom) {
-        Stream.Builder<ELConceptInclusion> inferences = Stream.builder();
+    public Stream<ELConceptInclusion> streamOfConclusions(ELConceptInclusion axiom) {
+        Stream.Builder<ELConceptInclusion> conclusions = Stream.builder();
         if (!(axiom.getSuperConcept() instanceof ELConceptExistentialRestriction)) {
             return Stream.empty();
         }
@@ -34,9 +34,9 @@ public class UnfoldExistentialRule extends OWLELRule {
             if (c.equals(conceptInclusion.getSubConcept())) {
                 ELConcept d = conceptInclusion.getSuperConcept();
                 ELConceptExistentialRestriction existForSupertype = new ELConceptExistentialRestriction(exist.getRelation(), d);
-                inferences.add(new ELConceptInclusion(e, existForSupertype));
+                conclusions.add(new ELConceptInclusion(e, existForSupertype));
             }
         }
-        return inferences.build();
+        return conclusions.build();
     }
 }

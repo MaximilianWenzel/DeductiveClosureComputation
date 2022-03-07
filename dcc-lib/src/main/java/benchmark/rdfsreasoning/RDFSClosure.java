@@ -1,9 +1,7 @@
 package benchmark.rdfsreasoning;
 
 import data.Closure;
-import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.rdfhdt.hdt.triples.TripleID;
-import org.rdfhdt.hdt.triples.impl.TripleIDInt;
 
 import java.util.*;
 

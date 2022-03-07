@@ -8,7 +8,6 @@ import reasoning.saturation.distributed.SaturationWorker;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.List;
 
 public class WorkerStateRunning<C extends Closure<A>, A extends Serializable> extends WorkerState<C, A> {
 
@@ -72,8 +71,8 @@ public class WorkerStateRunning<C extends Closure<A>, A extends Serializable> ex
 
     @Override
     public void visit(A axiom) {
-        Collection<A> inferences = incrementalReasoner.getInferencesForGivenAxiom(axiom);
-        communicationChannel.distributeInferences(inferences.stream());
+        Collection<A> conclusions = incrementalReasoner.getConclusionsForGivenAxiom(axiom);
+        communicationChannel.distributeConclusions(conclusions.stream());
     }
 
 }

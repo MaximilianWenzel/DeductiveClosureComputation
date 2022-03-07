@@ -5,6 +5,11 @@ import networking.ServerData;
 
 import java.io.Serializable;
 
+/**
+ * In addition to the usual worker model representation, this class defines the appropriate server address and port number in order to be
+ * able to establish a connection to the corresponding worker server.
+ *
+ */
 public class DistributedWorkerModel<C extends Closure<A>, A extends Serializable> extends WorkerModel<C, A> {
     protected ServerData serverData;
 

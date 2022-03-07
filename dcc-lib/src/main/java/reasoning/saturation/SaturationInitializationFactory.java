@@ -12,6 +12,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * A class that can be used to initialize the computation of the deductive closure. It can be used in order to obtain the internal
+ * representation of all deployed workers and get the initial axioms for the specified logic problem.
+ *
+ * @param <C> Type of the resulting deductive closure.
+ * @param <A> Type of the axioms in the resulting deductive closure.
+ */
 public abstract class SaturationInitializationFactory<C extends Closure<A>, A extends Serializable> {
 
     public abstract List<WorkerModel<C, A>> getWorkerModels();
@@ -31,8 +38,12 @@ public abstract class SaturationInitializationFactory<C extends Closure<A>, A ex
 
 
     public abstract Iterator<? extends A> getInitialAxioms();
+
     public abstract C getNewClosure();
+
     public abstract WorkloadDistributor<C, A> getWorkloadDistributor();
+
     public abstract List<Rule<C, A>> generateRules();
+
     public abstract void resetFactory();
 }

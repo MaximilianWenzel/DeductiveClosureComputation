@@ -2,6 +2,7 @@ package networking.io.nio2;
 
 import util.serialization.KryoSerializer;
 import util.serialization.Serializer;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.BufferOverflowException;
@@ -11,21 +12,22 @@ import java.nio.channels.CompletionHandler;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+/**
+ * This class provides methods in order to serialize messages to the appropriate socket outbound buffer and initiates by itself an
+ * asynchronous, non-blocking write operation using the NIO.2 Asynchronous Socket Channel API.
+ */
 public class NIO2MessageWriter {
 
     private final AsynchronousSocketChannel socketChannel;
-    // TODO user defined buffer size
     private final int BUFFER_SIZE = 512 << 10;
     private final int STOP_SERIALIZATION_REMAINING_BYTES = (int) (BUFFER_SIZE * 0.1);
     private final AtomicBoolean currentlyWritingMessage = new AtomicBoolean(false);
-    private int MESSAGE_SIZE_BYTES = 4;
-    private Serializer serializer = new KryoSerializer();
-
+    private final int MESSAGE_SIZE_BYTES = 4;
+    private final Serializer serializer = new KryoSerializer();
+    private final long socketID;
+    private final Consumer<Long> onSocketOutboundBufferHasSpace;
     private ByteBuffer messageBufferToReadFrom = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private ByteBuffer messageBufferToWriteTo = ByteBuffer.allocateDirect(BUFFER_SIZE);
-
-    private long socketID;
-    private Consumer<Long> onSocketOutboundBufferHasSpace;
 
     public NIO2MessageWriter(long socketID, AsynchronousSocketChannel socketChannel,
                              Consumer<Long> onSocketOutboundBufferHasSpace) {
@@ -35,7 +37,7 @@ public class NIO2MessageWriter {
     }
 
     /**
-     * Returns whether message could be transmitted.
+     * Returns whether the message could be transmitted.
      */
     public boolean send(Serializable message) {
         try {

@@ -6,10 +6,14 @@ import networking.io.SocketManager;
 
 import java.util.Objects;
 
+/**
+ * This class is used in the context of connecting to remote servers or to listening on a given port. The given message handler determines
+ * how the correspondingly received messages are processed.
+ */
 public abstract class ConnectionModel {
 
-    private ServerData serverData;
-    private MessageHandler messageHandler;
+    private final ServerData serverData;
+    private final MessageHandler messageHandler;
 
     public ConnectionModel(ServerData portToListenOrServerToConnect, MessageHandler messageHandler) {
         this.serverData = portToListenOrServerToConnect;

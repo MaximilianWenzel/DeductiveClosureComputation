@@ -4,11 +4,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class ChainGraphGenerator<E extends Serializable> extends GraphGenerator<E> {
+public abstract class ChainGraphGenerator<E extends Serializable> extends DirectedGraphGenerator<E> {
 
-    protected final AtomicInteger nodeIndex = new AtomicInteger(0);
     protected ArrayList<Integer> nodeIDs;
     protected List<E> edges;
 

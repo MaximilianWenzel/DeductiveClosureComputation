@@ -18,11 +18,11 @@ public class SaturationDockerWorkerGenerator implements SaturationWorkerGenerato
 
     private static final Logger log = ConsoleUtils.getLogger();
     private static final String containerPrefix = "saturation-worker-";
-    private int numberOfWorkers;
+    private final int numberOfWorkers;
     private List<ServerData> serverDataList;
     private List<String> containerNames;
     private List<Integer> portNumbers;
-    private String networkName = "saturation-worker-network";
+    private final String networkName = "saturation-worker-network";
 
     public SaturationDockerWorkerGenerator(int numberOfWorkers) {
         this.numberOfWorkers = numberOfWorkers;
