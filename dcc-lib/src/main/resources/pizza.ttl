@@ -1,0 +1,187 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <http://www.w3.org/2002/07/owl#> .
+
+[ rdf:type owl:Ontology
+ ] .
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  http://www.co-ode.org/ontologies/ont.owl#hasIngredient
+<http://www.co-ode.org/ontologies/ont.owl#hasIngredient> rdf:type owl:ObjectProperty ;
+                                                         rdfs:subPropertyOf owl:topObjectProperty .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#hasTopping
+<http://www.co-ode.org/ontologies/ont.owl#hasTopping> rdf:type owl:ObjectProperty ;
+                                                      rdfs:subPropertyOf <http://www.co-ode.org/ontologies/ont.owl#hasIngredient> .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://www.co-ode.org/ontologies/ont.owl#CarnivorusPizza
+<http://www.co-ode.org/ontologies/ont.owl#CarnivorusPizza> rdf:type owl:Class ;
+                                                           owl:equivalentClass [ owl:intersectionOf ( <http://www.co-ode.org/ontologies/ont.owl#Pizza>
+                                                                                                      [ rdf:type owl:Restriction ;
+                                                                                                        owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                                                                                                        owl:allValuesFrom [ owl:intersectionOf ( <http://www.co-ode.org/ontologies/ont.owl#Fish>
+                                                                                                                                                 <http://www.co-ode.org/ontologies/ont.owl#Meat>
+                                                                                                                                               ) ;
+                                                                                                                            rdf:type owl:Class
+                                                                                                                          ]
+                                                                                                      ]
+                                                                                                    ) ;
+                                                                                 rdf:type owl:Class
+                                                                               ] .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#Cheese
+<http://www.co-ode.org/ontologies/ont.owl#Cheese> rdf:type owl:Class ;
+                                                  owl:disjointWith <http://www.co-ode.org/ontologies/ont.owl#Fish> ,
+                                                                   <http://www.co-ode.org/ontologies/ont.owl#Meat> .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#CheesePizza
+<http://www.co-ode.org/ontologies/ont.owl#CheesePizza> rdf:type owl:Class ;
+                                                       owl:equivalentClass [ owl:intersectionOf ( <http://www.co-ode.org/ontologies/ont.owl#Pizza>
+                                                                                                  [ rdf:type owl:Restriction ;
+                                                                                                    owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                                                                                                    owl:someValuesFrom <http://www.co-ode.org/ontologies/ont.owl#Cheese>
+                                                                                                  ]
+                                                                                                  [ rdf:type owl:Restriction ;
+                                                                                                    owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                                                                                                    owl:allValuesFrom <http://www.co-ode.org/ontologies/ont.owl#Cheese>
+                                                                                                  ]
+                                                                                                ) ;
+                                                                             rdf:type owl:Class
+                                                                           ] .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#EmptyPizza
+<http://www.co-ode.org/ontologies/ont.owl#EmptyPizza> rdf:type owl:Class ;
+                                                      owl:equivalentClass [ owl:intersectionOf ( <http://www.co-ode.org/ontologies/ont.owl#Pizza>
+                                                                                                 [ rdf:type owl:Class ;
+                                                                                                   owl:complementOf [ rdf:type owl:Restriction ;
+                                                                                                                      owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                                                                                                                      owl:someValuesFrom owl:Thing
+                                                                                                                    ]
+                                                                                                 ]
+                                                                                               ) ;
+                                                                            rdf:type owl:Class
+                                                                          ] .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#Fish
+<http://www.co-ode.org/ontologies/ont.owl#Fish> rdf:type owl:Class ;
+                                                owl:disjointWith <http://www.co-ode.org/ontologies/ont.owl#Meat> ,
+                                                                 <http://www.co-ode.org/ontologies/ont.owl#Spinach> ,
+                                                                 <http://www.co-ode.org/ontologies/ont.owl#Vegetable> .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#Meat
+<http://www.co-ode.org/ontologies/ont.owl#Meat> rdf:type owl:Class ;
+                                                owl:disjointWith <http://www.co-ode.org/ontologies/ont.owl#Spinach> ,
+                                                                 <http://www.co-ode.org/ontologies/ont.owl#Vegetable> .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#Pizza
+<http://www.co-ode.org/ontologies/ont.owl#Pizza> rdf:type owl:Class .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#PizzaTopping
+<http://www.co-ode.org/ontologies/ont.owl#PizzaTopping> rdf:type owl:Class .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#Spinach
+<http://www.co-ode.org/ontologies/ont.owl#Spinach> rdf:type owl:Class .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#SpinachPizza
+<http://www.co-ode.org/ontologies/ont.owl#SpinachPizza> rdf:type owl:Class ;
+                                                        owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
+                                                                                                     owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                                                                                                     owl:someValuesFrom <http://www.co-ode.org/ontologies/ont.owl#Cheese>
+                                                                                                   ]
+                                                                                                   [ rdf:type owl:Restriction ;
+                                                                                                     owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                                                                                                     owl:someValuesFrom <http://www.co-ode.org/ontologies/ont.owl#Spinach>
+                                                                                                   ]
+                                                                                                   [ rdf:type owl:Restriction ;
+                                                                                                     owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                                                                                                     owl:allValuesFrom [ rdf:type owl:Class ;
+                                                                                                                         owl:unionOf ( <http://www.co-ode.org/ontologies/ont.owl#Cheese>
+                                                                                                                                       <http://www.co-ode.org/ontologies/ont.owl#Spinach>
+                                                                                                                                     )
+                                                                                                                       ]
+                                                                                                   ]
+                                                                                                 ) ;
+                                                                              rdf:type owl:Class
+                                                                            ] .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#Vegetable
+<http://www.co-ode.org/ontologies/ont.owl#Vegetable> rdf:type owl:Class .
+
+
+###  http://www.co-ode.org/ontologies/ont.owl#VegetarianPizza
+<http://www.co-ode.org/ontologies/ont.owl#VegetarianPizza> rdf:type owl:Class ;
+                                                           owl:equivalentClass [ owl:intersectionOf ( <http://www.co-ode.org/ontologies/ont.owl#Pizza>
+                                                                                                      [ rdf:type owl:Restriction ;
+                                                                                                        owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasIngredient> ;
+                                                                                                        owl:allValuesFrom [ owl:intersectionOf ( [ rdf:type owl:Class ;
+                                                                                                                                                   owl:complementOf <http://www.co-ode.org/ontologies/ont.owl#Fish>
+                                                                                                                                                 ]
+                                                                                                                                                 [ rdf:type owl:Class ;
+                                                                                                                                                   owl:complementOf <http://www.co-ode.org/ontologies/ont.owl#Meat>
+                                                                                                                                                 ]
+                                                                                                                                               ) ;
+                                                                                                                            rdf:type owl:Class
+                                                                                                                          ]
+                                                                                                      ]
+                                                                                                    ) ;
+                                                                                 rdf:type owl:Class
+                                                                               ] ,
+                                                                               [ owl:intersectionOf ( <http://www.co-ode.org/ontologies/ont.owl#Pizza>
+                                                                                                      [ rdf:type owl:Restriction ;
+                                                                                                        owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                                                                                                        owl:allValuesFrom [ owl:intersectionOf ( [ rdf:type owl:Class ;
+                                                                                                                                                   owl:complementOf <http://www.co-ode.org/ontologies/ont.owl#Fish>
+                                                                                                                                                 ]
+                                                                                                                                                 [ rdf:type owl:Class ;
+                                                                                                                                                   owl:complementOf <http://www.co-ode.org/ontologies/ont.owl#Meat>
+                                                                                                                                                 ]
+                                                                                                                                               ) ;
+                                                                                                                            rdf:type owl:Class
+                                                                                                                          ]
+                                                                                                      ]
+                                                                                                    ) ;
+                                                                                 rdf:type owl:Class
+                                                                               ] .
+
+
+###  http://www.w3.org/2002/07/owl#Thing
+owl:Thing rdfs:subClassOf [ rdf:type owl:Restriction ;
+                            owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+                            owl:allValuesFrom <http://www.co-ode.org/ontologies/ont.owl#PizzaTopping>
+                          ] .
+
+
+#################################################################
+#    General axioms
+#################################################################
+
+[ rdf:type owl:Restriction ;
+  owl:onProperty <http://www.co-ode.org/ontologies/ont.owl#hasTopping> ;
+  owl:someValuesFrom owl:Thing ;
+  rdfs:subClassOf <http://www.co-ode.org/ontologies/ont.owl#Pizza>
+] .
+
+
+###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi

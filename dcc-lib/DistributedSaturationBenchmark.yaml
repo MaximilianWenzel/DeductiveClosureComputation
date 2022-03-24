@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  worker:
+    image: saturation-worker:latest
+    networks:
+      - saturation-network
+    ports:
+      - "30000"
+    command: 0.0.0.0 30000 ${NUM_NETWORKING_THREADS}
+    deploy:
+      mode: replicated
+      replicas: ${NUM_WORKERS}
+      resources:
+         limits:
+            memory: 5G
+  control-node:
+    user: $UID:$GID
+    depends_on:
+      - worker
+    image: saturation-control-node:latest
+    networks:
+      - saturation-network
+    volumes:
+      - ~/:/saturation # read/write access to home directory # ONLY WORKING VOLUME ON KI-SERVER
+      #- ./:/saturation/ # directory of docker compose file 
+    command: ${APPROACH} ${NUM_WORKERS} ${BENCHMARK} ${COLLECT_WORKER_STATS}
+    ports:
+      - "30000"
+    deploy:
+      resources:
+         limits:
+            memory: 10G
+networks:
+  saturation-network: { }

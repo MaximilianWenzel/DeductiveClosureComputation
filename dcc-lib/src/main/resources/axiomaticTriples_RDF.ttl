@@ -1,0 +1,10 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+rdf:type a rdf:Property .
+rdf:subject a rdf:Property .
+rdf:predicate a rdf:Property .
+rdf:object a rdf:Property .
+rdf:first a rdf:Property .
+rdf:rest a rdf:Property .
+rdf:value a rdf:Property .
+rdf:nil a rdf:List .
